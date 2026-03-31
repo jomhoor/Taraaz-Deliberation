@@ -38,7 +38,7 @@
         />
         <PrimeButton
           :label="t('closeButton')"
-          :disabled="selectedTopicsCount === 0"
+          :disabled="fullTopicList.length > 0 && selectedTopicsCount === 0"
           @click="emit('close')"
         />
       </div>

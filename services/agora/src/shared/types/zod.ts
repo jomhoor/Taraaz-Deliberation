@@ -212,15 +212,15 @@ export const zodCommentFeedFilter = z.enum([
     "my_votes",
 ]);
 export const usernameRegex = new RegExp(
-    `^[a-z0-9_]*$`, // {${MIN_LENGTH_USERNAME.toString()},${MAX_LENGTH_USERNAME.toString()}
+    `^[a-zA-Z0-9_]*$`, // {${MIN_LENGTH_USERNAME.toString()},${MAX_LENGTH_USERNAME.toString()}
 );
 export const zodUsername = z
     .string()
     .regex(
         usernameRegex,
-        'Username may only contain lower-cased letters, numbers and "_"',
+        'Username may only contain letters, numbers and "_"',
     )
-    .refine((val) => /(?=.*[a-z])/.test(val) || /(?=.*[0-9])/.test(val), {
+    .refine((val) => /(?=.*[a-zA-Z])/.test(val) || /(?=.*[0-9])/.test(val), {
         message: "Username must contain at least one character or number",
     })
     .refine((val) => !/__+/.test(val), {

@@ -4,7 +4,15 @@
     position="bottom"
     @update:model-value="handleDialogClose"
   >
-    <ZKBottomDialogContainer>
+    <ZKBottomDialogContainer style="position: relative">
+      <q-btn
+        icon="mdi-close"
+        flat
+        round
+        dense
+        class="dismiss-btn"
+        @click="handleClose"
+      />
       <div v-if="step === 'language'">
         <SpokenLanguageStep @next="step = 'topics'" />
       </div>
@@ -39,3 +47,12 @@ const handleDialogClose = (value: boolean): void => {
   }
 };
 </script>
+
+<style scoped lang="scss">
+.dismiss-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+}
+</style>
