@@ -1,6 +1,7 @@
+import "primeicons/primeicons.css";
+
 import { definePreset } from "@primeuix/themes";
 import Aura from "@primeuix/themes/aura";
-import "primeicons/primeicons.css";
 import PrimeVue from "primevue/config";
 
 import { defineBoot } from "#q-app/wrappers";
