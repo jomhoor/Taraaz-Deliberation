@@ -22,16 +22,20 @@
 
         <template #body>
           <ZKGradientButton
-            :label="t('connectWallet')"
-            @click="goToWalletLogin()"
-          />
-
-          <ZKGradientButton
             :label="t('loginWithPhone')"
-            gradient-background="#E7E7FF"
-            label-color="#6B4EFF"
             @click="goToPhoneLogin()"
           />
+
+          <div class="wallet-coming-soon">
+            <ZKGradientButton
+              :label="t('connectWallet')"
+              gradient-background="#E0E0E0"
+              label-color="#9E9E9E"
+              disabled
+              class="disabled-button"
+            />
+            <span class="coming-soon-badge">{{ t('comingSoon') }}</span>
+          </div>
 
           <p><SignupAgreement /></p>
         </template>
@@ -61,11 +65,27 @@ const { t } = useComponentI18n<LoginOnboardingTranslations>(
 
 const router = useRouter();
 
-async function goToWalletLogin() {
-  await router.push({ name: "/onboarding/step3-wallet/" });
-}
-
 async function goToPhoneLogin() {
   await router.replace({ name: "/onboarding/step3-phone-1/" });
 }
 </script>
+
+<style scoped>
+.wallet-coming-soon {
+  position: relative;
+  opacity: 0.6;
+}
+
+.wallet-coming-soon .disabled-button {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.coming-soon-badge {
+  display: block;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #9E9E9E;
+  margin-top: 4px;
+}
+</style>

@@ -7,6 +7,7 @@ export interface LoginOnboardingTranslations {
   loginWithRarimo: string;
   loginWithPhone: string;
   loginWithEmail: string;
+  comingSoon: string;
 }
 
 export const loginOnboardingTranslations: Record<
@@ -20,6 +21,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "Login with Rarimo",
     loginWithPhone: "Login with phone number",
     loginWithEmail: "Login with email",
+    comingSoon: "Coming soon",
   },
   ar: {
     pageTitle: "تسجيل الدخول",
@@ -28,6 +30,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "تسجيل الدخول باستخدام Rarimo",
     loginWithPhone: "تسجيل الدخول برقم هاتفي",
     loginWithEmail: "تسجيل الدخول ببريدي الإلكتروني",
+    comingSoon: "قريباً",
   },
   es: {
     pageTitle: "Iniciar sesión",
@@ -36,6 +39,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "Iniciar sesión con Rarimo",
     loginWithPhone: "Iniciar sesión con mi número de teléfono",
     loginWithEmail: "Iniciar sesión con mi correo electrónico",
+    comingSoon: "Próximamente",
   },
   fr: {
     pageTitle: "Se connecter",
@@ -44,6 +48,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "Se connecter avec Rarimo",
     loginWithPhone: "Se connecter avec mon numéro de téléphone",
     loginWithEmail: "Se connecter avec mon e-mail",
+    comingSoon: "Bientôt disponible",
   },
   "zh-Hans": {
     pageTitle: "登录",
@@ -52,6 +57,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "使用 Rarimo 登录",
     loginWithPhone: "使用手机号登录",
     loginWithEmail: "使用我的邮箱登录",
+    comingSoon: "即将推出",
   },
   "zh-Hant": {
     pageTitle: "登入",
@@ -60,6 +66,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "使用 Rarimo 登入",
     loginWithPhone: "使用手機號登入",
     loginWithEmail: "使用我的郵箱登入",
+    comingSoon: "即將推出",
   },
   ja: {
     pageTitle: "ログイン",
@@ -68,6 +75,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "Rarimo でログイン",
     loginWithPhone: "携帯電話でログイン",
     loginWithEmail: "自分のメールでログイン",
+    comingSoon: "近日公開",
   },
   fa: {
     pageTitle: "ورود",
@@ -76,6 +84,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "ورود با Rarimo",
     loginWithPhone: "ورود با شماره تلفن",
     loginWithEmail: "ورود با ایمیل",
+    comingSoon: "به‌زودی",
   },
   ky: {
     pageTitle: "Кирүү",
@@ -84,6 +93,7 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "Rarimo менен кирүү",
     loginWithPhone: "Телефон номери менен кирүү",
     loginWithEmail: "Электрондук почта менен кирүү",
+    comingSoon: "Жакында",
   },
   ru: {
     pageTitle: "Вход",
@@ -92,5 +102,6 @@ export const loginOnboardingTranslations: Record<
     loginWithRarimo: "Войти через Rarimo",
     loginWithPhone: "Войти по номеру телефона",
     loginWithEmail: "Войти по электронной почте",
+    comingSoon: "Скоро",
   },
 };
