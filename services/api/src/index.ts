@@ -3354,8 +3354,9 @@ server.after(() => {
                     .type("image/png")
                     .header("Cache-Control", "public, max-age=300, s-maxage=300")
                     .send(pngBuffer);
-            } catch {
-                // Fallback: redirect to static image
+            } catch (err) {
+                // Log the error for debugging, then fallback to static image
+                log.error({ err }, "OG image generation failed");
                 const siteUrl = config.CORS_ORIGIN_LIST[0] ?? "https://taraaz.jomhoor.org";
                 return reply.redirect(`${siteUrl}/og-image.png`);
             }
