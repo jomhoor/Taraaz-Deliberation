@@ -20,6 +20,10 @@ function loadFont(filename: string): Buffer {
 }
 
 const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
+const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");   }
+}
+
+const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
 const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");
 
 interface OgImageParams {
@@ -55,6 +59,8 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
         {
             type: "div",
             props: {
+                lang: "fa",
+                dir: "rtl",
                 style: {
                     width: "1200px",
                     height: "630px",
@@ -62,7 +68,6 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                     flexDirection: "column",
                     background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
                     fontFamily: "Vazirmatn",
-                    direction: "rtl",
                     padding: "0",
                 },
                 children: [
