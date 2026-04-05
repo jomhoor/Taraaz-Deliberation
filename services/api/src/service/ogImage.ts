@@ -7,16 +7,20 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load the Parastoo font once at startup
-const fontPath = path.join(__dirname, "..", "assets", "fonts", "Parastoo-Variable.ttf");
-let parastooFont: Buffer;
-try {
-    parastooFont = fs.readFileSync(fontPath);
-} catch {
-    // Fallback: try dist layout (production Docker)
-    const altPath = path.join(__dirname, "assets", "fonts", "Parastoo-Variable.ttf");
-    parastooFont = fs.readFileSync(altPath);
+// Load Vazirmatn static fonts once at startup (satori doesn't support variable fonts)
+function loadFont(filename: string): Buffer {
+    // Try src layout first (development), then dist layout (production Docker)
+    const srcPath = path.join(__dirname, "..", "assets", "fonts", filename);
+    try {
+        return fs.readFileSync(srcPath);
+    } catch {
+        const distPath = path.join(__dirname, "assets", "fonts", filename);
+        return fs.readFileSync(distPath);
+    }
 }
+
+const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
+const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");
 
 interface OgImageParams {
     title: string;
@@ -57,7 +61,7 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                     display: "flex",
                     flexDirection: "column",
                     background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-                    fontFamily: "Parastoo",
+                    fontFamily: "Vazirmatn",
                     direction: "rtl",
                     padding: "0",
                 },
@@ -307,14 +311,14 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
             height: 630,
             fonts: [
                 {
-                    name: "Parastoo",
-                    data: parastooFont,
+                    name: "Vazirmatn",
+                    data: vazirmatnRegular,
                     weight: 400,
                     style: "normal",
                 },
                 {
-                    name: "Parastoo",
-                    data: parastooFont,
+                    name: "Vazirmatn",
+                    data: vazirmatnBold,
                     weight: 700,
                     style: "normal",
                 },
