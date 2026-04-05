@@ -3326,6 +3326,42 @@ server.after(() => {
         },
     });
 
+    // Dynamic OG image generation endpoint (must be registered BEFORE :slugId catch-all)
+    server.route({
+        method: "GET",
+        url: `/og/conversation/:slugId/image`,
+        handler: async (request, reply) => {
+            const { slugId } = request.params as { slugId: string };
+
+            try {
+                const post = await postService.fetchPostBySlugId({
+                    db: db,
+                    conversationSlugId: slugId,
+                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
+                });
+
+                const pngBuffer = await generateOgImage({
+                    title: post.payload.title,
+                    body: post.payload.body ?? "",
+                    participantCount: post.metadata.participantCount,
+                    opinionCount: post.metadata.opinionCount,
+                    voteCount: post.metadata.voteCount,
+                    authorUsername: post.metadata.authorUsername,
+                    organizationName: post.metadata.organization?.name,
+                });
+
+                return reply
+                    .type("image/png")
+                    .header("Cache-Control", "public, max-age=300, s-maxage=300")
+                    .send(pngBuffer);
+            } catch {
+                // Fallback: redirect to static image
+                const siteUrl = config.CORS_ORIGIN_LIST[0] ?? "https://taraaz.jomhoor.org";
+                return reply.redirect(`${siteUrl}/og-image.png`);
+            }
+        },
+    });
+
     // OG meta tags endpoint for social media crawlers (GET required by protocol)
     server.route({
         method: "GET",
@@ -3406,42 +3442,6 @@ server.after(() => {
             } catch {
                 // If conversation not found, redirect to the feed
                 return reply.redirect(`${siteUrl}/feed/`);
-            }
-        },
-    });
-
-    // Dynamic OG image generation endpoint
-    server.route({
-        method: "GET",
-        url: `/og/conversation/:slugId/image`,
-        handler: async (request, reply) => {
-            const { slugId } = request.params as { slugId: string };
-
-            try {
-                const post = await postService.fetchPostBySlugId({
-                    db: db,
-                    conversationSlugId: slugId,
-                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
-                });
-
-                const pngBuffer = await generateOgImage({
-                    title: post.payload.title,
-                    body: post.payload.body ?? "",
-                    participantCount: post.metadata.participantCount,
-                    opinionCount: post.metadata.opinionCount,
-                    voteCount: post.metadata.voteCount,
-                    authorUsername: post.metadata.authorUsername,
-                    organizationName: post.metadata.organization?.name,
-                });
-
-                return reply
-                    .type("image/png")
-                    .header("Cache-Control", "public, max-age=300, s-maxage=300")
-                    .send(pngBuffer);
-            } catch {
-                // Fallback: redirect to static image
-                const siteUrl = config.CORS_ORIGIN_LIST[0] ?? "https://taraaz.jomhoor.org";
-                return reply.redirect(`${siteUrl}/og-image.png`);
             }
         },
     });
