@@ -6,6 +6,7 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - esbuild
+  - sharp
 
 patchedDependencies:
   '@zk-kit/eddsa-poseidon@1.1.0': patches/@zk-kit__eddsa-poseidon@1.1.0.patch
