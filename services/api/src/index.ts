@@ -47,6 +47,7 @@ import { validateS3Access } from "./service/s3.js";
 // import * as polisService from "@/service/polis.js";
 // import * as migrationService from "@/service/migration.js";
 import { canModerateConversation, canModerateConversationByOpinionSlugId, isSiteModeratorAccount, isSiteOrgAdminAccount } from "@/service/authUtil.js";
+import { generateOgImage } from "@/service/ogImage.js";
 import axios, { type AxiosInstance } from "axios";
 import { eq } from "drizzle-orm";
 import twilio from "twilio";
@@ -3363,7 +3364,7 @@ server.after(() => {
                 const ogAuthor = org ?? author;
 
                 const canonicalUrl = `${siteUrl}/feed/conversation/${encodeURIComponent(slugId)}/`;
-                const ogImageUrl = `${siteUrl}/og-image.png`;
+                const ogImageUrl = `${siteUrl}/og/conversation/${encodeURIComponent(slugId)}/image`;
 
                 // Escape HTML entities in dynamic values to prevent injection
                 const esc = (s: string): string =>
@@ -3405,6 +3406,42 @@ server.after(() => {
             } catch {
                 // If conversation not found, redirect to the feed
                 return reply.redirect(`${siteUrl}/feed/`);
+            }
+        },
+    });
+
+    // Dynamic OG image generation endpoint
+    server.route({
+        method: "GET",
+        url: `/og/conversation/:slugId/image`,
+        handler: async (request, reply) => {
+            const { slugId } = request.params as { slugId: string };
+
+            try {
+                const post = await postService.fetchPostBySlugId({
+                    db: db,
+                    conversationSlugId: slugId,
+                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
+                });
+
+                const pngBuffer = await generateOgImage({
+                    title: post.payload.title,
+                    body: post.payload.body ?? "",
+                    participantCount: post.metadata.participantCount,
+                    opinionCount: post.metadata.opinionCount,
+                    voteCount: post.metadata.voteCount,
+                    authorUsername: post.metadata.authorUsername,
+                    organizationName: post.metadata.organization?.name,
+                });
+
+                return reply
+                    .type("image/png")
+                    .header("Cache-Control", "public, max-age=300, s-maxage=300")
+                    .send(pngBuffer);
+            } catch {
+                // Fallback: redirect to static image
+                const siteUrl = config.CORS_ORIGIN_LIST[0] ?? "https://taraaz.jomhoor.org";
+                return reply.redirect(`${siteUrl}/og-image.png`);
             }
         },
     });

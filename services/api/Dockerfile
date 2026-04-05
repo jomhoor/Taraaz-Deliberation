@@ -25,6 +25,7 @@ RUN apk add --no-cache tini
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY src/assets ./dist/assets
 COPY package.json esm-loader-lodash-fix.mjs ./
 RUN chown -R node:node /app
 USER node
