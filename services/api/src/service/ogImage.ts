@@ -20,10 +20,6 @@ function loadFont(filename: string): Buffer {
 }
 
 const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
-const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");   }
-}
-
-const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
 const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");
 
 interface OgImageParams {
