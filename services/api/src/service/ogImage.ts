@@ -139,14 +139,14 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                       align: "right",
                   })
                 : Promise.resolve(null),
-            // Stats
+            // Stats (right-aligned, bottom-right area)
             textLayer(statsText, {
-                width: W - 112,
+                width: 700,
                 height: 50,
                 fontfile: regularFontFile,
                 fontSize: 22,
                 color: "#94a3b8",
-                align: "left",
+                align: "right",
             }),
             // Author
             textLayer(authorDisplay, {
@@ -174,12 +174,15 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
         { input: titleBuf, left: 56, top: 54 },
     ];
     if (bodyBuf) {
-        composites.push({ input: bodyBuf, left: 56, top: 260 });
+        composites.push({ input: bodyBuf, left: 56, top: 280 });
     }
     composites.push(
-        { input: statsBuf, left: 56, top: H - 80 },
-        { input: authorBuf, left: 56, top: H - 90 },
-        { input: brandBuf, left: 56, top: H - 58 },
+        // Stats bottom-right
+        { input: statsBuf, left: W - 700 - 56, top: H - 70 },
+        // Author bottom-left
+        { input: authorBuf, left: 56, top: H - 100 },
+        // Brand bottom-left, below author
+        { input: brandBuf, left: 56, top: H - 60 },
     );
 
     const pngBuffer = await sharp(bgBuffer)
