@@ -1,4 +1,3 @@
-import satori from "satori";
 import sharp from "sharp";
 import fs from "fs";
 import path from "path";
@@ -7,20 +6,15 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load Vazirmatn static fonts once at startup (satori doesn't support variable fonts)
-function loadFont(filename: string): Buffer {
-    // Try src layout first (development), then dist layout (production Docker)
+// Resolve font file path (works in both dev and production Docker)
+function fontPath(filename: string): string {
     const srcPath = path.join(__dirname, "..", "assets", "fonts", filename);
-    try {
-        return fs.readFileSync(srcPath);
-    } catch {
-        const distPath = path.join(__dirname, "assets", "fonts", filename);
-        return fs.readFileSync(distPath);
-    }
+    if (fs.existsSync(srcPath)) return srcPath;
+    return path.join(__dirname, "assets", "fonts", filename);
 }
 
-const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
-const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");
+const regularFontFile = fontPath("Vazirmatn-Regular.ttf");
+const boldFontFile = fontPath("Vazirmatn-Bold.ttf");
 
 interface OgImageParams {
     title: string;
@@ -30,6 +24,47 @@ interface OgImageParams {
     voteCount: number;
     authorUsername: string;
     organizationName?: string;
+}
+
+// Escape XML special characters
+function esc(s: string): string {
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+// Create a text layer using sharp's Pango text renderer (proper RTL/BiDi support)
+async function textLayer(
+    text: string,
+    opts: {
+        width: number;
+        height: number;
+        fontfile: string;
+        fontSize: number;
+        color: string;
+        align?: "right" | "left" | "center";
+        fontWeight?: "bold" | "normal";
+    },
+): Promise<Buffer> {
+    const weight = opts.fontWeight === "bold" ? "bold" : "normal";
+    const pango = `<span font_desc="Vazirmatn ${weight} ${opts.fontSize}" foreground="${opts.color}">${esc(text)}</span>`;
+
+    return sharp({
+        text: {
+            text: pango,
+            font: "Vazirmatn",
+            fontfile: opts.fontfile,
+            width: opts.width,
+            height: opts.height,
+            rgba: true,
+            align: opts.align ?? "right",
+        },
+    })
+        .png()
+        .toBuffer();
 }
 
 export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
@@ -43,291 +78,114 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
         organizationName,
     } = params;
 
-    // Truncate body text for preview
-    const plainBody = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    const bodyPreview = plainBody.length > 180
-        ? plainBody.slice(0, 177) + "..."
-        : plainBody;
+    const W = 1200;
+    const H = 630;
 
+    // Truncate
+    const titleText =
+        title.length > 90 ? title.slice(0, 87) + "..." : title;
+    const plainBody = body
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const bodyPreview =
+        plainBody.length > 160 ? plainBody.slice(0, 157) + "..." : plainBody;
     const authorDisplay = organizationName ?? `@${authorUsername}`;
 
-    const svg = await satori(
-        {
-            type: "div",
-            props: {
-                lang: "fa",
-                dir: "rtl",
-                style: {
-                    width: "1200px",
-                    height: "630px",
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-                    fontFamily: "Vazirmatn",
-                    padding: "0",
-                },
-                children: [
-                    // Top accent bar
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                width: "100%",
-                                height: "6px",
-                                background: "linear-gradient(90deg, #22d3ee, #a78bfa, #f472b6)",
-                            },
-                        },
-                    },
-                    // Main content area
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                display: "flex",
-                                flexDirection: "column",
-                                flex: 1,
-                                padding: "48px 56px 40px 56px",
-                                justifyContent: "space-between",
-                            },
-                            children: [
-                                // Title
-                                {
-                                    type: "div",
-                                    props: {
-                                        style: {
-                                            fontSize: "44px",
-                                            fontWeight: 700,
-                                            color: "#f1f5f9",
-                                            lineHeight: 1.4,
-                                            textAlign: "right",
-                                            display: "flex",
-                                            overflow: "hidden",
-                                        },
-                                        children: title.length > 80 ? title.slice(0, 77) + "..." : title,
-                                    },
-                                },
-                                // Body preview
-                                bodyPreview
-                                    ? {
-                                          type: "div",
-                                          props: {
-                                              style: {
-                                                  fontSize: "24px",
-                                                  color: "#94a3b8",
-                                                  lineHeight: 1.6,
-                                                  textAlign: "right",
-                                                  marginTop: "16px",
-                                                  display: "flex",
-                                                  overflow: "hidden",
-                                              },
-                                              children: bodyPreview,
-                                          },
-                                      }
-                                    : {
-                                          type: "div",
-                                          props: { style: { display: "none" }, children: "" },
-                                      },
-                                // Spacer
-                                {
-                                    type: "div",
-                                    props: { style: { flex: 1 }, children: "" },
-                                },
-                                // Bottom row: stats + branding
-                                {
-                                    type: "div",
-                                    props: {
-                                        style: {
-                                            display: "flex",
-                                            flexDirection: "row",
-                                            justifyContent: "space-between",
-                                            alignItems: "flex-end",
-                                            width: "100%",
-                                        },
-                                        children: [
-                                            // Right side: branding
-                                            {
-                                                type: "div",
-                                                props: {
-                                                    style: {
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        alignItems: "flex-end",
-                                                    },
-                                                    children: [
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    fontSize: "18px",
-                                                                    color: "#64748b",
-                                                                },
-                                                                children: authorDisplay,
-                                                            },
-                                                        },
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    fontSize: "28px",
-                                                                    fontWeight: 700,
-                                                                    color: "#22d3ee",
-                                                                    marginTop: "8px",
-                                                                },
-                                                                children: "تراز",
-                                                            },
-                                                        },
-                                                    ],
-                                                },
-                                            },
-                                            // Left side: stats
-                                            {
-                                                type: "div",
-                                                props: {
-                                                    style: {
-                                                        display: "flex",
-                                                        flexDirection: "row",
-                                                        gap: "32px",
-                                                        alignItems: "center",
-                                                    },
-                                                    children: [
-                                                        // Votes
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                },
-                                                                children: [
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "32px",
-                                                                                fontWeight: 700,
-                                                                                color: "#f1f5f9",
-                                                                            },
-                                                                            children: String(voteCount),
-                                                                        },
-                                                                    },
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "16px",
-                                                                                color: "#64748b",
-                                                                                marginTop: "4px",
-                                                                            },
-                                                                            children: "رأی",
-                                                                        },
-                                                                    },
-                                                                ],
-                                                            },
-                                                        },
-                                                        // Opinions
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                },
-                                                                children: [
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "32px",
-                                                                                fontWeight: 700,
-                                                                                color: "#f1f5f9",
-                                                                            },
-                                                                            children: String(opinionCount),
-                                                                        },
-                                                                    },
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "16px",
-                                                                                color: "#64748b",
-                                                                                marginTop: "4px",
-                                                                            },
-                                                                            children: "نظر",
-                                                                        },
-                                                                    },
-                                                                ],
-                                                            },
-                                                        },
-                                                        // Participants
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                },
-                                                                children: [
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "32px",
-                                                                                fontWeight: 700,
-                                                                                color: "#f1f5f9",
-                                                                            },
-                                                                            children: String(participantCount),
-                                                                        },
-                                                                    },
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "16px",
-                                                                                color: "#64748b",
-                                                                                marginTop: "4px",
-                                                                            },
-                                                                            children: "مشارکت‌کننده",
-                                                                        },
-                                                                    },
-                                                                ],
-                                                            },
-                                                        },
-                                                    ],
-                                                },
-                                            },
-                                        ],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
-        {
-            width: 1200,
-            height: 630,
-            fonts: [
-                {
-                    name: "Vazirmatn",
-                    data: vazirmatnRegular,
-                    weight: 400,
-                    style: "normal",
-                },
-                {
-                    name: "Vazirmatn",
-                    data: vazirmatnBold,
-                    weight: 700,
-                    style: "normal",
-                },
-            ],
-        },
+    // Stats line in Persian (LTR numbers mixed with RTL labels)
+    const statsText = `${participantCount} مشارکت‌کننده · ${opinionCount} نظر · ${voteCount} رأی`;
+
+    // Create gradient background using SVG
+    const bgSvg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="50%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#22d3ee"/>
+          <stop offset="50%" stop-color="#a78bfa"/>
+          <stop offset="100%" stop-color="#f472b6"/>
+        </linearGradient>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#bg)"/>
+      <rect width="${W}" height="6" fill="url(#accent)"/>
+    </svg>`;
+
+    const bgBuffer = await sharp(Buffer.from(bgSvg)).png().toBuffer();
+
+    // Create text layers in parallel using Pango (proper RTL support)
+    const [titleBuf, bodyBuf, statsBuf, authorBuf, brandBuf] =
+        await Promise.all([
+            // Title
+            textLayer(titleText, {
+                width: W - 112,
+                height: 200,
+                fontfile: boldFontFile,
+                fontSize: 42,
+                color: "#f1f5f9",
+                fontWeight: "bold",
+                align: "right",
+            }),
+            // Body preview
+            bodyPreview
+                ? textLayer(bodyPreview, {
+                      width: W - 112,
+                      height: 120,
+                      fontfile: regularFontFile,
+                      fontSize: 22,
+                      color: "#94a3b8",
+                      align: "right",
+                  })
+                : Promise.resolve(null),
+            // Stats
+            textLayer(statsText, {
+                width: W - 112,
+                height: 50,
+                fontfile: regularFontFile,
+                fontSize: 22,
+                color: "#94a3b8",
+                align: "left",
+            }),
+            // Author
+            textLayer(authorDisplay, {
+                width: 300,
+                height: 40,
+                fontfile: regularFontFile,
+                fontSize: 16,
+                color: "#64748b",
+                align: "left",
+            }),
+            // Brand "تراز"
+            textLayer("تراز", {
+                width: 120,
+                height: 50,
+                fontfile: boldFontFile,
+                fontSize: 28,
+                color: "#22d3ee",
+                fontWeight: "bold",
+                align: "left",
+            }),
+        ]);
+
+    // Composite all layers onto the background
+    const composites: sharp.OverlayOptions[] = [
+        { input: titleBuf, left: 56, top: 54 },
+    ];
+    if (bodyBuf) {
+        composites.push({ input: bodyBuf, left: 56, top: 260 });
+    }
+    composites.push(
+        { input: statsBuf, left: 56, top: H - 80 },
+        { input: authorBuf, left: 56, top: H - 90 },
+        { input: brandBuf, left: 56, top: H - 58 },
     );
 
-    // Convert SVG to PNG via sharp
-    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+    const pngBuffer = await sharp(bgBuffer)
+        .composite(composites)
+        .png()
+        .toBuffer();
+
     return pngBuffer;
 }
