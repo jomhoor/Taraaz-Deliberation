@@ -51,6 +51,26 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
 
     const authorDisplay = organizationName ?? `@${authorUsername}`;
 
+    // Satori ignores CSS direction:rtl entirely and crashes on Unicode bidi marks.
+    // ZWNJ (U+200C) in Persian causes Satori to reverse word halves.
+    // Workaround: strip ZWNJ, split text into words, render each as a flex item
+    // inside a row-reverse container.
+    const sanitizeText = (text: string): string =>
+        text.replace(/\u200C/g, "").replace(/\u200F/g, "");
+
+    // Build an array of per-word flex items that flow RTL via row-reverse
+    const rtlWords = (
+        text: string,
+        style: Record<string, string | number>,
+    ): Array<{ type: string; props: { style: Record<string, string | number>; children: string } }> =>
+        sanitizeText(text)
+            .split(/\s+/)
+            .filter((w) => w.length > 0)
+            .map((word) => ({
+                type: "div" as const,
+                props: { style: { ...style }, children: word },
+            }));
+
     const svg = await satori(
         {
             type: "div",
@@ -62,7 +82,6 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                     flexDirection: "column",
                     background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
                     fontFamily: "Vazirmatn",
-                    direction: "rtl",
                     padding: "0",
                 },
                 children: [
@@ -94,15 +113,23 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                     type: "div",
                                     props: {
                                         style: {
-                                            fontSize: "44px",
-                                            fontWeight: 700,
-                                            color: "#f1f5f9",
-                                            lineHeight: 1.4,
-                                            textAlign: "right",
                                             display: "flex",
+                                            flexDirection: "row-reverse",
+                                            flexWrap: "wrap",
+                                            justifyContent: "flex-start",
+                                            gap: "12px",
                                             overflow: "hidden",
+                                            maxHeight: "130px",
                                         },
-                                        children: title.length > 80 ? title.slice(0, 77) + "..." : title,
+                                        children: rtlWords(
+                                            title.length > 80 ? title.slice(0, 77) + "..." : title,
+                                            {
+                                                fontSize: "44px",
+                                                fontWeight: 700,
+                                                color: "#f1f5f9",
+                                                lineHeight: 1.4,
+                                            },
+                                        ),
                                     },
                                 },
                                 // Body preview
@@ -111,15 +138,20 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                           type: "div",
                                           props: {
                                               style: {
+                                                  display: "flex",
+                                                  flexDirection: "row-reverse",
+                                                  flexWrap: "wrap",
+                                                  justifyContent: "flex-start",
+                                                  gap: "8px",
+                                                  marginTop: "16px",
+                                                  overflow: "hidden",
+                                                  maxHeight: "120px",
+                                              },
+                                              children: rtlWords(bodyPreview, {
                                                   fontSize: "24px",
                                                   color: "#94a3b8",
                                                   lineHeight: 1.6,
-                                                  textAlign: "right",
-                                                  marginTop: "16px",
-                                                  display: "flex",
-                                                  overflow: "hidden",
-                                              },
-                                              children: bodyPreview,
+                                              }),
                                           },
                                       }
                                     : {
@@ -288,7 +320,7 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                                                                 color: "#64748b",
                                                                                 marginTop: "4px",
                                                                             },
-                                                                            children: "مشارکت‌کننده",
+                                                                            children: "مشارکتکننده",
                                                                         },
                                                                     },
                                                                 ],
