@@ -52,27 +52,10 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
     const authorDisplay = organizationName ?? `@${authorUsername}`;
 
     // Satori ignores CSS direction:rtl entirely and crashes on Unicode bidi marks.
-    // ZWNJ (U+200C) in Persian causes Satori to reverse word halves.
-    // Satori ignores CSS direction:rtl entirely.
-    // Workaround: strip ZWNJ, render each word as a flex item in a row-reverse container.
+    // ZWNJ (U+200C) can cause rendering issues in Satori.
+    // Strip ZWNJ but keep normal text — Satori 0.26+ handles RTL/BiDi natively.
     const sanitizeText = (text: string): string =>
         text.replace(/\u200C/g, "").replace(/\u200F/g, "");
-
-    // Build per-word flex items for RTL layout via row-reverse
-    const rtlWords = (
-        text: string,
-        style: Record<string, string | number>,
-    ): Array<{
-        type: string;
-        props: { style: Record<string, string | number>; children: string };
-    }> =>
-        sanitizeText(text)
-            .split(/\s+/)
-            .filter((w) => w.length > 0)
-            .map((word) => ({
-                type: "div" as const,
-                props: { style: { ...style }, children: word },
-            }));
 
     const svg = await satori(
         {
@@ -116,21 +99,17 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                     type: "div",
                                     props: {
                                         style: {
-                                            display: "flex",
-                                            flexDirection: "row-reverse",
-                                            flexWrap: "wrap",
-                                            justifyContent: "flex-start",
                                             fontSize: "44px",
                                             fontWeight: 700,
                                             color: "#f1f5f9",
                                             lineHeight: 1.4,
-                                            gap: "10px",
+                                            direction: "rtl",
+                                            textAlign: "right",
                                             overflow: "hidden",
                                             maxHeight: "130px",
                                         },
-                                        children: rtlWords(
+                                        children: sanitizeText(
                                             title.length > 80 ? title.slice(0, 77) + "..." : title,
-                                            {},
                                         ),
                                     },
                                 },
@@ -140,19 +119,16 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                           type: "div",
                                           props: {
                                               style: {
-                                                  display: "flex",
-                                                  flexDirection: "row-reverse",
-                                                  flexWrap: "wrap",
-                                                  justifyContent: "flex-start",
                                                   fontSize: "24px",
                                                   color: "#94a3b8",
                                                   lineHeight: 1.6,
-                                                  gap: "6px",
+                                                  direction: "rtl",
+                                                  textAlign: "right",
                                                   marginTop: "16px",
                                                   overflow: "hidden",
                                                   maxHeight: "120px",
                                               },
-                                              children: rtlWords(bodyPreview, {}),
+                                              children: sanitizeText(bodyPreview),
                                           },
                                       }
                                     : {
