@@ -54,17 +54,25 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
     // Satori ignores CSS direction:rtl entirely and crashes on Unicode bidi marks.
     // ZWNJ (U+200C) in Persian causes Satori to reverse word halves.
     // Satori ignores CSS direction:rtl entirely.
-    // Workaround: strip ZWNJ, reverse word order so LTR rendering reads as RTL.
+    // Workaround: strip ZWNJ, render each word as a flex item in a row-reverse container.
     const sanitizeText = (text: string): string =>
         text.replace(/\u200C/g, "").replace(/\u200F/g, "");
 
-    // Reverse word order so Satori's LTR layout displays as RTL
-    const rtlText = (text: string): string =>
+    // Build per-word flex items for RTL layout via row-reverse
+    const rtlWords = (
+        text: string,
+        style: Record<string, string | number>,
+    ): Array<{
+        type: string;
+        props: { style: Record<string, string | number>; children: string };
+    }> =>
         sanitizeText(text)
             .split(/\s+/)
             .filter((w) => w.length > 0)
-            .reverse()
-            .join(" ");
+            .map((word) => ({
+                type: "div" as const,
+                props: { style: { ...style }, children: word },
+            }));
 
     const svg = await satori(
         {
@@ -108,16 +116,22 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                     type: "div",
                                     props: {
                                         style: {
-                                            fontSize: "44px",
-                                            fontWeight: 700,
-                                            color: "#f1f5f9",
-                                            lineHeight: 1.4,
-                                            textAlign: "right",
+                                            display: "flex",
+                                            flexDirection: "row-reverse",
+                                            flexWrap: "wrap",
+                                            justifyContent: "flex-start",
+                                            gap: "0.3em",
                                             overflow: "hidden",
                                             maxHeight: "130px",
                                         },
-                                        children: rtlText(
+                                        children: rtlWords(
                                             title.length > 80 ? title.slice(0, 77) + "..." : title,
+                                            {
+                                                fontSize: "44px",
+                                                fontWeight: 700,
+                                                color: "#f1f5f9",
+                                                lineHeight: 1.4,
+                                            },
                                         ),
                                     },
                                 },
@@ -127,15 +141,20 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                           type: "div",
                                           props: {
                                               style: {
-                                                  fontSize: "24px",
-                                                  color: "#94a3b8",
-                                                  lineHeight: 1.6,
-                                                  textAlign: "right",
+                                                  display: "flex",
+                                                  flexDirection: "row-reverse",
+                                                  flexWrap: "wrap",
+                                                  justifyContent: "flex-start",
+                                                  gap: "0.3em",
                                                   marginTop: "16px",
                                                   overflow: "hidden",
                                                   maxHeight: "120px",
                                               },
-                                              children: rtlText(bodyPreview),
+                                              children: rtlWords(bodyPreview, {
+                                                  fontSize: "24px",
+                                                  color: "#94a3b8",
+                                                  lineHeight: 1.6,
+                                              }),
                                           },
                                       }
                                     : {
@@ -234,7 +253,7 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                                                                 color: "#64748b",
                                                                                 marginTop: "4px",
                                                                             },
-                                                                            children: "رأی",
+                                                                            children: "رای",
                                                                         },
                                                                     },
                                                                 ],
@@ -304,7 +323,7 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
                                                                                 color: "#64748b",
                                                                                 marginTop: "4px",
                                                                             },
-                                                                            children: "مشارکت\u200Cکننده",
+                                                                            children: "مشارکت کننده",
                                                                         },
                                                                     },
                                                                 ],
