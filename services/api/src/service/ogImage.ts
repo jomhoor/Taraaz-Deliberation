@@ -1,5 +1,4 @@
-import satori from "satori";
-import sharp from "sharp";
+import puppeteer, { type Browser } from "puppeteer-core";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,20 +6,57 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load Vazirmatn static fonts once at startup (satori doesn't support variable fonts)
-function loadFont(filename: string): Buffer {
-    // Try src layout first (development), then dist layout (production Docker)
+// Load Vazirmatn fonts as base64 for embedding in HTML
+function loadFontBase64(filename: string): string {
     const srcPath = path.join(__dirname, "..", "assets", "fonts", filename);
     try {
-        return fs.readFileSync(srcPath);
+        return fs.readFileSync(srcPath).toString("base64");
     } catch {
         const distPath = path.join(__dirname, "assets", "fonts", filename);
-        return fs.readFileSync(distPath);
+        return fs.readFileSync(distPath).toString("base64");
     }
 }
 
-const vazirmatnRegular = loadFont("Vazirmatn-Regular.ttf");
-const vazirmatnBold = loadFont("Vazirmatn-Bold.ttf");
+const vazirmatnRegularB64 = loadFontBase64("Vazirmatn-Regular.ttf");
+const vazirmatnBoldB64 = loadFontBase64("Vazirmatn-Bold.ttf");
+
+// Reuse a single browser instance across requests
+let browserInstance: Browser | null = null;
+
+function getChromiumPath(): string {
+    // Docker production: system Chromium set via PUPPETEER_EXECUTABLE_PATH
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        return process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+    // macOS development: use Chrome
+    const macPaths = [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ];
+    for (const p of macPaths) {
+        if (fs.existsSync(p)) return p;
+    }
+    throw new Error(
+        "Chromium not found. Set PUPPETEER_EXECUTABLE_PATH or install Chrome.",
+    );
+}
+
+async function getBrowser(): Promise<Browser> {
+    if (browserInstance && browserInstance.connected) {
+        return browserInstance;
+    }
+    browserInstance = await puppeteer.launch({
+        headless: true,
+        executablePath: getChromiumPath(),
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+        ],
+    });
+    return browserInstance;
+}
 
 interface OgImageParams {
     title: string;
@@ -30,6 +66,14 @@ interface OgImageParams {
     voteCount: number;
     authorUsername: string;
     organizationName?: string;
+}
+
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
 }
 
 export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
@@ -43,299 +87,168 @@ export async function generateOgImage(params: OgImageParams): Promise<Buffer> {
         organizationName,
     } = params;
 
-    // Truncate body text for preview
     const plainBody = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    const bodyPreview = plainBody.length > 180
-        ? plainBody.slice(0, 177) + "..."
-        : plainBody;
-
+    const bodyPreview =
+        plainBody.length > 180 ? plainBody.slice(0, 177) + "..." : plainBody;
+    const titleDisplay =
+        title.length > 80 ? title.slice(0, 77) + "..." : title;
     const authorDisplay = organizationName ?? `@${authorUsername}`;
 
-    // Satori ignores CSS direction:rtl entirely and crashes on Unicode bidi marks.
-    // ZWNJ (U+200C) can cause rendering issues in Satori.
-    // Strip ZWNJ but keep normal text — Satori 0.26+ handles RTL/BiDi natively.
-    const sanitizeText = (text: string): string =>
-        text.replace(/\u200C/g, "").replace(/\u200F/g, "");
+    const html = `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url(data:font/truetype;base64,${vazirmatnRegularB64}) format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url(data:font/truetype;base64,${vazirmatnBoldB64}) format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1200px;
+  height: 630px;
+  font-family: 'Vazirmatn', sans-serif;
+  direction: rtl;
+  overflow: hidden;
+}
+.container {
+  width: 1200px;
+  height: 630px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+}
+.accent-bar {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, #22d3ee, #a78bfa, #f472b6);
+}
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 56px 40px 56px;
+  justify-content: space-between;
+}
+.title {
+  font-size: 44px;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.4;
+  text-align: right;
+  overflow: hidden;
+  max-height: 130px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.body-text {
+  font-size: 24px;
+  color: #94a3b8;
+  line-height: 1.6;
+  text-align: right;
+  margin-top: 16px;
+  overflow: hidden;
+  max-height: 120px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.bottom-row {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+}
+.branding {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.author {
+  font-size: 18px;
+  color: #64748b;
+}
+.brand-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #22d3ee;
+  margin-top: 8px;
+}
+.stats {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 32px;
+  align-items: center;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.stat-label {
+  font-size: 16px;
+  color: #64748b;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <div>
+      <div class="title">${escapeHtml(titleDisplay)}</div>
+      ${bodyPreview ? `<div class="body-text">${escapeHtml(bodyPreview)}</div>` : ""}
+    </div>
+    <div class="bottom-row">
+      <div class="branding">
+        <div class="author">${escapeHtml(authorDisplay)}</div>
+        <div class="brand-name">تراز</div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-number">${voteCount}</div>
+          <div class="stat-label">رأی</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">${opinionCount}</div>
+          <div class="stat-label">نظر</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">${participantCount}</div>
+          <div class="stat-label">مشارکت‌کننده</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
 
-    const svg = await satori(
-        {
-            type: "div",
-            props: {
-                style: {
-                    width: "1200px",
-                    height: "630px",
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-                    fontFamily: "Vazirmatn",
-                    padding: "0",
-                },
-                children: [
-                    // Top accent bar
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                width: "100%",
-                                height: "6px",
-                                background: "linear-gradient(90deg, #22d3ee, #a78bfa, #f472b6)",
-                            },
-                        },
-                    },
-                    // Main content area
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                display: "flex",
-                                flexDirection: "column",
-                                flex: 1,
-                                padding: "48px 56px 40px 56px",
-                                justifyContent: "space-between",
-                            },
-                            children: [
-                                // Title
-                                {
-                                    type: "div",
-                                    props: {
-                                        style: {
-                                            fontSize: "44px",
-                                            fontWeight: 700,
-                                            color: "#f1f5f9",
-                                            lineHeight: 1.4,
-                                            direction: "rtl",
-                                            textAlign: "right",
-                                            overflow: "hidden",
-                                            maxHeight: "130px",
-                                        },
-                                        children: sanitizeText(
-                                            title.length > 80 ? title.slice(0, 77) + "..." : title,
-                                        ),
-                                    },
-                                },
-                                // Body preview
-                                bodyPreview
-                                    ? {
-                                          type: "div",
-                                          props: {
-                                              style: {
-                                                  fontSize: "24px",
-                                                  color: "#94a3b8",
-                                                  lineHeight: 1.6,
-                                                  direction: "rtl",
-                                                  textAlign: "right",
-                                                  marginTop: "16px",
-                                                  overflow: "hidden",
-                                                  maxHeight: "120px",
-                                              },
-                                              children: sanitizeText(bodyPreview),
-                                          },
-                                      }
-                                    : {
-                                          type: "div",
-                                          props: { style: { display: "none" }, children: "" },
-                                      },
-                                // Spacer
-                                {
-                                    type: "div",
-                                    props: { style: { flex: 1 }, children: "" },
-                                },
-                                // Bottom row: stats + branding
-                                {
-                                    type: "div",
-                                    props: {
-                                        style: {
-                                            display: "flex",
-                                            flexDirection: "row",
-                                            justifyContent: "space-between",
-                                            alignItems: "flex-end",
-                                            width: "100%",
-                                        },
-                                        children: [
-                                            // Right side: branding
-                                            {
-                                                type: "div",
-                                                props: {
-                                                    style: {
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        alignItems: "flex-end",
-                                                    },
-                                                    children: [
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    fontSize: "18px",
-                                                                    color: "#64748b",
-                                                                },
-                                                                children: authorDisplay,
-                                                            },
-                                                        },
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    fontSize: "28px",
-                                                                    fontWeight: 700,
-                                                                    color: "#22d3ee",
-                                                                    marginTop: "8px",
-                                                                },
-                                                                children: "تراز",
-                                                            },
-                                                        },
-                                                    ],
-                                                },
-                                            },
-                                            // Left side: stats
-                                            {
-                                                type: "div",
-                                                props: {
-                                                    style: {
-                                                        display: "flex",
-                                                        flexDirection: "row",
-                                                        gap: "32px",
-                                                        alignItems: "center",
-                                                    },
-                                                    children: [
-                                                        // Votes
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                },
-                                                                children: [
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "32px",
-                                                                                fontWeight: 700,
-                                                                                color: "#f1f5f9",
-                                                                            },
-                                                                            children: String(voteCount),
-                                                                        },
-                                                                    },
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "16px",
-                                                                                color: "#64748b",
-                                                                                marginTop: "4px",
-                                                                            },
-                                                                            children: "رای",
-                                                                        },
-                                                                    },
-                                                                ],
-                                                            },
-                                                        },
-                                                        // Opinions
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                },
-                                                                children: [
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "32px",
-                                                                                fontWeight: 700,
-                                                                                color: "#f1f5f9",
-                                                                            },
-                                                                            children: String(opinionCount),
-                                                                        },
-                                                                    },
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "16px",
-                                                                                color: "#64748b",
-                                                                                marginTop: "4px",
-                                                                            },
-                                                                            children: "نظر",
-                                                                        },
-                                                                    },
-                                                                ],
-                                                            },
-                                                        },
-                                                        // Participants
-                                                        {
-                                                            type: "div",
-                                                            props: {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                },
-                                                                children: [
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "32px",
-                                                                                fontWeight: 700,
-                                                                                color: "#f1f5f9",
-                                                                            },
-                                                                            children: String(participantCount),
-                                                                        },
-                                                                    },
-                                                                    {
-                                                                        type: "div",
-                                                                        props: {
-                                                                            style: {
-                                                                                fontSize: "16px",
-                                                                                color: "#64748b",
-                                                                                marginTop: "4px",
-                                                                            },
-                                                                            children: "مشارکت کننده",
-                                                                        },
-                                                                    },
-                                                                ],
-                                                            },
-                                                        },
-                                                    ],
-                                                },
-                                            },
-                                        ],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
-        {
-            width: 1200,
-            height: 630,
-            fonts: [
-                {
-                    name: "Vazirmatn",
-                    data: vazirmatnRegular,
-                    weight: 400,
-                    style: "normal",
-                },
-                {
-                    name: "Vazirmatn",
-                    data: vazirmatnBold,
-                    weight: 700,
-                    style: "normal",
-                },
-            ],
-        },
-    );
-
-    // Convert SVG to PNG via sharp
-    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
-    return pngBuffer;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    try {
+        await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
+        await page.setContent(html, { waitUntil: "domcontentloaded" });
+        await page.evaluate(() => document.fonts.ready);
+        const screenshot = await page.screenshot({ type: "png" });
+        return Buffer.from(screenshot);
+    } finally {
+        await page.close();
+    }
 }
