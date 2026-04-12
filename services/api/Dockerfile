@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-freefont-ttf \
     libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 \
-    libxtst6 libnss3 libcups2 libxrandr2 libasound2t64 libatk1.0-0 \
+    libxtst6 libnss3 libcups2 libxrandr2 libasound2 libatk1.0-0 \
     libatk-bridge2.0-0 libpangocairo-1.0-0 libgtk-3-0 libgbm1 \
     && rm -rf /var/lib/apt/lists/*
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
