@@ -14,7 +14,7 @@
     >
       {{ t("prioritizationLabel") }}
     </div>
-    <h1 class="conversation-title" :class="`conversation-title--${size}`">
+    <h1 dir="auto" class="conversation-title" :class="`conversation-title--${size}`">
       {{ title }}
     </h1>
   </div>

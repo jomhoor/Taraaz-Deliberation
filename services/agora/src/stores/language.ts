@@ -57,7 +57,7 @@ export const useLanguageStore = defineStore("language", () => {
     await loadLocaleMessages(localeCode);
 
     // Set the locale using the boot helper
-    setI18nLanguage(localeCode);
+    await setI18nLanguage(localeCode);
 
     // Update local storage
     displayLanguage.value = localeCode;

@@ -1,6 +1,7 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
   <span
+    dir="auto"
     class="textBreak"
     :class="{ truncate: compactMode, coloredHrefs: !compactMode }"
     role="user-content"
@@ -74,7 +75,7 @@ const handleClick = (event: Event) => {
 
 :deep(ul),
 :deep(ol) {
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
   margin-bottom: 0.5rem;
   margin-top: 0;
 }
@@ -110,7 +111,7 @@ const handleClick = (event: Event) => {
 
 :deep(ol) {
   list-style-type: decimal;
-  padding-left: 1.75rem;
+  padding-inline-start: 1.75rem;
 }
 
 /* Nested ordered lists use different numbering styles */
@@ -129,7 +130,7 @@ const handleClick = (event: Event) => {
 :deep(a[href]) {
   color: rgb(0, 121, 211);
   font-weight: var(--font-weight-medium);
-  margin-right: 0.25rem;
+  margin-inline-end: 0.25rem;
 }
 
 .truncate {

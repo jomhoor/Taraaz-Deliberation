@@ -6,7 +6,11 @@ import { nextTick } from "vue";
 import type { I18n } from "vue-i18n";
 import { createI18n } from "vue-i18n";
 
+import { Quasar } from "quasar";
+
 import { defineBoot } from "#q-app/wrappers";
+
+const RTL_LANGUAGES = new Set(["fa", "ar", "he"]);
 
 export type MessageLanguages = SupportedDisplayLanguageCodes;
 // Type-define 'en' as the master schema for the resource
@@ -38,22 +42,28 @@ let i18nInstance: I18n<
 > | null = null;
 
 /**
- * Set the i18n language and update HTML lang attribute
+ * Set the i18n language, update HTML lang/dir attributes, and sync Quasar lang pack
  */
-export function setI18nLanguage(locale: MessageLanguages): void {
+export async function setI18nLanguage(locale: MessageLanguages): Promise<void> {
   if (!i18nInstance) return;
 
   // @ts-expect-error: locale type issue with lazy loading
   i18nInstance.global.locale.value = locale;
 
-  /**
-   * NOTE:
-   * If you need to specify the language setting for headers, such as the `fetch` API, set it here.
-   * The following is an example for axios.
-   *
-   * axios.defaults.headers.common['Accept-Language'] = locale
-   */
-  document.querySelector("html")?.setAttribute("lang", locale);
+  const el = document.documentElement;
+  const isRtl = RTL_LANGUAGES.has(locale);
+  el.setAttribute("lang", locale);
+  el.setAttribute("dir", isRtl ? "rtl" : "ltr");
+
+  // Sync Quasar language pack so Quasar components (drawers, tabs, etc.) respect RTL
+  try {
+    const quasarLangModule = isRtl
+      ? await import(`../../node_modules/quasar/lang/fa-IR.js`)
+      : await import(`../../node_modules/quasar/lang/en-US.js`);
+    Quasar.lang.set(quasarLangModule.default);
+  } catch {
+    // Quasar lang pack loading is non-critical; HTML dir attribute is the important fix
+  }
 }
 
 /**
@@ -95,7 +105,7 @@ export async function loadLocaleMessages(
     `[i18n] Failed to load locale "${locale}" after 3 attempts, falling back to English`,
     lastError
   );
-  setI18nLanguage("en");
+  void setI18nLanguage("en");
 }
 
 /**
@@ -147,17 +157,17 @@ export default defineBoot(({ app }) => {
   if (defaultLocale !== "en" && defaultLocale !== "fa") {
     void loadLocaleMessages(defaultLocale)
       .then(() => {
-        setI18nLanguage(defaultLocale);
+        void setI18nLanguage(defaultLocale);
       })
       .catch((error) => {
         console.error(
           "[i18n] Failed to load initial locale, using English",
           error
         );
-        setI18nLanguage("en");
+        void setI18nLanguage("en");
       });
   } else {
-    setI18nLanguage(defaultLocale);
+    void setI18nLanguage(defaultLocale);
   }
 
   // Set i18n instance on app
