@@ -5,7 +5,8 @@ import fa from "src/i18n/fa";
 import type { SupportedDisplayLanguageCodes } from "src/shared/languages";
 import { nextTick } from "vue";
 import type { I18n } from "vue-i18n";
-import { createI18n } from "vue-i18n
+import { createI18n } from "vue-i18n";
+
 import { defineBoot } from "#q-app/wrappers";
 
 const RTL_LANGUAGES = new Set(["fa", "ar", "he"]);
