@@ -135,7 +135,10 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 48px 56px 40px 56px;
+  /* Extra bottom padding keeps stats/branding above the chat client's
+     link-preview overlay (Telegram/WhatsApp/etc. paint title+description
+     in the lower ~140px band of the image). */
+  padding: 48px 56px 160px 56px;
   justify-content: space-between;
 }
 .title {
