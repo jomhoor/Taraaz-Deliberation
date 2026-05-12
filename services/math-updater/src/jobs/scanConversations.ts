@@ -16,7 +16,8 @@ const STALE_QUEUED_JOB_THRESHOLD_MS = 10000; // 10 seconds
  * Scan database for conversations that need math updates
  * and enqueue them for processing.
  *
- * Called on a fixed interval from index.ts via setInterval.
+ * Called on a dynamic interval from index.ts via setTimeout-based backoff loop.
+ * Returns the number of conversations found needing updates (used for idle backoff).
  * If this function throws, the caller catches it and retries on the next interval.
  */
 export async function scanConversations({
@@ -27,7 +28,7 @@ export async function scanConversations({
     db: PostgresJsDatabase;
     boss: PgBoss;
     minTimeBetweenUpdatesMs: number;
-}): Promise<void> {
+}): Promise<number> {
     const scanStartTime = Date.now();
 
     log.info(
@@ -310,4 +311,5 @@ export async function scanConversations({
     log.info(
         `[Scan] Scan completed in ${scanDurationMs}ms (found: ${queueEntries.length}, enqueued: ${enqueuedConversations.length}, skipped: ${rejectedConversations.length})`,
     );
+    return queueEntries.length;
 }

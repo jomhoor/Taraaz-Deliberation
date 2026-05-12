@@ -20,7 +20,8 @@ const mathUpdaterConfigSchema = sharedConfigSchema.extend({
     // Math Updater Settings
 
     /**
-     * How often to scan conversation_update_queue for pending updates (in milliseconds)
+     * Base scan interval when work is found (in milliseconds).
+     * The scan loop resets to this interval whenever conversations are enqueued.
      * Default: 1000ms (1 second)
      * Minimum: 1000ms
      */
@@ -29,6 +30,19 @@ const mathUpdaterConfigSchema = sharedConfigSchema.extend({
         .int()
         .min(1000)
         .default(1000),
+
+    /**
+     * Maximum scan interval when the queue is idle (no work found) in milliseconds.
+     * The scan loop backs off exponentially (doubling each empty scan) up to this cap.
+     * Resets to MATH_UPDATER_SCAN_INTERVAL_MS as soon as work is found again.
+     * Default: 30000ms (30 seconds) — reduces idle DB load by ~30×
+     * Minimum: 2000ms
+     */
+    MATH_UPDATER_SCAN_MAX_IDLE_INTERVAL_MS: z.coerce
+        .number()
+        .int()
+        .min(2000)
+        .default(30000),
 
     /**
      * Maximum number of jobs to fetch per batch from pg-boss queue

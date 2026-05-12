@@ -273,56 +273,88 @@ async function main() {
         `[Math Updater] Registered update-conversation-math worker (id: ${workerId}, batch: ${config.MATH_UPDATER_BATCH_SIZE}, concurrency: ${config.MATH_UPDATER_JOB_CONCURRENCY})`,
     );
 
-    // Start scan loop using setInterval (resilient — cannot silently break)
-    // Previously used a self-scheduling pg-boss job, but the self-scheduling
-    // could silently fail (boss.send returning null), killing the loop permanently.
-    const scanIntervalId = setInterval(() => {
-        void (async () => {
-            if (scanInProgress) {
-                log.info(
-                    "[Scan] Previous scan still in progress, skipping this interval",
-                );
-                return;
-            }
-            scanInProgress = true;
-            try {
-                await scanConversations({
-                    db,
-                    boss,
-                    minTimeBetweenUpdatesMs:
-                        config.MATH_UPDATER_MIN_TIME_BETWEEN_UPDATES_MS,
-                });
-                lastSuccessfulScanTime = Date.now();
-            } catch (error) {
-                log.error(
-                    { error },
-                    "[Scan] Unhandled error in scan loop - will retry on next interval",
-                );
-            } finally {
-                scanInProgress = false;
-            }
-        })();
-    }, config.MATH_UPDATER_SCAN_INTERVAL_MS);
+    // Start scan loop with exponential idle backoff.
+    // When no conversations need updating, the interval doubles each cycle up to
+    // MATH_UPDATER_SCAN_MAX_IDLE_INTERVAL_MS. As soon as work is found, it resets
+    // to the base MATH_UPDATER_SCAN_INTERVAL_MS. This prevents hammering the DB
+    // with a 1-second poll when the queue is idle.
+    let currentScanIntervalMs = config.MATH_UPDATER_SCAN_INTERVAL_MS;
+    let scanTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    // Run initial scan immediately (don't wait for first interval)
+    const scheduleScan = (delayMs: number) => {
+        scanTimeoutId = setTimeout(() => {
+            void (async () => {
+                if (scanInProgress) {
+                    log.info(
+                        "[Scan] Previous scan still in progress, skipping this interval",
+                    );
+                    scheduleScan(currentScanIntervalMs);
+                    return;
+                }
+                scanInProgress = true;
+                try {
+                    const found = await scanConversations({
+                        db,
+                        boss,
+                        minTimeBetweenUpdatesMs:
+                            config.MATH_UPDATER_MIN_TIME_BETWEEN_UPDATES_MS,
+                    });
+                    lastSuccessfulScanTime = Date.now();
+
+                    if (found > 0) {
+                        // Work found — reset to base interval for fast follow-up
+                        currentScanIntervalMs =
+                            config.MATH_UPDATER_SCAN_INTERVAL_MS;
+                    } else {
+                        // Idle — back off exponentially, capped at max idle interval
+                        currentScanIntervalMs = Math.min(
+                            currentScanIntervalMs * 2,
+                            config.MATH_UPDATER_SCAN_MAX_IDLE_INTERVAL_MS,
+                        );
+                        log.info(
+                            `[Scan] Queue idle, backing off to ${currentScanIntervalMs}ms`,
+                        );
+                    }
+                } catch (error) {
+                    log.error(
+                        { error },
+                        "[Scan] Unhandled error in scan loop - will retry on next interval",
+                    );
+                } finally {
+                    scanInProgress = false;
+                }
+                scheduleScan(currentScanIntervalMs);
+            })();
+        }, delayMs);
+    };
+
+    // Run initial scan immediately, then start the backoff loop
     scanConversations({
         db,
         boss,
         minTimeBetweenUpdatesMs:
             config.MATH_UPDATER_MIN_TIME_BETWEEN_UPDATES_MS,
     })
-        .then(() => {
+        .then((found) => {
             lastSuccessfulScanTime = Date.now();
+            if (found === 0) {
+                currentScanIntervalMs = Math.min(
+                    currentScanIntervalMs * 2,
+                    config.MATH_UPDATER_SCAN_MAX_IDLE_INTERVAL_MS,
+                );
+            }
+            scheduleScan(currentScanIntervalMs);
         })
         .catch((error: unknown) => {
             log.error(
                 { error },
                 "[Scan] Error during initial scan - will retry on next interval",
             );
+            scheduleScan(currentScanIntervalMs);
         });
 
     log.info(
-        `[Math Updater] Started scan loop (interval: ${config.MATH_UPDATER_SCAN_INTERVAL_MS}ms, min time between updates: ${config.MATH_UPDATER_MIN_TIME_BETWEEN_UPDATES_MS}ms)`,
+        `[Math Updater] Started scan loop with idle backoff (base: ${config.MATH_UPDATER_SCAN_INTERVAL_MS}ms, max idle: ${config.MATH_UPDATER_SCAN_MAX_IDLE_INTERVAL_MS}ms, min time between updates: ${config.MATH_UPDATER_MIN_TIME_BETWEEN_UPDATES_MS}ms)`,
     );
 
     // Send a test job to verify worker picks up jobs
@@ -484,7 +516,7 @@ async function main() {
     const shutdown = async () => {
         log.info("[Math Updater] Shutting down gracefully...");
 
-        clearInterval(scanIntervalId);
+        if (scanTimeoutId !== undefined) clearTimeout(scanTimeoutId);
         clearInterval(watchdogIntervalId);
         await boss.stop();
         log.info("[Math Updater] pg-boss stopped");
