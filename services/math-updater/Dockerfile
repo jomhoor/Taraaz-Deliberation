@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-RUN chown -R node:node /app
+RUN chown -R node:node /app/dist /app/package.json
 USER node
 ENTRYPOINT ["tini", "--"]
 CMD ["node", "--loader", "esm-module-alias/loader", "--no-warnings", "dist/index.js"]
