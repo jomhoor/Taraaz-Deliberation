@@ -134,6 +134,7 @@ import {
     submitWalletChallenge,
     verifyWalletStatusAndAuthenticate,
 } from "./service/wallet.js";
+import { exchangeSsoCode } from "./service/sso.js";
 import { verifyEventTicket } from "./service/zupass.js";
 import {
     httpMethodToAbility,
@@ -2556,6 +2557,35 @@ server.after(() => {
                 db,
                 didWrite,
                 userAgent,
+            });
+        },
+    });
+
+    // SSO (Jomhoor Sign-In): exchange OAuth2 code + PKCE verifier for a Taraaz session
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/exchange`,
+        schema: {
+            body: Dto.ssoExchangeRequest,
+            response: {
+                200: Dto.ssoExchange200,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            if (!config.SSO_CLIENT_SECRET) {
+                throw server.httpErrors.serviceUnavailable("SSO not configured");
+            }
+            const userAgent = request.headers["user-agent"] ?? "Unknown device";
+            return await exchangeSsoCode({
+                db,
+                didWrite,
+                code: request.body.code,
+                codeVerifier: request.body.code_verifier,
+                userAgent,
+                ssoUrl: config.SSO_URL,
+                ssoClientSecret: config.SSO_CLIENT_SECRET,
+                sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
             });
         },
     });

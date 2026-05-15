@@ -73,6 +73,9 @@ const configSchema = sharedConfigSchema.extend({
         )
         .pipe(z.string().min(16).array().nonempty()),
     VERIFICATOR_SVC_BASE_URL: z.url(),
+    // Jomhoor SSO service
+    SSO_URL: z.url().default("https://sso.jomhoor.org"),
+    SSO_CLIENT_SECRET: z.string().min(1).optional(),
     BASE_EVENT_ID: z.string().min(20).default("63957849393154643868"),
     // Zupass public key for verifying event ticket PCDs
     // This is the official Devcon Podbox pipeline public key

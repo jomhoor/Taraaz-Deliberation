@@ -8,6 +8,7 @@ import {
     opinionTable,
     organizationTable,
     phoneTable,
+    ssoAccountTable,
     userOrganizationMappingTable,
     userTable,
     walletTable,
@@ -258,6 +259,7 @@ export async function getDeviceStatus({
             phoneCountryCallingCode: phoneTable.countryCallingCode,
             zkPassportTableId: zkPassportTable.id,
             walletTableId: walletTable.id,
+            ssoAccountTableId: ssoAccountTable.id,
             zkPassportCitizenship: zkPassportTable.citizenship,
             zkPassportSex: zkPassportTable.sex,
             emailTableId: emailTable.id,
@@ -294,6 +296,13 @@ export async function getDeviceStatus({
                 eq(walletTable.userId, deviceTable.userId),
             ),
         )
+        .leftJoin(
+            ssoAccountTable,
+            and(
+                eq(ssoAccountTable.userId, deviceTable.userId),
+                eq(ssoAccountTable.isDeleted, false),
+            ),
+        )
         .where(eq(deviceTable.didWrite, didWrite));
 
     if (resultDevice.length === 0) {
@@ -321,13 +330,14 @@ export async function getDeviceStatus({
 
     const sessionExpiry = device.sessionExpiry;
     const isLoggedIn = sessionExpiry.getTime() > now.getTime();
-    // isRegistered: true if user has phone, Rarimo, Wallet, or email (strong credentials)
+    // isRegistered: true if user has phone, Rarimo, Wallet, email, or SSO account (strong credentials)
     // Zupass tickets are NOT checked here - they are "soft credentials"
     const isRegistered =
         device.phoneTableId !== null ||
         device.zkPassportTableId !== null ||
         device.walletTableId !== null ||
-        device.emailTableId !== null;
+        device.emailTableId !== null ||
+        device.ssoAccountTableId !== null;
 
     const credentials = {
         email: device.email,

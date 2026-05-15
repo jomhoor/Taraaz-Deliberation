@@ -2277,6 +2277,39 @@ export const conversationImportTable = pgTable(
     ],
 );
 
+// SSO account table: maps pairwise subjects from sso-svc to Taraaz users.
+// One row per (sso_subject, client_id) pair — supports future multi-RP SSO.
+export const ssoAccountTable = pgTable(
+    "sso_account",
+    {
+        id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+        userId: uuid("user_id")
+            .references(() => userTable.id)
+            .notNull(),
+        ssoSubject: text("sso_subject").notNull(), // pairwise subject from sso-svc JWT (sub claim)
+        clientId: varchar("client_id", { length: 100 }).notNull(), // RP client id, e.g., "taraaz"
+        isDeleted: boolean("is_deleted").notNull().default(false),
+        createdAt: timestamp("created_at", {
+            mode: "date",
+            precision: 0,
+        })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp("updated_at", {
+            mode: "date",
+            precision: 0,
+        })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        uniqueIndex("sso_subject_client_active_unique")
+            .on(table.ssoSubject, table.clientId)
+            .where(sql`${table.isDeleted} = false`),
+        index("sso_subject_client_idx").on(table.ssoSubject, table.clientId),
+    ],
+);
+
 // MaxDiff (Best-Worst Scaling) results per user per conversation.
 // Stores both the final ranking and the individual comparisons made,
 // so the adaptive MaxDiff session can be resumed from saved state.

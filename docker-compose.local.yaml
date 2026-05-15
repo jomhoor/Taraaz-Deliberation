@@ -14,7 +14,7 @@ services:
       - agora_postgres_local:/data/postgres
       - ./services/api/database/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     ports:
-      - "5433:5432"
+      - "5435:5432"
     restart: unless-stopped
 
   valkey:

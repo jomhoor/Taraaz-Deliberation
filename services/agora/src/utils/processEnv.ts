@@ -51,6 +51,7 @@ export const envSchema = z.object({
   VITE_MAXDIFF_ENABLED: z.enum(["true", "false"]).optional(), // Enable/disable MaxDiff conversation type (must match backend)
   VITE_IS_MAXDIFF_ORG_ONLY: z.enum(["true", "false"]).optional(), // If "true", MaxDiff is restricted to organization conversations (must match backend)
   VITE_MAXDIFF_ALLOWED_ORGS: z.string().optional(), // Comma-separated org names allowed to create MaxDiff conversations (empty = all orgs allowed)
+  VITE_SSO_URL: z.string().optional(), // Jomhoor SSO service URL (defaults to https://sso.jomhoor.org if unset)
 });
 
 export type ProcessEnv = z.infer<typeof envSchema>;

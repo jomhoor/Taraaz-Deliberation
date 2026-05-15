@@ -843,8 +843,31 @@ export class Dto {
         }),
     ]);
 
+    // ── SSO (Jomhoor Sign-In) ────────────────────────────────────────────────
+
+    // POST /api/v1/auth/sso/exchange — UCAN-authenticated; frontend sends code + code_verifier
+    static ssoExchangeRequest = z
+        .object({
+            code: z.string().min(1),
+            code_verifier: z.string().min(1),
+        })
+        .strict();
+
+    static ssoExchange200 = z.discriminatedUnion("success", [
+        z
+            .object({
+                success: z.literal(true),
+                userId: z.string(),
+                accountMerged: z.boolean(),
+            })
+            .strict(),
+        z.object({
+            success: z.literal(false),
+            reason: z.enum(["invalid_code", "sso_error", "associated_with_another_user"]),
+        }),
+    ]);
+
     static zodGetMathRequest = z.object({
-        conversation_slug_id: z.string(),
         conversation_id: z.number(),
         votes: z.array(zodPolisVoteRecord),
     });
@@ -1097,6 +1120,8 @@ export type WalletChallengeSubmit200 = z.infer<
     typeof Dto.walletChallengeSubmit200
 >;
 export type WalletVerifyStatus200 = z.infer<typeof Dto.walletVerifyStatus200>;
+export type SsoExchangeRequest = z.infer<typeof Dto.ssoExchangeRequest>;
+export type SsoExchange200 = z.infer<typeof Dto.ssoExchange200>;
 export type FetchUserReportsByPostSlugIdResponse = z.infer<
     typeof Dto.fetchConversationReportsResponse
 >;
