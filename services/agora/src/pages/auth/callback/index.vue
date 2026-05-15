@@ -40,13 +40,13 @@ import ZKGradientButton from "src/components/ui-library/ZKGradientButton.vue";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import { useVerificationComplete } from "src/composables/verification/useVerificationComplete";
 import OnboardingLayout from "src/layouts/OnboardingLayout.vue";
-import { buildAuthorizationHeader } from "src/utils/crypto/ucan/operation";
-import { ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-
 import { api } from "src/utils/api/client";
 import { useCommonApi } from "src/utils/api/common";
-import { ssoCallbackTranslations, type SsoCallbackTranslations } from "./index.i18n";
+import { buildAuthorizationHeader } from "src/utils/crypto/ucan/operation";
+import { onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+import { type SsoCallbackTranslations, ssoCallbackTranslations } from "./index.i18n";
 
 const { t } = useComponentI18n<SsoCallbackTranslations>(ssoCallbackTranslations);
 
