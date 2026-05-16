@@ -21,8 +21,21 @@
         </template>
 
         <template #body>
+          <!-- Hub WebView SSO mode (auto-triggered inside Jomhoor app) -->
+          <template v-if="hubSsoMode">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem 0;">
+              <q-spinner size="2rem" />
+              <p style="text-align: center; font-size: 0.9rem; color: #6b7280;">
+                Signing you in via Jomhoor…
+              </p>
+              <div v-if="hubSsoError" style="color: #ef4444; text-align: center; font-size: 0.85rem;">
+                {{ hubSsoError }}
+              </div>
+            </div>
+          </template>
+
           <!-- Desktop SSO QR mode -->
-          <template v-if="ssoQrMode">
+          <template v-else-if="ssoQrMode">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
               <p style="text-align: center; font-size: 0.9rem; color: #6b7280;">
                 Scan with Jomhoor wallet to sign in
@@ -80,8 +93,15 @@ import { api } from "src/utils/api/client";
 import { useCommonApi } from "src/utils/api/common";
 import { buildAuthorizationHeader } from "src/utils/crypto/ucan/operation";
 import { processEnv } from "src/utils/processEnv";
-import { onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
+
+// The wallet's WebView shell injects `window.__JOMHOOR__` and exposes
+// `window.ReactNativeWebView.postMessage` for bridging messages back to native.
+interface JomhoorWindow extends Window {
+  __JOMHOOR__?: boolean;
+  ReactNativeWebView?: { postMessage(data: string): void };
+}
 
 import {
     type LoginOnboardingTranslations,
@@ -101,6 +121,10 @@ const { routeUserAfterLogin } = useLoginIntentionStore();
 // ─── Desktop SSO QR State ─────────────────────────────────────────────────────
 
 const ssoQrMode = ref(false);
+// Hub WebView mode: same backend mechanics as the desktop QR flow but instead
+// of rendering a QR, the deep link is postMessage'd to the wallet shell.
+const hubSsoMode = ref(false);
+const hubSsoError = ref("");
 const deepLink = ref("");
 const ssoQrError = ref("");
 let _ssoSessionId = "";
@@ -142,7 +166,17 @@ function randomBase64url(byteLength: number): string {
 }
 
 async function goToJomhoorSso() {
-  // On mobile: redirect the browser directly to sso-svc → wallet opens via deep link
+  // Inside the Jomhoor wallet WebView (Hub tab): bridge the deep link via
+  // postMessage rather than redirecting the browser or rendering a QR. Both
+  // would break — `Linking.openURL(redirect_url)` from the wallet would open
+  // external Safari, losing the WebView session.
+  const jw = window as JomhoorWindow;
+  if (jw.__JOMHOOR__ === true && jw.ReactNativeWebView !== undefined) {
+    await startHubSsoBridge();
+    return;
+  }
+
+  // On regular mobile browsers: redirect to sso-svc → wallet opens via deep link
   if (quasar.platform.is.mobile) {
     await goToJomhoorSsoMobileRedirect();
     return;
@@ -274,6 +308,69 @@ function cancelSsoQr() {
   ssoQrError.value = "";
   _ssoSessionId = "";
 }
+
+// ─── Hub WebView SSO Bridge ───────────────────────────────────────────────────
+
+/**
+ * Initiate SSO from inside the Jomhoor wallet's Hub WebView.
+ *
+ * Reuses the desktop QR backend (server-side PKCE + polling) so the wallet's
+ * existing SsoConsent → /sso/desktop/mobile-complete flow can drive the
+ * sign-in without any new endpoints. Instead of rendering a QR, the deep link
+ * is forwarded to the native shell via `ReactNativeWebView.postMessage`. The
+ * wallet's Hub screen parses it and navigates to SsoConsent, which on approval
+ * marks the session complete; our poll loop then refreshes auth state.
+ */
+async function startHubSsoBridge() {
+  const jw = window as JomhoorWindow;
+  if (!jw.ReactNativeWebView) return;
+
+  hubSsoMode.value = true;
+  hubSsoError.value = "";
+  deepLink.value = "";
+  _ssoSessionId = "";
+
+  try {
+    const url = "/api/v1/auth/sso/desktop/initiate";
+    const options = { method: "post" as const };
+    const encodedUcan = await buildEncodedUcan(url, options);
+    const response = await api.post(
+      url,
+      {},
+      { headers: { ...buildAuthorizationHeader(encodedUcan) } },
+    );
+    const data = Dto.ssoDesktopInitiate200.parse(response.data);
+
+    if (!data.success) {
+      hubSsoError.value = "Could not start sign-in. Please try again.";
+      return;
+    }
+
+    _ssoSessionId = data.sessionId;
+    jw.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: "JOMHOOR_SSO_DEEPLINK",
+        deepLink: data.deepLink,
+        sessionId: data.sessionId,
+      }),
+    );
+    startPolling();
+  } catch (e) {
+    console.error("[HubSso] Failed to initiate session", e);
+    hubSsoError.value = "Could not start sign-in. Please try again.";
+  }
+}
+
+// When running inside the Jomhoor Hub WebView, auto-trigger SSO so the user
+// doesn't have to click "Sign in with Jomhoor" — first-time users land on the
+// sign-up flow after consent; returning users hit a session cookie and never
+// reach this screen at all.
+onMounted(() => {
+  const jw = window as JomhoorWindow;
+  if (jw.__JOMHOOR__ === true && jw.ReactNativeWebView !== undefined) {
+    void goToJomhoorSso();
+  }
+});
 
 onUnmounted(() => {
   stopPolling();

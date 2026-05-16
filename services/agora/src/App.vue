@@ -67,11 +67,9 @@ onMounted(async () => {
     await authenticationStore.initializeAuthState();
 
     // Jomhoor WebView auto-login: after auth is checked, if the user
-    // is not logged in redirect to step1-login. The new SSO bridge in
+    // is not logged in redirect to step1-login. The SSO bridge in
     // step1-login auto-detects the WebView and initiates the desktop-session
-    // SSO flow, postMessaging the deep link to the native shell. This
-    // replaces the legacy step3-wallet WALLET_CHALLENGE_REQUEST flow which
-    // produced a different pairwise identity than the QR/mobile-redirect paths.
+    // SSO flow, postMessaging the deep link to the native shell.
     if (isJomhoorWebView && !authStore.isLoggedIn) {
       const flowStore = onboardingFlowStore();
       flowStore.onboardingMode = "LOGIN";
