@@ -48,6 +48,7 @@ export const zodAuthMethod = z.enum([
     "zupass",
     "wallet",
     "email",
+    "sso", // OAuth2 PKCE SSO (Jomhoor wallet login)
     // "passkey", // Future
 ]);
 export type AuthMethod = z.infer<typeof zodAuthMethod>;
@@ -62,6 +63,7 @@ export const AUTH_METHOD_STRENGTH = {
     zupass: "soft",
     wallet: "hard", // Jomhoor wallet - ZK passport backed
     email: "hard",
+    sso: "hard", // OAuth2 PKCE SSO — backed by Jomhoor wallet identity
     // passkey: "hard", // Future - might be hard or soft depending on implementation
 } as const satisfies Record<AuthMethod, CredentialStrength>;
 

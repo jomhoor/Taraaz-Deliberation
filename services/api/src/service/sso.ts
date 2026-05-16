@@ -217,7 +217,7 @@ export async function exchangeSsoCode({
     const authResult: AuthResult = determineAuthType({
         credentialAuthState,
         deviceStatus,
-        authMethod: "sso" as never, // SSO is a hard credential, see note below
+        authMethod: "sso",
     });
 
     if (authResult.type === "associated_with_another_user") {

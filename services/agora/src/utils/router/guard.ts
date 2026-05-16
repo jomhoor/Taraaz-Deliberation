@@ -29,6 +29,7 @@ export function useRouterGuard() {
       ...onboardingRoutes,
       "/",
       "/welcome/",
+      "/auth/callback/",
       "/conversation/[postSlugId]",
       "/conversation/[postSlugId]/",
       "/conversation/[postSlugId]/analysis",
