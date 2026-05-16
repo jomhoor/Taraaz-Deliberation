@@ -80,7 +80,7 @@ import { api } from "src/utils/api/client";
 import { useCommonApi } from "src/utils/api/common";
 import { buildAuthorizationHeader } from "src/utils/crypto/ucan/operation";
 import { processEnv } from "src/utils/processEnv";
-import { computed, onUnmounted, ref } from "vue";
+import { onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import {
@@ -103,7 +103,7 @@ const { routeUserAfterLogin } = useLoginIntentionStore();
 const ssoQrMode = ref(false);
 const deepLink = ref("");
 const ssoQrError = ref("");
-let ssoSessionId = "";
+let _ssoSessionId = "";
 let pollIntervalId: number | undefined = undefined;
 
 const qrcode = useQRCode(deepLink, {
@@ -184,7 +184,7 @@ async function startDesktopSsoQr() {
   ssoQrMode.value = true;
   deepLink.value = "";
   ssoQrError.value = "";
-  ssoSessionId = "";
+  _ssoSessionId = "";
 
   try {
     const url = "/api/v1/auth/sso/desktop/initiate";
@@ -202,7 +202,7 @@ async function startDesktopSsoQr() {
       return;
     }
 
-    ssoSessionId = data.sessionId;
+    _ssoSessionId = data.sessionId;
     deepLink.value = data.deepLink;
     startPolling();
   } catch (e) {
@@ -272,7 +272,7 @@ function cancelSsoQr() {
   ssoQrMode.value = false;
   deepLink.value = "";
   ssoQrError.value = "";
-  ssoSessionId = "";
+  _ssoSessionId = "";
 }
 
 onUnmounted(() => {
