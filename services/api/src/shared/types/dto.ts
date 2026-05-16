@@ -867,6 +867,47 @@ export class Dto {
         }),
     ]);
 
+    // ── SSO Desktop QR Flow ──────────────────────────────────────────────────
+
+    // POST /api/v1/auth/sso/desktop/initiate — UCAN-authenticated by the desktop
+    static ssoDesktopInitiate200 = z.discriminatedUnion("success", [
+        z
+            .object({
+                success: z.literal(true),
+                sessionId: z.string(),
+                deepLink: z.string(), // jomhoor://auth/sso?...&desktop_session_id=<id>
+            })
+            .strict(),
+        z.object({
+            success: z.literal(false),
+            reason: z.enum(["sso_error"]),
+        }),
+    ]);
+
+    // POST /api/v1/auth/sso/desktop/mobile-complete — called by wallet (no UCAN)
+    static ssoDesktopMobileCompleteRequest = z
+        .object({
+            session_id: z.string().min(1),
+            code: z.string().min(1),
+        })
+        .strict();
+
+    static ssoDesktopMobileComplete200 = z.discriminatedUnion("success", [
+        z.object({ success: z.literal(true) }).strict(),
+        z.object({
+            success: z.literal(false),
+            reason: z.enum(["invalid_session", "expired", "already_used", "sso_error"]),
+        }),
+    ]);
+
+    // POST /api/v1/auth/sso/desktop/poll — UCAN-authenticated; desktop polls for completion
+    static ssoDesktopPoll200 = z
+        .object({
+            success: z.literal(true),
+            status: z.enum(["pending", "complete", "expired", "no_session"]),
+        })
+        .strict();
+
     static zodGetMathRequest = z.object({
         conversation_id: z.number(),
         votes: z.array(zodPolisVoteRecord),
@@ -1122,6 +1163,10 @@ export type WalletChallengeSubmit200 = z.infer<
 export type WalletVerifyStatus200 = z.infer<typeof Dto.walletVerifyStatus200>;
 export type SsoExchangeRequest = z.infer<typeof Dto.ssoExchangeRequest>;
 export type SsoExchange200 = z.infer<typeof Dto.ssoExchange200>;
+export type SsoDesktopInitiate200 = z.infer<typeof Dto.ssoDesktopInitiate200>;
+export type SsoDesktopMobileCompleteRequest = z.infer<typeof Dto.ssoDesktopMobileCompleteRequest>;
+export type SsoDesktopMobileComplete200 = z.infer<typeof Dto.ssoDesktopMobileComplete200>;
+export type SsoDesktopPoll200 = z.infer<typeof Dto.ssoDesktopPoll200>;
 export type FetchUserReportsByPostSlugIdResponse = z.infer<
     typeof Dto.fetchConversationReportsResponse
 >;

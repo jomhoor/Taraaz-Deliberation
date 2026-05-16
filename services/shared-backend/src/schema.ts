@@ -2309,6 +2309,39 @@ export const ssoAccountTable = pgTable(
     ],
 );
 
+// Desktop SSO session: used for cross-device QR-code SSO flow.
+// Desktop initiates → backend fetches challenge from sso-svc + stores PKCE →
+// QR encodes deepLink → wallet scans, signs, POSTs code back → desktop polls.
+export const ssoDesktopSessionTable = pgTable(
+    "sso_desktop_session",
+    {
+        id: text("id").primaryKey(), // UUID v4 — acts as one-time session token
+        codeVerifier: text("code_verifier").notNull(),
+        state: text("state").notNull(),
+        desktopDidWrite: text("desktop_did_write").notNull(),
+        status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | complete | failed
+        expiresAt: timestamp("expires_at", {
+            mode: "date",
+            precision: 0,
+        }).notNull(),
+        createdAt: timestamp("created_at", {
+            mode: "date",
+            precision: 0,
+        })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp("updated_at", {
+            mode: "date",
+            precision: 0,
+        })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        index("sso_desktop_session_did_write_idx").on(table.desktopDidWrite),
+    ],
+);
+
 // MaxDiff (Best-Worst Scaling) results per user per conversation.
 // Stores both the final ranking and the individual comparisons made,
 // so the adaptive MaxDiff session can be resumed from saved state.

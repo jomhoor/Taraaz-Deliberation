@@ -76,6 +76,8 @@ const configSchema = sharedConfigSchema.extend({
     // Jomhoor SSO service
     SSO_URL: z.url().default("https://sso.jomhoor.org"),
     SSO_CLIENT_SECRET: z.string().min(1).optional(),
+    // Taraaz frontend origin (used for SSO redirect_uri construction)
+    AGORA_ORIGIN: z.url().default("https://taraaz.jomhoor.org"),
     BASE_EVENT_ID: z.string().min(20).default("63957849393154643868"),
     // Zupass public key for verifying event ticket PCDs
     // This is the official Devcon Podbox pipeline public key

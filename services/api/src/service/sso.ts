@@ -25,12 +25,19 @@ import { generateUnusedRandomUsername } from "@/service/account.js";
 import {
     deviceTable,
     ssoAccountTable,
+    ssoDesktopSessionTable,
     userTable,
 } from "@/shared-backend/schema.js";
-import type { SsoExchange200 } from "@/shared/types/dto.js";
+import type {
+    SsoDesktopMobileComplete200,
+    SsoDesktopInitiate200,
+    SsoDesktopPoll200,
+    SsoExchange200,
+} from "@/shared/types/dto.js";
 import { nowZeroMs } from "@/shared/util.js";
 import axios from "axios";
-import { and, eq } from "drizzle-orm";
+import { createHash, randomBytes } from "node:crypto";
+import { and, desc, eq } from "drizzle-orm";
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
 
 // ─── SSO code exchange ─────────────────────────────────────────────────────────
@@ -302,3 +309,204 @@ export async function exchangeSsoCode({
 
     return { success: true, userId, accountMerged };
 }
+
+// ─── Desktop SSO QR flow ───────────────────────────────────────────────────────
+
+const SSO_DESKTOP_SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const SSO_CLIENT_ID = "taraaz";
+
+/**
+ * Initiate a desktop SSO session for the QR-code cross-device flow.
+ *
+ * 1. Generate PKCE (code_verifier, code_challenge) server-side so the verifier
+ *    is stored securely on the backend rather than in the desktop's localStorage.
+ * 2. Call sso-svc GET /v1/authorize without following the 302 redirect to obtain
+ *    the challenge nonce from the Location header.
+ * 3. Persist the session row (TTL = 5 min).
+ * 4. Return the deep link for the QR code:
+ *    jomhoor://auth/sso?challenge=<nonce>&client_id=taraaz&state=<state>&desktop_session_id=<id>
+ *    The wallet will parse desktop_session_id and, after approval, POST the code
+ *    back to /api/v1/auth/sso/desktop/mobile-complete instead of opening the
+ *    redirect URL in the system browser.
+ */
+export async function initiateSsoDesktopSession({
+    db,
+    didWrite,
+    ssoUrl,
+    ssoClientSecret: _ssoClientSecret,
+    redirectUri,
+}: {
+    db: PostgresDatabase;
+    didWrite: string;
+    ssoUrl: string;
+    ssoClientSecret: string;
+    redirectUri: string;
+}): Promise<SsoDesktopInitiate200> {
+    // Generate PKCE server-side
+    const codeVerifierBytes = randomBytes(32);
+    const codeVerifier = codeVerifierBytes.toString("base64url");
+    const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
+    const state = generateUUID();
+
+    const params = new URLSearchParams({
+        client_id: SSO_CLIENT_ID,
+        redirect_uri: redirectUri,
+        state,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+    });
+
+    let ssoLocation: string;
+    try {
+        const resp = await axios.get(`${ssoUrl}/v1/authorize?${params.toString()}`, {
+            maxRedirects: 0,
+            validateStatus: (s) => s >= 200 && s < 400,
+        });
+        const location = resp.headers["location"] as string | undefined;
+        if (!location) {
+            log.warn("[SSO Desktop] sso-svc did not return a Location header");
+            return { success: false, reason: "sso_error" };
+        }
+        ssoLocation = location;
+    } catch (err) {
+        log.error({ err }, "[SSO Desktop] Failed to call sso-svc /v1/authorize");
+        return { success: false, reason: "sso_error" };
+    }
+
+    // Store session
+    const sessionId = generateUUID();
+    const now = nowZeroMs();
+    const expiresAt = new Date(now.getTime() + SSO_DESKTOP_SESSION_TTL_MS);
+
+    await db.insert(ssoDesktopSessionTable).values({
+        id: sessionId,
+        codeVerifier,
+        state,
+        desktopDidWrite: didWrite,
+        status: "pending",
+        expiresAt,
+        createdAt: now,
+        updatedAt: now,
+    });
+
+    // Append desktop_session_id to the deep link so the wallet knows to POST
+    // the code back here instead of opening redirect_url in the system browser.
+    const separator = ssoLocation.includes("?") ? "&" : "?";
+    const deepLink = `${ssoLocation}${separator}desktop_session_id=${encodeURIComponent(sessionId)}`;
+
+    log.info({ sessionId, didWrite }, "[SSO Desktop] Session initiated");
+    return { success: true, sessionId, deepLink };
+}
+
+/**
+ * Complete a desktop SSO session from the mobile wallet.
+ *
+ * Called by the wallet (no UCAN) after the user approves the SSO consent screen.
+ * The wallet extracts the OAuth2 code from the redirect_url it received and POSTs
+ * it here along with the desktop_session_id from the original deep link.
+ *
+ * SECURITY: The session_id is a 128-bit UUID. The code is a one-time token issued
+ * by sso-svc — it is useless without the code_verifier (PKCE), which only this
+ * backend holds. An attacker who intercepts the deep link still cannot complete the
+ * flow without the session_id.
+ */
+export async function completeSsoDesktopSessionFromMobile({
+    db,
+    sessionId,
+    code,
+    userAgent,
+    ssoUrl,
+    ssoClientSecret,
+    sessionLifetimeDays,
+}: {
+    db: PostgresDatabase;
+    sessionId: string;
+    code: string;
+    userAgent: string;
+    ssoUrl: string;
+    ssoClientSecret: string;
+    sessionLifetimeDays: number;
+}): Promise<SsoDesktopMobileComplete200> {
+    const now = nowZeroMs();
+
+    const sessions = await db
+        .select()
+        .from(ssoDesktopSessionTable)
+        .where(eq(ssoDesktopSessionTable.id, sessionId));
+
+    const session = sessions[0];
+    if (!session) {
+        log.warn({ sessionId }, "[SSO Desktop] Session not found");
+        return { success: false, reason: "invalid_session" };
+    }
+    if (session.status !== "pending") {
+        log.warn({ sessionId, status: session.status }, "[SSO Desktop] Session already used");
+        return { success: false, reason: "already_used" };
+    }
+    if (session.expiresAt < now) {
+        log.warn({ sessionId }, "[SSO Desktop] Session expired");
+        return { success: false, reason: "expired" };
+    }
+
+    // Exchange the code using the server-stored code_verifier
+    const exchangeResult = await exchangeSsoCode({
+        db,
+        didWrite: session.desktopDidWrite,
+        code,
+        codeVerifier: session.codeVerifier,
+        userAgent,
+        ssoUrl,
+        ssoClientSecret,
+        sessionLifetimeDays,
+    });
+
+    const newStatus = exchangeResult.success ? "complete" : "failed";
+    await db
+        .update(ssoDesktopSessionTable)
+        .set({ status: newStatus, updatedAt: now })
+        .where(eq(ssoDesktopSessionTable.id, sessionId));
+
+    if (!exchangeResult.success) {
+        log.warn({ sessionId, reason: exchangeResult.reason }, "[SSO Desktop] Code exchange failed");
+        return { success: false, reason: "sso_error" };
+    }
+
+    log.info({ sessionId, userId: exchangeResult.userId }, "[SSO Desktop] Session completed");
+    return { success: true };
+}
+
+/**
+ * Poll the status of the desktop SSO session.
+ *
+ * The desktop frontend calls this every ~2 seconds after showing the QR code.
+ * Returns the status of the most recent non-failed session for this device.
+ */
+export async function pollSsoDesktopSession({
+    db,
+    didWrite,
+}: {
+    db: PostgresDatabase;
+    didWrite: string;
+}): Promise<SsoDesktopPoll200> {
+    const now = nowZeroMs();
+
+    const sessions = await db
+        .select()
+        .from(ssoDesktopSessionTable)
+        .where(eq(ssoDesktopSessionTable.desktopDidWrite, didWrite))
+        .orderBy(desc(ssoDesktopSessionTable.createdAt))
+        .limit(1);
+
+    const session = sessions[0];
+    if (!session) {
+        return { success: true, status: "no_session" };
+    }
+    if (session.status === "complete") {
+        return { success: true, status: "complete" };
+    }
+    if (session.expiresAt < now || session.status === "failed") {
+        return { success: true, status: "expired" };
+    }
+    return { success: true, status: "pending" };
+}
+

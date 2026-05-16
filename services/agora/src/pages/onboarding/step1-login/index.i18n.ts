@@ -8,6 +8,7 @@ export interface LoginOnboardingTranslations {
   loginWithPhone: string;
   loginWithEmail: string;
   comingSoon: string;
+  cancel: string;
 }
 
 export const loginOnboardingTranslations: Record<
@@ -22,6 +23,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "Login with phone number",
     loginWithEmail: "Login with email",
     comingSoon: "Coming soon",
+    cancel: "Cancel",
   },
   ar: {
     pageTitle: "تسجيل الدخول",
@@ -31,6 +33,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "تسجيل الدخول برقم هاتفي",
     loginWithEmail: "تسجيل الدخول ببريدي الإلكتروني",
     comingSoon: "قريباً",
+    cancel: "إلغاء",
   },
   es: {
     pageTitle: "Iniciar sesión",
@@ -40,6 +43,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "Iniciar sesión con mi número de teléfono",
     loginWithEmail: "Iniciar sesión con mi correo electrónico",
     comingSoon: "Próximamente",
+    cancel: "Cancelar",
   },
   fr: {
     pageTitle: "Se connecter",
@@ -49,6 +53,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "Se connecter avec mon numéro de téléphone",
     loginWithEmail: "Se connecter avec mon e-mail",
     comingSoon: "Bientôt disponible",
+    cancel: "Annuler",
   },
   "zh-Hans": {
     pageTitle: "登录",
@@ -58,6 +63,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "使用手机号登录",
     loginWithEmail: "使用我的邮箱登录",
     comingSoon: "即将推出",
+    cancel: "取消",
   },
   "zh-Hant": {
     pageTitle: "登入",
@@ -67,6 +73,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "使用手機號登入",
     loginWithEmail: "使用我的郵箱登入",
     comingSoon: "即將推出",
+    cancel: "取消",
   },
   ja: {
     pageTitle: "ログイン",
@@ -76,6 +83,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "携帯電話でログイン",
     loginWithEmail: "自分のメールでログイン",
     comingSoon: "近日公開",
+    cancel: "キャンセル",
   },
   fa: {
     pageTitle: "ورود",
@@ -85,6 +93,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "ورود با شماره تلفن",
     loginWithEmail: "ورود با ایمیل",
     comingSoon: "به‌زودی",
+    cancel: "لغو",
   },
   ky: {
     pageTitle: "Кирүү",
@@ -94,6 +103,7 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "Телефон номери менен кирүү",
     loginWithEmail: "Электрондук почта менен кирүү",
     comingSoon: "Жакында",
+    cancel: "Жокко чыгаруу",
   },
   ru: {
     pageTitle: "Вход",
@@ -103,5 +113,6 @@ export const loginOnboardingTranslations: Record<
     loginWithPhone: "Войти по номеру телефона",
     loginWithEmail: "Войти по электронной почте",
     comingSoon: "Скоро",
+    cancel: "Отмена",
   },
 };
