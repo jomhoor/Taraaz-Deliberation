@@ -47,6 +47,23 @@ const isJomhoorWebView =
 
 onMounted(async () => {
   try {
+    // Skip auth initialization on the SSO callback route.
+    // The callback page handles auth completion itself (POST /auth/sso/exchange
+    // followed by completeVerification). Running initializeAuthState here would
+    // hit check-login-status before the exchange completes, see isKnown=false,
+    // and call logoutDataCleanup → deleteDid(), wiping the device keypair from
+    // IndexedDB. The exchange then succeeds for that old key, but the next
+    // check-login-status creates a fresh key, so the device record cannot be
+    // found and the user is logged out instead of in.
+    const path =
+      typeof window !== "undefined" ? window.location.pathname : "";
+    if (path.startsWith("/auth/callback")) {
+      console.log("[App] On SSO callback route — skipping initializeAuthState");
+      const { isAuthInitialized } = storeToRefs(useAuthenticationStore());
+      isAuthInitialized.value = true;
+      return;
+    }
+
     await authenticationStore.initializeAuthState();
 
     // Jomhoor WebView auto-login: after auth is checked, if the user
