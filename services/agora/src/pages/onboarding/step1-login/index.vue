@@ -91,8 +91,10 @@ async function goToJomhoorSso() {
   const codeVerifier = randomBase64url(32); // 256 bits of entropy
   const codeChallenge = await sha256Base64url(codeVerifier);
 
-  // Persist PKCE state for the callback page
-  sessionStorage.setItem(
+  // Persist PKCE state for the callback page.
+  // localStorage (not sessionStorage) so the data survives when iOS opens the
+  // callback URL in a new Safari tab via Linking.openURL from the wallet app.
+  localStorage.setItem(
     "jomhoor_sso_pkce",
     JSON.stringify({ state, code_verifier: codeVerifier }),
   );

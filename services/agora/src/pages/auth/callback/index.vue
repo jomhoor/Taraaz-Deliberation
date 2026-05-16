@@ -66,9 +66,11 @@ onMounted(async () => {
   const code = route.query["code"];
   const returnedState = route.query["state"];
 
-  // Read PKCE data stored before the SSO redirect
-  const rawPkce = sessionStorage.getItem("jomhoor_sso_pkce");
-  sessionStorage.removeItem("jomhoor_sso_pkce");
+  // Read PKCE data stored before the SSO redirect.
+  // Uses localStorage (not sessionStorage) because iOS opens the callback URL
+  // in a new Safari tab via Linking.openURL, which has no sessionStorage.
+  const rawPkce = localStorage.getItem("jomhoor_sso_pkce");
+  localStorage.removeItem("jomhoor_sso_pkce");
 
   if (!code || typeof code !== "string") {
     errorMessage.value = t("errorMissingCode");
