@@ -130,11 +130,6 @@ import {
     castVoteForOpinionSlugId,
     getUserVotesForPostSlugIds as getUserVotesByConversations,
 } from "./service/voting.js";
-import {
-    generateWalletChallenge,
-    submitWalletChallenge,
-    verifyWalletStatusAndAuthenticate,
-} from "./service/wallet.js";
 import { verifyEventTicket } from "./service/zupass.js";
 import {
     httpMethodToAbility,
@@ -2501,65 +2496,9 @@ server.after(() => {
         },
     });
 
-    // Jomhoor wallet authentication (2-step challenge-response)
-    // Step 1: Generate challenge (UCAN authenticated — called by browser/WebView)
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/wallet/generate-challenge`,
-        schema: {
-            response: {
-                200: Dto.generateWalletChallenge200,
-            },
-        },
-        handler: async (request) => {
-            const { didWrite } = await verifyUcan(request);
-            return await generateWalletChallenge({
-                db,
-                didWrite,
-            });
-        },
-    });
-
-    // Step 2a: Submit challenge (NO UCAN — called by Jomhoor native app directly)
-    // Security: challenge token (256-bit random, one-time, 5-min TTL) authenticates the request
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/wallet/submit`,
-        schema: {
-            body: Dto.walletChallengeSubmitRequest,
-            response: {
-                200: Dto.walletChallengeSubmit200,
-            },
-        },
-        handler: async (request) => {
-            return await submitWalletChallenge({
-                db,
-                challenge: request.body.challenge,
-                walletAddress: request.body.walletAddress,
-                nationality: request.body.nationality,
-            });
-        },
-    });
-
-    // Step 2b: Verify wallet status (UCAN authenticated — frontend polls every 2s)
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/wallet/verify-status`,
-        schema: {
-            response: {
-                200: Dto.walletVerifyStatus200,
-            },
-        },
-        handler: async (request) => {
-            const { didWrite } = await verifyUcan(request);
-            const userAgent = request.headers["user-agent"] ?? "Unknown device";
-            return await verifyWalletStatusAndAuthenticate({
-                db,
-                didWrite,
-                userAgent,
-            });
-        },
-    });
+    // Jomhoor wallet authentication moved to sso-svc (see /v1/authorize flow).
+    // The Phase-0 challenge/submit/verify-status shim that accepted `nationality`
+    // over the wallet channel was removed in M0 cleanup.
 
     // SSO (Jomhoor Sign-In): exchange OAuth2 code + PKCE verifier for a Taraaz session
     server.withTypeProvider<ZodTypeProvider>().route({
