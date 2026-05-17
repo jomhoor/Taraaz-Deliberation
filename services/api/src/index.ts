@@ -112,6 +112,7 @@ import {
     fetchUserReportsByCommentSlugId,
     fetchUserReportsByPostSlugId,
 } from "./service/report.js";
+import { exchangeSsoCode } from "./service/sso.js";
 import {
     getAllTopics,
     getUserFollowedTopics,
@@ -134,7 +135,6 @@ import {
     submitWalletChallenge,
     verifyWalletStatusAndAuthenticate,
 } from "./service/wallet.js";
-import { exchangeSsoCode } from "./service/sso.js";
 import { verifyEventTicket } from "./service/zupass.js";
 import {
     httpMethodToAbility,
