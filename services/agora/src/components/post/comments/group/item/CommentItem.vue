@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="container">
+    <div class="container" :dir="commentDirection">
       <div class="topBar">
         <!-- TODO: Pass author verified flag here -->
         <OpinionIdentityCard
@@ -27,6 +27,8 @@
           :html-body="commentItem.opinion"
           :compact-mode="false"
           :enable-links="true"
+          :direction="commentDirection"
+          :alignment="commentDirection === 'rtl' ? 'right' : 'left'"
         />
       </div>
 
@@ -65,6 +67,8 @@ import type {
   ParticipationMode,
   SurveyGateSummary,
 } from "src/shared/types/zod";
+import { detectHtmlTextDirection } from "src/utils/text/textDirection";
+import { computed } from "vue";
 
 import ZKHtmlContent from "../../../../ui-library/ZKHtmlContent.vue";
 import CommentActionBar from "./CommentActionBar.vue";
@@ -88,6 +92,10 @@ const emit = defineEmits<{
   deleted: [opinionSlugId: string];
   mutedComment: [];
 }>();
+
+const commentDirection = computed(() =>
+  detectHtmlTextDirection(props.commentItem.opinion)
+);
 
 function deletedComment() {
   emit("deleted", props.commentItem.opinionSlugId);

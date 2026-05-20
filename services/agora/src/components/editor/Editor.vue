@@ -507,17 +507,14 @@ watch(
 }
 
 :global(html[lang|="fa"] .editor .tiptap p.is-editor-empty:first-child::before) {
-  float: right;
+  /* float:right + direction:rtl handled by top-level rtl-ignore rules in app.scss */
   width: 100%;
-  text-align: right;
-  direction: rtl;
   unicode-bidi: isolate;
   font-size: 1.08rem;
 }
 
 :global(html[lang|="fa"] .editor .ProseMirror) {
-  direction: rtl;
-  text-align: right;
+  /* direction:rtl + text-align handled by natural RTL cascade and app.scss overrides */
   font-size: 1.08rem;
   line-height: 1.8;
   letter-spacing: 0.012em;
@@ -526,8 +523,7 @@ watch(
 
 :global(html[lang|="fa"] .editor .ProseMirror p),
 :global(html[lang|="fa"] .editor .ProseMirror li) {
-  direction: rtl;
-  text-align: right;
+  /* direction:rtl + text-align handled by natural RTL cascade */
 }
 
 :global(html[lang|="fa"] .character-count-footer) {

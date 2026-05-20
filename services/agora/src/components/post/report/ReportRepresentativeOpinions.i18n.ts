@@ -89,12 +89,4 @@ export const reportRepresentativeOpinionsTranslations: Record<
     overall: "Общий",
     noStatements: "Характерные высказывания отсутствуют.",
   },
-  fa: {
-    title: "گزاره‌های نماینده",
-    groupSubtitle: "گزاره‌هایی که این گروه را بر اساس آراء منحصربه‌فرد می‌کنند:",
-    participants: "شرکت‌کننده",
-    statement: "گزاره",
-    overall: "کلی",
-    noStatements: "گزاره نماینده‌ای در دسترس نیست.",
-  },
 };

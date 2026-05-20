@@ -86,14 +86,6 @@ export const conversationMutationsTranslations: Record<
     alreadyClosed: "この会話はすでに閉じられています",
     alreadyOpen: "この会話はすでに開いています",
   },
-  fa: {
-    closeError: "بستن گفتگو ناموفق بود. لطفاً دوباره تلاش کنید.",
-    openError: "باز کردن گفتگو ناموفق بود. لطفاً دوباره تلاش کنید.",
-    closeNotAllowed: "شما اجازه بستن این گفتگو را ندارید",
-    openNotAllowed: "شما اجازه باز کردن این گفتگو را ندارید",
-    alreadyClosed: "این گفتگو از قبل بسته شده است",
-    alreadyOpen: "این گفتگو از قبل باز است",
-  },
   ky: {
     closeError: "Талкууну жабуу ишке ашкан жок. Кайра аракет кылыңыз.",
     openError: "Талкууну ачуу ишке ашкан жок. Кайра аракет кылыңыз.",

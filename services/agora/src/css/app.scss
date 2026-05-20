@@ -153,36 +153,14 @@ html[lang|="fa"] {
     font-family: "Material Design Icons" !important;
   }
 
-  /* RTL layout for settings list items */
-  .menu-item {
-    direction: rtl;
-  }
-
-  .menu-item__chevron {
-    transform: scaleX(-1);
-  }
-
   /* Button/link text alignment */
   .settings-item {
     text-align: right;
   }
 
-  /* Drawer content: q-scrollarea container resets direction to ltr internally,
-     so we must re-apply RTL on the content div. */
-  .q-drawer .q-scrollarea__content {
-    direction: rtl;
-  }
-
-  /* Drawer navigation items */
-  .settingItemStyle {
-    direction: rtl;
-  }
-
   /* Drawer username bar */
   .usernameBar {
-    direction: rtl;
-    padding-left: 0;
-    padding-right: 1rem;
+    padding-inline-start: 1rem;
   }
 
   /* Fix English text rendering in RTL containers:
@@ -278,6 +256,37 @@ html {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+}
+
+/*
+ * Direction overrides for Quasar components that internally reset direction: ltr.
+ * Written as top-level rules with rtl:ignore comments so the PostCSS RTLCSS plugin
+ * preserves them as-is (no counter-rule generated).
+ */
+
+/* rtl:ignore */
+html[lang|="fa"] .q-drawer .q-scrollarea__content {
+  direction: rtl;
+}
+
+/* rtl:ignore */
+html[lang|="fa"] .settingItemStyle {
+  direction: rtl;
+}
+
+/* rtl:ignore */
+html[lang|="fa"] .usernameBar {
+  direction: rtl;
+}
+
+/* rtl:ignore */
+html[lang|="fa"] .tiptap p.is-editor-empty:first-child::before {
+  float: right !important;
+}
+
+/* rtl:ignore */
+html[lang|="fa"] .ProseMirror {
+  direction: rtl;
 }
 
 /* Sticky positioning below the fixed Quasar header.

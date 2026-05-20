@@ -75,13 +75,6 @@ export const sideDrawerTranslations: Record<
     profile: "プロフィール",
     settings: "設定",
   },
-  fa: {
-    home: "خانه",
-    explore: "کاوش",
-    dings: "اعلان‌ها",
-    profile: "نمایه",
-    settings: "تنظیمات",
-  },
   ky: {
     home: "Башкы бет",
     explore: "Изилдөө",

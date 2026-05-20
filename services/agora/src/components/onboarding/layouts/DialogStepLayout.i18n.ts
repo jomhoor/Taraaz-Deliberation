@@ -35,9 +35,6 @@ export const dialogStepLayoutTranslations: Record<
   ja: {
     welcomeTitle: "Agora へようこそ！",
   },
-  fa: {
-    welcomeTitle: "به جمهور خوش آمدید!",
-  },
   ky: {
     welcomeTitle: "Agora'га кош келиңиз!",
   },

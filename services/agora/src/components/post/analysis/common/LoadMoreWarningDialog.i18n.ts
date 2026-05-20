@@ -84,14 +84,6 @@ export const loadMoreWarningDialogTranslations: Record<
     cancelButton: "キャンセル",
     loadMoreButton: "すべて読み込む",
   },
-  fa: {
-    title: "بارگذاری همه نظرات",
-    description:
-      "همه نظرات به ترتیب کاهشی اهمیت آماری نمایش داده می‌شوند، از جمله مواردی که ممکن است {emphasis} معنادار نباشند.",
-    descriptionEmphasis: "اصلاً",
-    cancelButton: "لغو",
-    loadMoreButton: "بارگذاری همه",
-  },
   ky: {
     title: "Бардык пикирлерди жүктөө",
     description:

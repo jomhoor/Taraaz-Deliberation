@@ -198,6 +198,28 @@ export const editConversationTranslations: Record<
       "Removing the poll will delete all existing votes. This action cannot be undone. Do you want to continue?",
     removePollWarningConfirm: "بله، نظرسنجی حذف شود",
   },
+  he: {
+    saveButton: "שמור שינויים",
+    titlePlaceholder: "מה ברצונכם לשאול?",
+    bodyPlaceholder:
+      "טקסט הגוף. ספקו הקשר או משאבים רלוונטיים. ודאו שהוא תואם לשאלה הראשית!",
+    pageTitle: "ערוך שיחה",
+    notFoundError: "השיחה לא נמצאה",
+    notAuthorError: "אין לכם הרשאה לערוך שיחה זו",
+    loadingError: "טעינת נתוני השיחה נכשלה",
+    pollChangeWarningTitle: "אזהרה: שינוי סקר",
+    pollChangeWarningMessage:
+      "שינוי אפשרויות הסקר ימחק את כל ההצבעות הקיימות. לא ניתן לבטל פעולה זו. האם ברצונכם להמשיך?",
+    pollChangeWarningConfirm: "כן, מחק הצבעות",
+    pollChangeWarningCancel: "ביטול",
+    updateSuccess: "השיחה עודכנה בהצלחה",
+    updateError: "עדכון השיחה נכשל",
+    conversationLockedError: "שיחה זו נעולה ולא ניתן לערוך אותה",
+    removePollWarningTitle: "אזהרה: הסר סקר",
+    removePollWarningMessage:
+      "הסרת הסקר תמחק את כל ההצבעות הקיימות. לא ניתן לבטל פעולה זו. האם ברצונכם להמשיך?",
+    removePollWarningConfirm: "כן, הסר סקר",
+  },
   ky: {
     saveButton: "Өзгөртүүлөрдү сактоо",
     titlePlaceholder: "Эмнени сурагыңыз келет?",

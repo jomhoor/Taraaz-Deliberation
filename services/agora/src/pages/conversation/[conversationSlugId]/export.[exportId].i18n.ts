@@ -45,10 +45,6 @@ export const exportStatusPageTranslations: Record<
     pageTitle: "エクスポートステータス",
     exportFeatureDisabled: "エクスポート機能は無効です",
   },
-  fa: {
-    pageTitle: "وضعیت خروجی",
-    exportFeatureDisabled: "قابلیت خروجی غیرفعال است",
-  },
   ky: {
     pageTitle: "Экспорттун абалы",
     exportFeatureDisabled: "Экспорт функциясы өчүрүлгөн",

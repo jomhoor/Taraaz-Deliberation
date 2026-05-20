@@ -229,29 +229,6 @@ export const step3Phone2Translations: Record<SupportedDisplayLanguageCodes, Step
       restrictedPhoneType:
         "申し訳ありませんが、この電話番号はセキュリティ上の理由でサポートされていません。別の番号を試してください。",
     },
-  fa: {
-      title: "کد ۶ رقمی را وارد کنید",
-      instructions: "کد ۶ رقمی ارسال شده به شماره تلفن را وارد کنید",
-      expiresIn: "انقضا در",
-      codeExpired: "کد منقضی شد",
-      changeNumber: "تغییر شماره",
-      resendCodeIn: "ارسال مجدد کد در",
-      resendCode: "ارسال مجدد کد",
-      pleaseEnterValidCode: "لطفاً کد ۶ رقمی معتبر وارد کنید",
-      verificationSuccessful: "تأیید موفقیت‌آمیز بود 🎉",
-      accountMerged: "موفقیت! حساب‌های شما ادغام شد 🎉",
-      codeExpiredResend: "کد منقضی شد — کد جدید ارسال کنید",
-      wrongCodeTryAgain: "کد اشتباه است — دوباره امتحان کنید",
-      syncHiccupDetected: "مشکلی در همگام‌سازی پیش آمد — کد جدید ارسال کنید",
-      authStateChanged: "وضعیت احراز هویت تغییر کرد — لطفاً کد جدید درخواست کنید",
-      somethingWrong: "مشکلی پیش آمد",
-      tooManyAttempts:
-        "تلاش‌های بیش از حد — لطفاً قبل از درخواست کد جدید صبر کنید",
-      invalidPhoneNumber:
-        "متأسفانه این شماره تلفن نامعتبر است. لطفاً بررسی کرده و دوباره امتحان کنید.",
-      restrictedPhoneType:
-        "متأسفانه این شماره تلفن به دلایل امنیتی پشتیبانی نمی‌شود. لطفاً شماره دیگری امتحان کنید.",
-  },
     ky: {
       title: "6 орундуу кодду киргизиңиз",
       instructions: "Телефон номериңизге жөнөтүлгөн 6 орундуу кодду киргизиңиз",

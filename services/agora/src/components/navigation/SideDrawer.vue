@@ -27,6 +27,18 @@
           />
         </div>
 
+        <!--
+          Login button (desktop drawer only). When the viewport collapses to
+          "mobile" drawerBehavior, the existing LoginButton in HomeMenuBar takes
+          over so guests still see it without opening the drawer.
+        -->
+        <div
+          v-if="drawerBehavior == 'desktop' && !isGuestOrLoggedIn"
+          class="loginButtonRow"
+        >
+          <LoginButton />
+        </div>
+
         <div class="menuListFlex">
           <RouterLink
             v-for="menuItem in navigationMenuItems"
@@ -38,9 +50,9 @@
             <ZKHoverEffect enable-hover border-radius="15px">
               <div
                 class="settingItemStyle"
-                  :class="{
-                    activeRoute: matchesCurrentRoute(menuItem.matchRouteList),
-                  }"
+                :class="{
+                  activeRoute: matchesCurrentRoute(menuItem.matchRouteList),
+                }"
               >
                 <div class="iconItem">
                   <ZKStyledIcon
@@ -63,6 +75,17 @@
             </ZKHoverEffect>
           </RouterLink>
         </div>
+
+        <!--
+          Teleport target for page-specific drawer content (e.g. the home
+          feed's Popular/New tabs are teleported here on desktop). Rendered
+          only on desktop so mobile keeps its existing in-header layout.
+        -->
+        <div
+          v-if="drawerBehavior == 'desktop'"
+          id="side-drawer-extras"
+          class="sideDrawerExtras"
+        ></div>
       </div>
 
       <div v-if="drawerBehavior == 'desktop'" class="bottomSection">
@@ -77,6 +100,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { useQuasar } from "quasar";
 import { useAuthenticatedNavigation } from "src/composables/navigation/useAuthenticatedNavigation";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import { useAuthenticationStore } from "src/stores/authentication";
@@ -96,12 +120,14 @@ import ZKBadge from "../ui-library/ZKBadge.vue";
 import ZKHoverEffect from "../ui-library/ZKHoverEffect.vue";
 import ZKIconButton from "../ui-library/ZKIconButton.vue";
 import ZKStyledIcon from "../ui-library/ZKStyledIcon.vue";
+import LoginButton from "./buttons/LoginButton.vue";
 import {
   type SideDrawerTranslations,
   sideDrawerTranslations,
 } from "./SideDrawer.i18n";
 
 const { isRouteVisible } = useAuthenticatedNavigation();
+const $q = useQuasar();
 const { isGuest, isGuestOrLoggedIn } = storeToRefs(useAuthenticationStore());
 const { numNewNotifications } = storeToRefs(useNotificationStore());
 const { profileData } = storeToRefs(useUserStore());
@@ -112,7 +138,6 @@ const route = useRoute();
 const { t, locale } = useComponentI18n<SideDrawerTranslations>(
   sideDrawerTranslations
 );
-
 interface NavigationMenuItem {
   name: string;
   route: keyof RouteNamedMap;
@@ -233,6 +258,7 @@ function closeDrawer(): void {
   display: flex;
   gap: 1rem;
   align-items: center;
+  width: 100%;
   padding-left: 1rem;
   padding-right: 1rem;
   padding-top: 0.8rem;
@@ -250,6 +276,22 @@ function closeDrawer(): void {
   padding-top: 2rem;
   padding-bottom: 1.5rem;
   padding-left: 1rem;
+}
+
+.loginButtonRow {
+  display: flex;
+  padding-top: 1.5rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.sideDrawerExtras {
+  padding-top: 1rem;
+  // No padding-bottom by default; child content provides spacing.
+  &:empty {
+    padding: 0;
+  }
 }
 
 .menuListFlex {
@@ -296,11 +338,13 @@ function closeDrawer(): void {
 }
 
 .itemName {
+  flex: 1;
   padding-bottom: 0.4rem;
 }
 
 .navigation-link {
   display: block;
+  width: 100%;
   text-decoration: none;
   color: $ink-darkest;
   cursor: pointer;

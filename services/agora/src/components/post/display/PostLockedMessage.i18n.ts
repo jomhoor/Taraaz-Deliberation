@@ -63,12 +63,6 @@ export const postLockedMessageTranslations: Record<
       "この会話はオーナーによって閉じられました。新しい意見や投票を投稿できません。",
     editButton: "編集",
   },
-  fa: {
-    lockedMessage: 'پست به دلیل "{reason}" قفل شده است. نظرات جدید قابل ارسال نیست.',
-    closedMessage:
-      "این گفتگو توسط مالک بسته شده است. نظرات و رای‌های جدید قابل ارسال نیست.",
-    editButton: "ویرایش",
-  },
   ky: {
     lockedMessage: "Жазуу \"{reason}\" катары кулпуланган. Жаңы пикирлерди жарыялоого болбойт.",
     closedMessage:

@@ -254,15 +254,4 @@ export const phoneOnboardingTranslations: Record<
       "Этот номер телефона уже привязан к другому аккаунту",
     somethingWrong: "Ой! Что-то пошло не так — попробуйте ещё раз",
   },
-  fa: {
-    pageTitle: "تأیید با شماره تلفن",
-    smsDescription: "یک کد ۶ رقمی یکبار مصرف از طریق پیامک دریافت خواهید کرد",
-    phoneNumberPlaceholder: "شماره تلفن",
-    preferPrivateLogin: "ترجیح می‌دهم با حریم خصوصی کامل وارد شوم",
-    developmentNumbers: "شماره‌های توسعه:",
-    pleaseEnterValidPhone: "لطفاً شماره تلفن معتبر وارد کنید",
-    countryNotSupported: "این کشور هنوز پشتیبانی نمی‌شود",
-    phoneTypeNotSupported: "این نوع شماره تلفن پشتیبانی نمی‌شود",
-    pleaseEnterPhoneNumber: "لطفاً شماره تلفن وارد کنید",
-  },
 };

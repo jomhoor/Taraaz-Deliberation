@@ -62,10 +62,6 @@ export const useCommentQueriesTranslations: Record<
     failedToCreateComment: "コメントの作成に失敗しました。もう一度お試しください。",
     failedToCreateCommentWithReason: "コメントの作成に失敗しました: {reason}",
   },
-  fa: {
-    commentDeletedSuccessfully: "نظر با موفقیت حذف شد",
-    failedToDeleteComment: "حذف نظر ناموفق بود. لطفاً دوباره تلاش کنید.",
-  },
   ar: {
     commentDeletedSuccessfully: "تم حذف المقترح بنجاح",
     failedToDeleteComment: "فشل في حذف المقترح. يرجى المحاولة مرة أخرى.",

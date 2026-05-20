@@ -35,9 +35,6 @@ export const importStatusPageTranslations: Record<
   ja: {
     pageTitle: "インポートステータス",
   },
-  fa: {
-    pageTitle: "وضعیت واردسازی",
-  },
   ky: {
     pageTitle: "Импорттун абалы",
   },

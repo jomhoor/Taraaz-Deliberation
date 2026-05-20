@@ -35,9 +35,6 @@ export const opinionIdentityCardTranslations: Record<
   ja: {
     seedOpinion: "初期の意見",
   },
-  fa: {
-    seedOpinion: "نظر اولیه",
-  },
   ky: {
     seedOpinion: "Баштапкы пикир",
   },

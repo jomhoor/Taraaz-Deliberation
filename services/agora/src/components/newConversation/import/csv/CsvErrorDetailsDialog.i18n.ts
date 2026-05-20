@@ -106,16 +106,6 @@ export const csvErrorDetailsDialogTranslations: Record<
     errorCopied: "エラーメッセージをクリップボードにコピーしました",
     close: "閉じる",
   },
-  fa: {
-    dialogTitle: "جزئیات خطا",
-    helpText: "لطفاً قالب فایل CSV خود را دوباره بررسی کنید.",
-    supportTextPrefix: "اگر مشکلی وجود دارد، لطفاً از طریق ",
-    supportLinkText: "دیسکورد",
-    supportTextSuffix: " با ما تماس بگیرید.",
-    copyError: "کپی خطا",
-    errorCopied: "پیام خطا در کلیپ‌بورد کپی شد",
-    close: "بستن",
-  },
   ky: {
     dialogTitle: "Ката чоо-жайы",
     helpText: "CSV файлыңыздын форматын кайра текшериңиз.",

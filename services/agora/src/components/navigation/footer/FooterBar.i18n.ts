@@ -55,11 +55,6 @@ export const footerBarTranslations: Record<
     explore: "探索",
     dings: "Dings",
   },
-  fa: {
-    home: "خانه",
-    explore: "کاوش",
-    dings: "اعلان‌ها",
-  },
   ky: {
     home: "Башкы бет",
     explore: "Изилдөө",

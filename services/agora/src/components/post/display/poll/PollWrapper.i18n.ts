@@ -43,11 +43,16 @@ export const pollWrapperTranslations: Record<SupportedDisplayLanguageCodes, Poll
       vote: "投票",
       votes: "票",
     },
-  fa: {
+    fa: {
       results: "نتایج",
       vote: "رای",
       votes: "رای",
-  },
+    },
+    he: {
+      results: "תוצאות",
+      vote: "הצבע",
+      votes: "קולות",
+    },
     ky: {
       results: "Жыйынтыктар",
       vote: "Добуш берүү",

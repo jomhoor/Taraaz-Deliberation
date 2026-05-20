@@ -224,28 +224,6 @@ export const asyncStateHandlerTestTranslations: Record<
     customEmptyText: "カスタム空状態メッセージ",
     customRetryText: "再試行",
   },
-  fa: {
-    asyncStateHandler: "مدیریت وضعیت غیرهمزمان",
-    asyncStateHandlerDescription:
-      "Test the AsyncStateHandler component with different async states, customizations, and slot overrides to see how it handles loading, error, empty, and success states.",
-    simulateLoading: "بارگذاری",
-    simulateError: "خطا",
-    simulateEmpty: "خالی",
-    simulateSuccess: "موفقیت",
-    simulateRetrying: "تلاش مجدد",
-    resetState: "بازنشانی",
-    basicExample: "مثال پایه",
-    configApiExample: "مثال API پیکربندی",
-    customRetryExample: "مثال تلاش مجدد سفارشی",
-    functionEmptyExample: "مثال تابع خالی",
-    withCustomSlots: "با اسلات‌های سفارشی",
-    currentState: "وضعیت فعلی",
-    sampleData: "داده‌های نمونه با موفقیت بارگذاری شد!",
-    customErrorMessage: "عنوان خطای سفارشی",
-    customLoadingText: "پیام بارگذاری سفارشی",
-    customEmptyText: "پیام وضعیت خالی سفارشی",
-    customRetryText: "دوباره تلاش کنید",
-  },
   ky: {
     asyncStateHandler: "Асинхрондук абал иштеткич",
     asyncStateHandlerDescription:

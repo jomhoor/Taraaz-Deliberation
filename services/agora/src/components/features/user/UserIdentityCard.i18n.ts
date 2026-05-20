@@ -77,10 +77,6 @@ export const userIdentityCardTranslations: Record<
     strongVerificationTooltip: "電話またはパスポート認証が必要",
     edited: "編集済み",
   },
-  fa: {
-    guestParticipationTooltip: "مشارکت مهمان فعال است",
-    edited: "ویرایش شده",
-  },
   ky: {
     guestParticipationTooltip: "Конок катышуу иштетилген",
     accountRequiredTooltip: "Аккаунт талап кылынат",

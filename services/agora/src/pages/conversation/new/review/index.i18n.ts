@@ -156,15 +156,40 @@ export const conversationReviewTranslations: Record<
     posting: "در حال ارسال...",
     post: "ارسال",
     addSeedOpinions: "افزودن نظرات اولیه",
+    addMaxDiffItems: "افزودن گزاره‌های رتبه‌بندی",
     seedOpinionsDescription:
       "It's recommended to seed 8 to 15 statements across a range of viewpoints. This has a powerful effect on early participation.",
+    maxDiffSeedDescription:
+      "اولویت‌بندی به حداقل ۶ گزاره نیاز دارد. برای بهترین تجربه ۱۰ تا ۲۵ توصیه می‌شود.",
+    needMinimumForMaxDiff: "برای اولویت‌بندی حداقل ۶ گزاره لازم است.",
     addOpinion: "افزودن نظر",
+    addMaxDiffItem: "افزودن گزاره",
     opinionCannotBeEmpty: "نظر نمی‌تواند خالی باشد",
     opinionExceedsLimit:
       "Statement exceeds {limit} character limit ({count}/{limit})",
     opinionDuplicate: "این نظر تکراری است",
     errorCreatingConversation:
       "Error while trying to create a new conversation",
+  },
+  he: {
+    posting: "מפרסם…",
+    post: "פרסם",
+    addSeedOpinions: "הוסף טענות בסיס",
+    addMaxDiffItems: "הוסף טענות לדירוג",
+    seedOpinionsDescription:
+      "מומלץ להוסיף 8 עד 15 טענות ממגוון נקודות מבט. יש לכך אפקט חזק על ההשתתפות המוקדמת.",
+    maxDiffSeedDescription:
+      "סדר עדיפויות דורש לפחות 6 טענות. אנו ממליצים 10 עד 25 להתנסות הטובה ביותר.",
+    needMinimumForMaxDiff:
+      "נדרשות לפחות 6 טענות לסדר עדיפויות.",
+    addOpinion: "הוסף טענה",
+    addMaxDiffItem: "הוסף טענה",
+    opinionCannotBeEmpty: "הטענה אינה יכולה להיות ריקה",
+    opinionExceedsLimit:
+      "הטענה חורגת מגבול {limit} תווים ({count}/{limit})",
+    opinionDuplicate: "טענה זו כפולה",
+    errorCreatingConversation:
+      "שגיאה בעת יצירת שיחה חדשה",
   },
   ky: {
     posting: "Жарыяланууда...",

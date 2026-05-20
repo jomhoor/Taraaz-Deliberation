@@ -40,17 +40,17 @@ export const step2SignupOnboardingTranslations: Record<
     pageTitle: "آگورا قصد دارد منحصراً انسانی باشد",
     description:
       "بیش از نیمی از ترافیک اینترنت از ربات‌ها می‌آید. به همین دلیل ما کاربران را تأیید هویت می‌کنیم تا مطمئن شوید که با انسان‌ها بحث می‌کنید، نه ربات‌هایی که نقشه تسلط بر جهان را می‌کشند!",
-    verifyAnonymously: "تأیید هویت ناشناس",
+    connectWallet: "اتصال با کیف شهروندی جمهور",
     verifyWithPhone: "تأیید هویت با شماره تلفن",
-    useEmail: "ترجیح می‌دهم از ایمیل خود استفاده کنم",
+    comingSoon: "به زودی",
   },
   he: {
     pageTitle: "Agora שואפת להיות אנושית בלבד",
     description:
       "יותר ממחצית מתעבורת האינטרנט מגיעה מבוטים. לכן אנו מאמתים משתמשים, כדי שתדונו עם אנשים, ולא עם רובוטים שמתכננים שליטה עולמית!",
-    verifyAnonymously: "אימות באופן אנונימי",
+    connectWallet: "חיבור ארנק Jomhoor",
     verifyWithPhone: "אימות עם מספר טלפון",
-    useEmail: "אני מעדיף/ה להשתמש בכתובת האימייל שלי",
+    comingSoon: "בקרוב",
   },
   fr: {
     pageTitle: "Agora vise à être exclusivement humaine",
@@ -99,13 +99,5 @@ export const step2SignupOnboardingTranslations: Record<
     connectWallet: "Подключить кошелёк Jomhoor",
     verifyWithPhone: "Верифицировать по номеру телефона",
     comingSoon: "Скоро",
-  },
-  fa: {
-    pageTitle: "جمهور فقط برای انسان‌هاست",
-    description:
-      "بیش از نیمی از ترافیک اینترنت از ربات‌هاست. به همین دلیل ما کاربران را تأیید می‌کنیم تا مطمئن باشید که با انسان‌ها بحث می‌کنید نه ربات‌ها!",
-    connectWallet: "اتصال به کیف‌پول جمهور",
-    verifyWithPhone: "تأیید با شماره تلفن",
-    comingSoon: "به‌زودی",
   },
 };

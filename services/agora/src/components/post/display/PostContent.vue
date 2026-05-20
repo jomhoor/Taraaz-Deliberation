@@ -26,8 +26,6 @@
           :title="extendedPostData.payload.title"
           size="medium"
           :conversation-type="extendedPostData.metadata.conversationType"
-          :alignment="isCompactRtl ? 'right' : 'auto'"
-          :full-width="isCompactRtl"
           :external-source-config="extendedPostData.metadata.externalSourceConfig"
         />
       </div>
@@ -43,7 +41,8 @@
           :html-body="extendedPostData.payload.body"
           :compact-mode="compactMode"
           :enable-links="compactMode ? false : true"
-          :alignment="isCompactRtl ? 'right' : 'auto'"
+          :alignment="postDirection === 'rtl' ? 'right' : 'left'"
+          :direction="postDirection"
         />
       </div>
 
@@ -72,6 +71,10 @@
 
 <script setup lang="ts">
 import type { ExtendedConversation } from "src/shared/types/zod";
+import {
+  detectHtmlTextDirection,
+  detectTextDirection,
+} from "src/utils/text/textDirection";
 import { computed, defineAsyncComponent } from "vue";
 
 import ConversationTitle from "../../features/conversation/ConversationTitle.vue";
@@ -95,12 +98,15 @@ const ImportedConversationIndicator = defineAsyncComponent(
   () => import("./ImportedConversationIndicator.vue")
 );
 
-const isCompactRtl = computed(() => {
-  if (!props.compactMode || typeof document === "undefined") {
-    return false;
+// Direction for this specific post, derived from its own content (title + body).
+// If any RTL character is present in either, the whole post is rendered RTL;
+// otherwise LTR. Independent of the app's global locale direction.
+const postDirection = computed<"ltr" | "rtl">(() => {
+  const titleDir = detectTextDirection(props.extendedPostData.payload.title);
+  if (titleDir === "rtl") {
+    return "rtl";
   }
-
-  return document.documentElement.getAttribute("dir") === "rtl";
+  return detectHtmlTextDirection(props.extendedPostData.payload.body);
 });
 </script>
 
@@ -127,7 +133,8 @@ const isCompactRtl = computed(() => {
 
 :global(html[lang="fa"]) .postDiv--compact {
   align-items: stretch;
-  text-align: right;
+  /* text-align: right is handled by natural RTL cascade — writing it here causes
+     the PostCSS RTLCSS plugin to flip it to text-align:left in RTL mode. */
 }
 
 :global(html[lang="fa"]) .postDiv--compact > div,
@@ -138,15 +145,6 @@ const isCompactRtl = computed(() => {
 :global(html[lang="fa"]) .postDiv--compact :deep(.title-section) {
   display: block;
   width: 100%;
-}
-
-:global(html[lang="fa"]) .postDiv--compact :deep(.conversation-title),
-:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak),
-:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak p),
-:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak div),
-:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak li) {
-  direction: rtl;
-  text-align: right !important;
 }
 
 .lockCardStyle {

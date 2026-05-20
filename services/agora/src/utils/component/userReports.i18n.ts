@@ -85,14 +85,6 @@ export const userReportsTranslations: Record<
     sexual: "性的",
     spam: "スパム",
   },
-  fa: {
-    misleading: "گمراه‌کننده",
-    antisocial: "ضد اجتماعی",
-    illegal: "غیرقانونی",
-    doxing: "افشاگری هویت",
-    sexual: "جنسی",
-    spam: "اسپم",
-  },
   ky: {
     misleading: "Адаштыруучу",
     antisocial: "Коомго каршы",

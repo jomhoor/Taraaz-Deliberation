@@ -32,9 +32,6 @@ export const staticIconTranslations: Record<SupportedDisplayLanguageCodes, Stati
   ja: {
     stars: "スター",
   },
-  fa: {
-    stars: "ستاره‌ها",
-  },
   ky: {
     stars: "Жылдыздар",
   },

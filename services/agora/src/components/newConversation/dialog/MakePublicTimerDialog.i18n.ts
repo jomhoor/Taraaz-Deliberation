@@ -85,14 +85,6 @@ export const makePublicTimerDialogTranslations: Record<
     after1Month: "1ヶ月後",
     custom: "カスタム",
   },
-  fa: {
-    never: "هرگز",
-    after24Hours: "پس از ۲۴ ساعت",
-    after3Days: "پس از ۳ روز",
-    after1Week: "پس از ۱ هفته",
-    after1Month: "پس از ۱ ماه",
-    custom: "سفارشی",
-  },
   ky: {
     never: "Эч качан",
     after24Hours: "24 сааттан кийин",

@@ -45,10 +45,6 @@ export const commentLoadingErrorTranslations: Record<
     defaultRetryLabel: "再試行",
     defaultErrorMessage: "何らかの問題が発生しました。もう一度お試しください。",
   },
-  fa: {
-    defaultRetryLabel: "تلاش مجدد",
-    defaultErrorMessage: "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
-  },
   ky: {
     defaultRetryLabel: "Кайра аракет кылуу",
     defaultErrorMessage: "Бир нерсе туура эмес болду. Кайра аракет кылыңыз.",

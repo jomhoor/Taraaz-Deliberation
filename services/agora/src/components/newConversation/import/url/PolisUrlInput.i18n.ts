@@ -98,14 +98,6 @@ export const polisUrlInputTranslations: Record<
     termsOfUse: "利用規約",
     ccLicense: "CC BY 4.0",
   },
-  fa: {
-    importTitle: "واردسازی گفتگو از Polis",
-    description: "آدرس Polis را در زیر بچسبانید تا گفتگویی وارد شود.",
-    validUrlExamples: "نمونه آدرس‌های معتبر:",
-    urlPlaceholder: "e.g., https://pol.is/xxxxx",
-    polisTerms: "شرایط Pol.is",
-    termsOfUse: "شرایط استفاده",
-  },
   ky: {
     importTitle: "Polis'тен талкуу импорттоо",
     description: "Талкууну импорттоо үчүн төмөнгө Polis URL чаптаңыз.",

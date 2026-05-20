@@ -157,17 +157,6 @@ export const createConversationTranslations: Record<
     githubLabel: "Issue ラベル",
     githubLabelPlaceholder: "roadmap",
   },
-  fa: {
-    importButton: "واردسازی",
-    nextButton: "بعدی",
-    titlePlaceholder: "چه سؤالی می‌خواهید بپرسید؟ (الزامی)",
-    titleRequired: "عنوان برای ادامه لازم است",
-    bodyPlaceholder:
-      "متن اصلی را بنویسید. زمینه یا منابع مرتبط را اضافه کنید و مطمئن شوید با پرسش اصلی هم‌راستاست.",
-    activeImportMessage:
-      "یک واردسازی در حال انجام است. پیش از شروع واردسازی جدید، صبر کنید تا این یکی کامل شود.",
-    viewImportStatus: "مشاهده وضعیت واردسازی",
-  },
   ky: {
     importButton: "Импорттоо",
     nextButton: "Кийинки",

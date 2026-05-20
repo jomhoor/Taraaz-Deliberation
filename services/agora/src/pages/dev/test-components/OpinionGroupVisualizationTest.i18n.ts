@@ -76,10 +76,4 @@ export const opinionGroupVisualizationTestTranslations: Record<
       "Тестирование полных вкладок анализа (Группы, Согласия, Несогласия, Спорные) с настраиваемым количеством групп, метками ИИ и пустыми разделами.",
     openTestButton: "Открыть тест анализа",
   },
-  fa: {
-    opinionGroupVisualization: "تجسم گروه‌های نظری",
-    opinionGroupVisualizationDescription:
-      "Test the OpinionGroupTab component with different cluster configurations to see how it adapts its layout.",
-    openVisualizationButton: "باز کردن ابزار تجسم",
-  },
 };

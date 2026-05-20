@@ -91,14 +91,4 @@ export const visibilityOptionsDialogTranslations: Record<
     privateTitle: "Приватное",
     privateDescription: "Видно только тем, с кем вы поделитесь ссылкой или QR-кодом",
   },
-  fa: {
-    publicTitle: "عمومی",
-    publicDescription:
-      "This conversation will be visible to all users in the main Agora feed",
-    privateTitle: "خصوصی",
-    privateDescription:
-      "Only visible to those with whom you share a link or QR code",
-    guestParticipationDisabledForPublic:
-      "Guest participation disabled for public conversations without event ticket verification. Login is now required.",
-  },
 };

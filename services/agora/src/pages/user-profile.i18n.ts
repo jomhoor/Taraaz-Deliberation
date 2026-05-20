@@ -123,10 +123,4 @@ export const userProfileTranslations: Record<SupportedDisplayLanguageCodes, User
       errorTitle: "Что-то пошло не так",
       retryButton: "Повторить",
     },
-  fa: {
-      userProfile: "نمایه کاربر",
-      conversations: "conversations",
-      conversationTab: "گفتگو",
-      opinionTab: "نظر",
-    },
   };

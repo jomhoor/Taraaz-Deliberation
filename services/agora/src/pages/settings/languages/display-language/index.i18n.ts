@@ -35,9 +35,6 @@ export const displayLanguageSettingsTranslations: Record<
   ja: {
     pageTitle: "表示言語",
   },
-  fa: {
-    pageTitle: "زبان نمایش",
-  },
   ky: {
     pageTitle: "Көрсөтүү тили",
   },

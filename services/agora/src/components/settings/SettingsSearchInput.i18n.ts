@@ -31,9 +31,6 @@ export const settingsSearchInputTranslations: Record<
   ja: {
     searchPlaceholder: "検索...",
   },
-  fa: {
-    searchPlaceholder: "جستجو...",
-  },
   ky: {
     searchPlaceholder: "Издөө...",
   },

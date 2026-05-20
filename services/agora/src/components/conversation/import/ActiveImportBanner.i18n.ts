@@ -52,11 +52,6 @@ export const activeImportBannerTranslations: Record<
       "インポートが進行中です。新しいインポートを開始する前に完了するまでお待ちください。",
     viewStatus: "インポート状態を表示",
   },
-  fa: {
-    message:
-      "You have an import in progress. Please wait for it to complete before starting a new one.",
-    viewStatus: "مشاهده وضعیت واردسازی",
-  },
   ky: {
     message:
       "Импорттоо жүрүп жатат. Жаңысын баштоодон мурун аяктаганын күтүңүз.",

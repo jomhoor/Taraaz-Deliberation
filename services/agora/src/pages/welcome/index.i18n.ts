@@ -75,13 +75,6 @@ export const welcomeTranslations: Record<
     launchApp: "アプリを起動",
     logOut: "ログアウト",
   },
-  fa: {
-    signUp: "ثبت‌نام",
-    login: "ورود",
-    skipAuthentication: "رد شدن احراز هویت",
-    launchApp: "شروع برنامه",
-    logOut: "خروج",
-  },
   ky: {
     signUp: "Каттоо",
     login: "Кирүү",

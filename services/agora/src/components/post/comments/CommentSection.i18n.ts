@@ -209,16 +209,4 @@ export const commentSectionTranslations: Record<
     viewAnalysis: "Посмотреть анализ",
     statementRemovedByModerator: "Это высказывание удалено модератором.",
   },
-  fa: {
-    loadingOpinions: "در حال بارگذاری نظرات...",
-    retrying: "تلاش مجدد...",
-    failedToLoadOpinions: "بارگذاری نظرات ناموفق بود",
-    noOpinionsAvailable: "نظری موجود نیست",
-    retryLoadingOpinions: "تلاش مجدد بارگذاری نظرات",
-    voteUnlockSingular: "۱ رای دیگر برای باز کردن تحلیل گروه شما",
-    voteUnlockPlural: "{count} رای دیگر برای باز کردن تحلیل گروه شما",
-    notEnoughOpinions: "نظرات بیشتری بنویسید تا امکان نقشه‌برداری گروه‌های نظری فراهم شود",
-    clusteredBanner: "شما به یک گروه اختصاص داده شدید!",
-    viewAnalysis: "مشاهده تحلیل",
-  },
 };

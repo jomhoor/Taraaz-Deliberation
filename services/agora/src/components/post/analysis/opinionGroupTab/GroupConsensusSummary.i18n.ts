@@ -64,12 +64,6 @@ export const groupConsensusSummaryTranslations: Record<
     aiSummaryDescription:
       "我々は Mistral Large (LLM モデル) を使用して、各合意形成グループのサマリーとラベルを生成します。",
   },
-  fa: {
-    groupSummaryTitle: "خلاصه گروه",
-    aiSummaryTitle: "خلاصه هوش مصنوعی",
-    aiSummaryDescription:
-      "از مدل Mistral Large (LLM) برای تولید خلاصه و برچسب‌های هر گروه اجماع استفاده می‌کنیم.",
-  },
   ky: {
     groupSummaryTitle: "Топтун корутундусу",
     aiSummaryTitle: "AI корутундусу",

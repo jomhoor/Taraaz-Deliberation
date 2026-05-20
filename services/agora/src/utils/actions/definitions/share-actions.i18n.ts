@@ -60,11 +60,6 @@ export const shareActionsTranslations: Record<
     showQrCode: "QRコードを表示",
     shareVia: "共有する...",
   },
-  fa: {
-    copyLink: "کپی لینک",
-    showQrCode: "نمایش کد QR",
-    shareVia: "اشتراک‌گذاری از طریق...",
-  },
   ky: {
     copyLink: "Шилтемени көчүрүү",
     showQrCode: "QR кодду көрсөтүү",

@@ -35,9 +35,6 @@ export const moderationTimeTranslations: Record<
   ja: {
     edited: "(編集済み)",
   },
-  fa: {
-    edited: "(ویرایش‌شده)",
-  },
   ky: {
     edited: "(түзөтүлгөн)",
   },

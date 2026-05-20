@@ -353,10 +353,4 @@ export const opinionGroupVisualizationTranslations: Record<
     clusterCount6: "6 групп",
     analysisPreview: "Предпросмотр анализа",
   },
-  fa: {
-    opinionGroupVisualization: "تجسم گروه‌های نظری",
-    visualizationControls: "کنترل‌های تجسم",
-    clusterCountLabel: "تعداد گروه‌ها",
-    componentPreview: "پیش‌نمایش اجزا",
-  },
 };

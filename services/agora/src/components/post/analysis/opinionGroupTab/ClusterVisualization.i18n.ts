@@ -45,10 +45,6 @@ export const clusterVisualizationTranslations: Record<
     groupsTitle: "意見グループ",
     meLabel: "私",
   },
-  fa: {
-    groupsTitle: "گروه‌ها",
-    meLabel: "من",
-  },
   ky: {
     groupsTitle: "Пикир топтору",
     meLabel: "Мен",

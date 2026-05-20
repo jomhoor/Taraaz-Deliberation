@@ -74,7 +74,7 @@ const { reveal: revealHeader } = storeToRefs(useLayoutHeaderStore());
 
 // In RTL, Quasar's "left" drawer is mirrored to physical right (right: 0, border-left,
 // translateX(100%) when closed). Using "left" always lets Quasar handle RTL correctly.
-const drawerSide = computed(() => "left");
+const drawerSide = computed(() => "left" as const);
 
 const isRtl = computed(() => $q.lang.rtl === true);
 

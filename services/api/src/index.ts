@@ -1434,6 +1434,8 @@ server.after(() => {
     });
 
     server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/conversation/fetch-recent`,
         schema: {
             body: Dto.fetchFeedRequest,
             response: {

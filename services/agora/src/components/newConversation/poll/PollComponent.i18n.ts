@@ -85,6 +85,15 @@ export const pollComponentTranslations: Record<
     inputOptionText: "متن گزینه را وارد کنید",
     addOption: "افزودن گزینه",
   },
+  he: {
+    addPoll: "הוסף סקר",
+    existingPoll: "סקר קיים",
+    readonlyExplanation:
+      "לא ניתן לערוך אפשרויות סקר לאחר שהוצבעו. ליצירת סקר חדש, יש להסיר תחילה את הנוכחי.",
+    option: "אפשרות",
+    inputOptionText: "הזן טקסט לאפשרות",
+    addOption: "הוסף אפשרות",
+  },
   ky: {
     addPoll: "Сурамжылоо кошуу",
     existingPoll: "Учурдагы сурамжылоо",

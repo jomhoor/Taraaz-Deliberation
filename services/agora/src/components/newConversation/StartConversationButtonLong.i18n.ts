@@ -35,9 +35,6 @@ export const startConversationButtonLongTranslations: Record<
   ja: {
     buttonText: "会話を開始",
   },
-  fa: {
-    buttonText: "شروع گفتگو",
-  },
   ky: {
     buttonText: "Талкуу баштоо",
   },

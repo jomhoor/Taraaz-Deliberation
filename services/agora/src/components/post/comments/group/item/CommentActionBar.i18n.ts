@@ -164,23 +164,6 @@ export const commentActionBarTranslations: Record<
     assignedGroup: "グループに割り当てられました！",
     viewAnalysis: "分析を見る",
   },
-  fa: {
-    disagree: "مخالفم",
-    pass: "مطمئن نیستم",
-    agree: "موافقم",
-    voteFailed: "ارسال رای ناموفق بود. لطفاً دوباره تلاش کنید.",
-    conversationClosed:
-      "رای دادن ممکن نیست زیرا گفتگو توسط نویسنده بسته شده است.",
-    closedConversationTooltip:
-      "رای‌گیری غیرفعال است - گفتگو بسته یا قفل شده است",
-    disagreeAriaLabel: "مخالفت با نظر. تعداد مخالفت‌های فعلی:",
-    passAriaLabel: "مطمئن نبودن درباره این نظر. تعداد فعلی:",
-    agreeAriaLabel: "موافقت با نظر. تعداد موافقت‌های فعلی:",
-    keepVotingToDiscoverGroup: "به رای دادن ادامه دهید تا گروه خود را کشف کنید",
-    keepVotingToRefineAnalysis: "به رای دادن ادامه دهید تا تحلیل دقیق‌تر شود",
-    assignedGroup: "شما به یک گروه اختصاص داده شدید!",
-    viewAnalysis: "مشاهده تحلیل",
-  },
   ky: {
     disagree: "Макул эмесмин",
     pass: "Белгисиз",

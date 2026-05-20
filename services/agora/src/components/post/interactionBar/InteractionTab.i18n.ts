@@ -53,7 +53,4 @@ export const interactionTabTranslations: Record<
     analysis: "Анализ",
     rank: "Ранжировать",
   },
-  fa: {
-    analysis: "تحلیل",
-  },
 };

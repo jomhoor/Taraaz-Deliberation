@@ -35,9 +35,6 @@ export const spokenLanguagesSettingsTranslations: Record<
   ja: {
     pageTitle: "話される言語",
   },
-  fa: {
-    pageTitle: "زبان‌های مکالمه",
-  },
   ky: {
     pageTitle: "Сүйлөгөн тилдер",
   },

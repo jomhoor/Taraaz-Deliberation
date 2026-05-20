@@ -39,10 +39,6 @@ export const exitRoutePromptTranslations: Record<
     saveAsDraft: "下書きとして保存",
     discard: "破棄",
   },
-  fa: {
-    saveAsDraft: "ذخیره به عنوان پیش‌نویس",
-    discard: "رد کردن",
-  },
   ky: {
     saveAsDraft: "Карала катары сактоо",
     discard: "Жокко чыгаруу",

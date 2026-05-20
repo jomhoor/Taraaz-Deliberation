@@ -35,9 +35,6 @@ export const guidelinesTranslations: Record<
   ja: {
     guidelines: "コミュニティガイドライン",
   },
-  fa: {
-    guidelines: "قوانین جامعه",
-  },
   ky: {
     guidelines: "Коомчулук эрежелери",
   },

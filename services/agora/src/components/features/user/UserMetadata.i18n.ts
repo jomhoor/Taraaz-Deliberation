@@ -35,9 +35,6 @@ export const userMetadataTranslations: Record<
   ja: {
     idVerified: "ID が確認されました",
   },
-  fa: {
-    idVerified: "هویت تأیید شده",
-  },
   ky: {
     idVerified: "ID текшерилди",
   },

@@ -160,23 +160,6 @@ export const commentComposerTranslations: Record<
     validationWarningMultipleIdeas:
       "ヒント：これには複数のアイデアが含まれている可能性があります - 投票者が明確に賛成または反対できることを確認してください",
   },
-  fa: {
-    placeholder: "نظر خود را بنویسید",
-    placeholderExpanded: "روی یک نکته تمرکز کنید که موافقت یا مخالفت با آن آسان باشد",
-    postButton: "ارسال",
-    conversationLockedError:
-      "ارسال نظر ممکن نیست زیرا گفتگو قفل شده است",
-    conversationClosedError:
-      "این گفتگو بسته شده است",
-    createOpinionError: "خطا هنگام ایجاد نظر جدید",
-    eventTicketRequiredTitle: "بلیت رویداد الزامی است",
-    eventTicketRequiredMessage:
-      "برای مشارکت در این گفتگو باید بلیت Devconnect 2025 خود را تأیید کنید.",
-    exitPromptTitle: "نظر به‌عنوان پیش‌نویس ذخیره شود؟",
-    exitPromptDescription: "پیش‌نویس شما هنگام بازگشت اینجا خواهد بود.",
-    validationWarningMultipleIdeas:
-      "نکته: ممکن است شامل چند ایده باشد - مطمئن شوید رای‌دهندگان بتوانند به‌وضوح موافقت یا مخالفت کنند",
-  },
   ky: {
     placeholder: "Өз пикириңизди кошуңуз",
     placeholderExpanded: "Макулдашуу же макул эмес болуу оңой болгон бир пунктка көңүл буруңуз",

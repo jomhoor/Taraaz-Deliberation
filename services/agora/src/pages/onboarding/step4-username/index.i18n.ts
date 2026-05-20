@@ -55,11 +55,6 @@ export const step4UsernameTranslations: Record<
     howToAppear: "Agora でどのように表示したいですか？",
     usernameInUse: "ユーザー名はすでに使用されています",
   },
-  fa: {
-    title: "نام کاربری خود را انتخاب کنید",
-    howToAppear: "می‌خواهید در جمهور چگونه دیده شوید؟",
-    usernameInUse: "نام کاربری قبلن استفاده شده است",
-  },
   ky: {
     title: "Колдонуучу атыңызды тандаңыз",
     howToAppear: "Agora'да кандай көрүнгүңүз келет?",

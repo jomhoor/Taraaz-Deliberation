@@ -86,14 +86,6 @@ export const usernameChangeTranslations: Record<
     usernameCurrentlyInUse: "このユーザー名は現在使用されています",
     submitError: "ユーザー名の変更を送信する際にエラーが発生しました",
   },
-  fa: {
-    usernameLabel: "نام کاربری",
-    updateButton: "به‌روزرسانی",
-    usernameChanged: "نام کاربری تغییر کرد",
-    usernameAlreadyInUse: "نام کاربری قبلن استفاده شده است",
-    usernameCurrentlyInUse: "این نام کاربری در حال حاضر استفاده می‌شود",
-    submitError: "خطا در ارسال تغییر نام کاربری",
-  },
   ky: {
     usernameLabel: "Колдонуучу аты",
     updateButton: "Жаңыртуу",

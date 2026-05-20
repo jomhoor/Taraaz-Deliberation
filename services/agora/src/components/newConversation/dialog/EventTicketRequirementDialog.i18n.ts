@@ -97,14 +97,4 @@ export const eventTicketRequirementDialogTranslations: Record<
     requiresEventTicketDescription:
       "Только подтверждённые владельцы билетов могут голосовать и добавлять высказывания",
   },
-  fa: {
-    noVerificationTitle: "بدون تأیید",
-    noVerificationDescription:
-      "Anyone can participate without event ticket verification",
-    requiresEventTicketTitle: "نیاز به بلیت رویداد",
-    requiresEventTicketDescription:
-      "Only verified event ticket holders can vote and contribute statements",
-    guestParticipationDisabledNotification:
-      "Guest participation disabled for public conversations without event ticket verification. Login is now required.",
-  },
 };

@@ -137,10 +137,11 @@ export function validateEnv(
  * expressions at build time from build.env. Do not use import.meta.env here:
  * Vite's automatic env loading uses mode "production" for builds by default,
  * which can make .env.production values leak into staging bundles.
+ *
+ * NOTE: Do not add `declare const process` here. Esbuild/Vite's `define` plugin
+ * skips substitution if `process` looks locally declared in scope. We rely on
+ * the ambient Node.js `process` global type from @types/node.
  */
-declare const process: {
-  env: ProcessEnv;
-};
 
 export const processEnv = {
   NODE_ENV: process.env.NODE_ENV,
@@ -173,4 +174,8 @@ export const processEnv = {
   VITE_IS_SURVEY_ORG_ONLY: process.env.VITE_IS_SURVEY_ORG_ONLY,
   VITE_SURVEY_ALLOWED_ORGS: process.env.VITE_SURVEY_ALLOWED_ORGS,
   VITE_SURVEY_ALLOWED_USERS: process.env.VITE_SURVEY_ALLOWED_USERS,
-} satisfies ProcessEnv;
+  VITE_SSO_URL: process.env.VITE_SSO_URL,
+  // Cast: at build time Vite's `define` plugin replaces each `process.env.X`
+  // with the validated literal from build.env, so the runtime shape matches
+  // ProcessEnv even though TS infers `string | undefined` here.
+} as unknown as ProcessEnv;

@@ -95,15 +95,6 @@ export const opinionModerationTranslations: Record<
     modifyButton: "修正",
     withdrawButton: "取り下げ",
   },
-  fa: {
-    title: "مدیریت نظر",
-    actionLabel: "اقدام",
-    reasonLabel: "دلیل",
-    explanationLabel: "توضیح (اختیاری)",
-    moderateButton: "مدیریت",
-    modifyButton: "اصلاح",
-    withdrawButton: "بازپس‌گیری",
-  },
   ky: {
     title: "Пикирди модерациялоо",
     actionLabel: "Аракет",

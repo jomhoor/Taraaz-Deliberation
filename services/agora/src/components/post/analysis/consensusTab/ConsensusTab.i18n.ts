@@ -173,24 +173,6 @@ export const consensusTabTranslations: Record<
     noDisagreementsMessage: "まだ合意は形成されていません。",
     lowerRankedDivider: "統計的有意性が低い",
   },
-  fa: {
-    agreementsTitle: "تأیید شد",
-    disagreementsTitle: "رد شد",
-    agreementsLongTitle:
-      "کدام گزاره‌ها توسط همه گروه‌ها {keyword} شده‌اند؟",
-    disagreementsLongTitle:
-      "کدام گزاره‌ها توسط همه گروه‌ها {keyword} شده‌اند؟",
-    agreementsKeyword: "تأیید",
-    disagreementsKeyword: "رد",
-    subtitleAgree:
-      "گزاره‌هایی که همه گروه‌های نظر بر موافقت با آن‌ها توافق دارند. نه اکثریت ساده، بلکه اجماع میان‌گروهی. تنها معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
-    subtitleDisagree:
-      "گزاره‌هایی که همه گروه‌های نظر بر مخالفت با آن‌ها توافق دارند. نه اکثریت ساده، بلکه اجماع میان‌گروهی. تنها معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
-    loadMore: "بارگذاری همه",
-    noAgreementsMessage: "هنوز اجماعی شکل نگرفته است.",
-    noDisagreementsMessage: "هنوز اجماعی شکل نگرفته است.",
-    lowerRankedDivider: "از نظر آماری کم‌اهمیت‌تر",
-  },
   ky: {
     agreementsTitle: "Жактырылган",
     disagreementsTitle: "Четке кагылган",

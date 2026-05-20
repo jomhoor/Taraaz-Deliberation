@@ -291,38 +291,6 @@ export const opinionWritingGuidelinesDialogTranslations: Record<
     dontCombineExampleGood1: "医療はサービスポイントで無料であるべきです",
     dontCombineExampleGood2: "大学の授業料は無料であるべきです",
   },
-  fa: {
-    title: "نکاتی برای نوشتن نظرات خوب",
-    singleIdeaTitle: "یک ایده مشخص",
-    singleIdeaDescription: "روی یک نکته که دیگران بتوانند رای دهند تمرکز کنید",
-    singleIdeaExampleGood:
-      "Ride-sharing drivers should have the same insurance requirements as taxi drivers",
-    singleIdeaExampleBad:
-      "Uber should be banned and taxis need better apps and rating systems",
-    easyVoteTitle: "آسان برای موافقت/مخالفت",
-    easyVoteDescription: "از نظرات پیچیده یا چندبخشی پرهیز کنید",
-    easyVoteExampleGood:
-      "Social media companies should be liable for misinformation on their platforms",
-    easyVoteExampleBad:
-      "Social media regulation is complex and depends on various factors and cultural contexts",
-    keepBriefTitle: "مختصر بنویسید",
-    keepBriefDescription: "هدف ۲۸۰ کاراکتر یا کمتر",
-    keepBriefExampleGood: "حمل و نقل عمومی باید برای دانشجویان رایگان باشد",
-    keepBriefExampleBad:
-      "I think that municipal transportation systems should consider implementing reduced-cost or zero-cost fare policies for individuals enrolled in educational programs because...",
-    beClearTitle: "واضح بنویسید",
-    beClearDescription: "دیگران باید فوراً منظور شما را بفهمند",
-    beClearExampleGood: "کار از راه دور بهره‌وری کارکنان را افزایش می‌دهد",
-    beClearExampleBad:
-      "Telecommuting paradigms require reconsideration of organizational dynamics",
-    dontCombineTitle: "ترکیب نکنید",
-    dontCombineDescription:
-      'Split "A and B" into separate statements for clearer voting',
-    dontCombineExampleBad:
-      "We need universal healthcare and free college tuition",
-    dontCombineExampleGood1: "خدمات بهداشتی باید در نقطه ارائه رایگان باشد",
-    dontCombineExampleGood2: "شهریه دانشگاه باید رایگان باشد",
-  },
   ky: {
     title: "Жакшы пикир жазуу боюнча кеңештер",
     singleIdeaTitle: "Бир конкреттүү идея",

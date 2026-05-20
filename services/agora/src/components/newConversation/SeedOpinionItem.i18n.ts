@@ -77,10 +77,6 @@ export const seedOpinionItemTranslations: Record<
     confirmDeleteConfirm: "削除",
     confirmDeleteCancel: "キャンセル",
   },
-  fa: {
-    inputTextPlaceholder: "متن ورودی",
-    deleteOpinion: "حذف نظر",
-  },
   ky: {
     inputTextPlaceholder: "Текст киргизиңиз",
     deleteOpinion: "Пикирди жок кылуу",

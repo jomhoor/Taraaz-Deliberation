@@ -67,12 +67,6 @@ export const userOrganizationMappingsTranslations: Record<
     noOrganizationsMessage: "ユーザーは組織に属していません",
     removeUserOrganizationMappingButton: "ユーザーと組織の紐付けを削除する",
   },
-  fa: {
-    usernameLabel: "نام کاربری",
-    fetchButton: "دریافت",
-    noOrganizationsMessage: "کاربر به هیچ سازمانی تعلق ندارد",
-    removeUserOrganizationMappingButton: "حذف نگاشت سازمان کاربر",
-  },
   ky: {
     usernameLabel: "Колдонуучу аты",
     fetchButton: "Алуу",

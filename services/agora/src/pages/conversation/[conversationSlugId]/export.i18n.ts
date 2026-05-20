@@ -202,27 +202,6 @@ export const exportPageTranslations: Record<
       "この会話にはエクスポートする意見がありません。まず意見を追加してください。",
     exportFeatureDisabled: "エクスポート機能は無効です",
   },
-  fa: {
-    pageTitle: "خروجی گفتگو",
-    pageDescription:
-      "Download a CSV export of all statements and votes for this conversation.",
-    previousExports: "خروجی‌های قبلی",
-    conversationLoadError:
-      "Failed to load conversation details. Please try again.",
-    exportRequestError: "ایجاد خروجی ناموفق بود. لطفاً دوباره تلاش کنید.",
-    exportCooldownMinutes:
-      "Export cooldown active. You can request another export in {minutes} minute(s).",
-    exportCooldownSeconds:
-      "Export cooldown active. You can request another export in {seconds} second(s).",
-    viewConversation: "مشاهده گفتگو",
-    requestExportAriaLabel: "درخواست خروجی داده‌های گفتگو",
-    errorActiveExportInProgress:
-      "An export is already in progress. Please wait for it to complete.",
-    errorConversationNotFound: "گفتگو یافت نشد.",
-    errorNoOpinions:
-      "This conversation has no statements to export. Add some statements first.",
-    exportFeatureDisabled: "قابلیت خروجی غیرفعال است",
-  },
   ky: {
     pageTitle: "Талкууну экспорттоо",
     pageDescription:

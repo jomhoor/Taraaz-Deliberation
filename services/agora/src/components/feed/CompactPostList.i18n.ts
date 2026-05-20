@@ -117,11 +117,4 @@ export const compactPostListTranslations: Record<
     newConversationsButton: "Новые обсуждения",
     retryButton: "Повторить",
   },
-  fa: {
-    emptyStateTitle: "اینجا خیلی ساکت است...",
-    emptyStateDescription: "با استفاده از دکمه، یک گفتگوی جدید بسازید",
-    completedTitle: "همه چیز را دیده‌اید",
-    completedDescription: "شما تمام گفتگوهای جدید را مشاهده کرده‌اید.",
-    newConversationsButton: "گفتگوهای جدید",
-  },
 };

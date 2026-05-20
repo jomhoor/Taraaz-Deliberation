@@ -82,6 +82,15 @@ export const step5ExperienceTranslations: Record<
     braveSpaceDescription:
       "Content flagged as antisocial is shown to me with a warning.",
   },
+  he: {
+    title: "בחר כיצד ברצונך לחוות את Agora",
+    safeSpaceTitle: "מרחב בטוח",
+    safeSpaceDescription:
+      "תוכן המסומן כאנטי-חברתי (טרולינג או אי-סובלנות) מוסר מהעדכון שלי. אם אני רוצה לראות מה הוסר, אני יכול לבדוק את היסטוריית המיתון של הפוסט.",
+    braveSpaceTitle: "מרחב אמיץ",
+    braveSpaceDescription:
+      "תוכן המסומן כאנטי-חברתי מוצג לי עם אזהרה.",
+  },
   ky: {
     title: "Agora'ны кантип колдонгуңуз келерин тандаңыз",
     safeSpaceTitle: "Коопсуз мейкиндик",

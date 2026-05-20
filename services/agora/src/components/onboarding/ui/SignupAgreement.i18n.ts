@@ -75,12 +75,6 @@ export const signupAgreementTranslations: Record<
     and: "と",
     privacyPolicy: "プライバシーポリシー",
   },
-  fa: {
-    agreementText: "با ورود، شما با موارد زیر موافقت می‌کنید",
-    termsOfService: "شرایط خدمات",
-    and: "و",
-    privacyPolicy: "سیاست حفظ حریم خصوصی",
-  },
   ky: {
     agreementText: "Кирүү менен сиз биздин",
     agreementTextVerify: "Текшерүү менен сиз биздин",

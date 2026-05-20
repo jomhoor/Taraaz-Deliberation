@@ -133,14 +133,4 @@ export const analysisPageTranslations: Record<
     generateReport: "Сформировать отчёт",
     report: "Отчёт",
   },
-  fa: {
-    loadingAnalysis: "در حال بارگذاری تحلیل...",
-    retryingAnalysis: "تلاش مجدد برای بارگذاری تحلیل...",
-    analysisErrorTitle: "بارگذاری تحلیل ناموفق بود",
-    analysisErrorMessage: "بارگذاری داده‌های تحلیل ممکن نبود. لطفاً دوباره تلاش کنید.",
-    noAnalysisData: "داده‌های تحلیل برای این گفتگو موجود نیست",
-    retryAnalysis: "تلاش مجدد بارگذاری",
-    generateReport: "تولید گزارش",
-    report: "گزارش",
-  },
 };

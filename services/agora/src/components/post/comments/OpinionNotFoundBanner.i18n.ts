@@ -59,4 +59,22 @@ export const opinionNotFoundBannerTranslations: Record<
     dismiss: "بستن",
     dismissBannerAriaLabel: "بستن پیام «نظر یافت نشد»",
   },
+  he: {
+    requestedOpinionNotFound: "הדעה המבוקשת לא נמצאה.",
+    opinionId: "מזהה דעה",
+    dismiss: "סגור",
+    dismissBannerAriaLabel: "סגור את הודעת 'דעה לא נמצאה'",
+  },
+  ky: {
+    requestedOpinionNotFound: "Сурамжыланган пикир табылган жок.",
+    opinionId: "Пикир ID",
+    dismiss: "Жабуу",
+    dismissBannerAriaLabel: "«Пикир табылган жок» билдирүүсүн жабуу",
+  },
+  ru: {
+    requestedOpinionNotFound: "Запрошенное мнение не найдено.",
+    opinionId: "ID мнения",
+    dismiss: "Закрыть",
+    dismissBannerAriaLabel: "Закрыть сообщение «Мнение не найдено»",
+  },
 };

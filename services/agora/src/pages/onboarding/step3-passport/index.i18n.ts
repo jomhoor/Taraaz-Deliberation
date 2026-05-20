@@ -276,32 +276,6 @@ export const passportOnboardingTranslations: Record<
     copiedToClipboard: "リンクをクリップボードにコピーしました",
     couldNotCopy: "クリップボードにコピーできませんでした",
   },
-  fa: {
-    pageTitle: "حریم خصوصی خود را حفظ کنید",
-    description:
-      "Rarimo یک کیف پول هویتی مبتنی بر دانش صفر است که پاسپورت شما را به شناسه دیجیتال ناشناس تبدیل می‌کند. این شناسه روی دستگاه شما ذخیره می‌شود تا بتوانید اثبات کنید که فرد واقعی و منحصربه‌فردی هستید، بدون اینکه اطلاعات شخصی با کسی به اشتراک بگذارید.",
-    download: "دانلود",
-    claimAnonymousId: "شناسه ناشناس خود را دریافت کنید",
-    comeBackAndVerify: "اینجا برگردید و روی تأیید کلیک کنید",
-    scanQrCode: "کد QR را با Rarimo اسکن کنید تا هویت خود را تأیید کنید",
-    failedToGenerateLink: "ایجاد لینک تأیید ناموفق بود",
-    loadingVerificationLink: "در حال بارگذاری لینک تأیید",
-    openLinkOnMobile: "یا لینک زیر را در مرورگر موبایل خود باز کنید:",
-    copy: "کپی",
-    waitingForVerification: "در انتظار تأیید...",
-    verify: "تأیید",
-    preferPhoneVerification: "ترجیح می‌دهم با شماره تلفن تأیید کنم",
-    verificationSuccessful: "تأیید موفقیت‌آمیز بود 🎉",
-    accountMerged: "موفقیت! حساب‌های شما ادغام شد 🎉",
-    verificationFailed: "تلاش تأیید ناموفق بود. لطفاً دوباره امتحان کنید.",
-    passportAlreadyLinked:
-      "این پاسپورت قبلن به حساب Rarimo دیگری متصل شده است. لطفاً پاسپورت دیگری را امتحان کنید.",
-    unexpectedError: "خطای غیرمنتظره — صفحه را بازآوری کنید",
-    syncHiccup:
-      "مشکلی در همگام‌سازی پیش آمد. کد QR شما بازآوری شد — دوباره اسکن کنید!",
-    copiedToClipboard: "لینک در کلیپ‌بورد کپی شد",
-    couldNotCopy: "کپی در کلیپ‌بورد ممکن نبود",
-  },
   ky: {
     pageTitle: "Купуялыгыңызды коргоңуз",
     description:

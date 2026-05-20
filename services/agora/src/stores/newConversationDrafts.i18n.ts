@@ -108,6 +108,17 @@ export const newConversationDraftsTranslations: Record<
     pollMinOptionsError: (minOptions: number) =>
       `Minimum ${minOptions} poll options required`,
   },
+  he: {
+    titleRequired: "כותרת נדרשת להמשך",
+    bodyExceedsLimit: (characterCount: number, maxLength: number) =>
+      `תוכן הגוף חורג ממגבלת ${maxLength} תווים (${characterCount}/${maxLength})`,
+    polisUrlInvalid: "נא להזין כתובת Polis תקינה.",
+    polisUrlRequired: "נא להזין כתובת Polis לייבוא",
+    pollMaxOptionsError: (maxOptions: number) =>
+      `מותרות לכל היותר ${maxOptions} אפשרויות סקר`,
+    pollMinOptionsError: (minOptions: number) =>
+      `נדרשות לפחות ${minOptions} אפשרויות סקר`,
+  },
   ky: {
     titleRequired: "Улантуу үчүн аталыш талап кылынат",
     bodyExceedsLimit: (characterCount: number, maxLength: number) =>

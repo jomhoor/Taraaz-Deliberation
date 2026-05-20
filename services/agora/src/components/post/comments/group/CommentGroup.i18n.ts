@@ -87,14 +87,6 @@ export const commentGroupTranslations: Record<
       "何らかの問題が発生しました。もう一度お試しください。",
     retryLoadOpinions: "意見の読み込みを再試行",
   },
-  fa: {
-    noOpinionsMessage: "نظری در این فیلتر گفتگو موجود نیست.",
-    loadingOpinions: "در حال بارگذاری نظرات...",
-    retrying: "تلاش مجدد...",
-    opinionsLoadFailed: "بارگذاری نظرات ممکن نبود",
-    unexpectedErrorRetry: "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
-    retryLoadOpinions: "تلاش مجدد بارگذاری نظرات",
-  },
   ky: {
     noOpinionsMessage: "Бул талкуу чыпкасында пикирлер жок.",
     loadingOpinions: "Пикирлер жүктөлүүдө...",

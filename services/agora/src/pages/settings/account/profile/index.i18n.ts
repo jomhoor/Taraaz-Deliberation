@@ -45,10 +45,6 @@ export const profileSettingsTranslations: Record<
     pageTitle: "プロフィール設定",
     changeUsernameTitle: "ユーザー名を変更",
   },
-  fa: {
-    pageTitle: "تنظیمات نمایه",
-    changeUsernameTitle: "تغییر نام کاربری",
-  },
   ky: {
     pageTitle: "Профиль жөндөөлөрү",
     changeUsernameTitle: "Колдонуучу атын өзгөртүү",

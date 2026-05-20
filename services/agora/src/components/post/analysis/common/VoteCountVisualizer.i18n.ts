@@ -75,13 +75,6 @@ export const voteCountVisualizerTranslations: Record<
     group3: "グループ 3",
     group4: "グループ 4",
   },
-  fa: {
-    votes: "رای",
-    group1: "گروه ۱",
-    group2: "گروه ۲",
-    group3: "گروه ۳",
-    group4: "گروه ۴",
-  },
   ky: {
     votes: "добуштар",
     group1: "Топ 1",

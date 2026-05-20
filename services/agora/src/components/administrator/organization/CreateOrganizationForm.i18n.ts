@@ -104,16 +104,6 @@ export const createOrganizationFormTranslations: Record<
     websiteUrlLabel: "ウェブサイトURL",
     addOrganizationButton: "組織を追加",
   },
-  fa: {
-    nameLabel: "نام",
-    descriptionLabel: "توضیحات",
-    imagePathLabel: "مسیر تصویر (نام فایل یا آدرس https)",
-    fileNameExample: "نام فایل: avatar_default_0.png",
-    fullPathExample:
-      "Full path: https://agoracitizen.network/images/big_logo_agora.png",
-    websiteUrlLabel: "آدرس وب‌سایت",
-    addOrganizationButton: "افزودن سازمان",
-  },
   ky: {
     nameLabel: "Аты",
     descriptionLabel: "Сүрөттөмө",

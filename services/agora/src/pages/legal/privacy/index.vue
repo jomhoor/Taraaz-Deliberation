@@ -1004,6 +1004,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useQuasar } from "quasar";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
 import { usePageLayout } from "src/composables/layout/usePageLayout";

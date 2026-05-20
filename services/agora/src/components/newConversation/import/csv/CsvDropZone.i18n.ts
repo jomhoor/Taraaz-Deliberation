@@ -105,16 +105,6 @@ export const csvDropZoneTranslations: Record<
     ariaViewDetails: "{fileName} のエラー詳細を表示",
     ariaRemove: "ファイル {fileName} を削除",
   },
-  fa: {
-    statusPending: "در انتظار",
-    statusUploaded: "بارگذاری شد",
-    statusValidating: "در حال اعتبارسنجی",
-    statusError: "خطا",
-    viewDetails: "مشاهده جزئیات",
-    remove: "حذف",
-    ariaViewDetails: "مشاهده جزئیات خطا برای {fileName}",
-    ariaRemove: "حذف فایل {fileName}",
-  },
   ky: {
     statusPending: "Күтүүдө",
     statusUploaded: "Жүктөлдү",

@@ -55,11 +55,6 @@ export const analysisActionButtonTranslations: Record<
     viewMore: "もっと見る",
     informationIconAriaLabel: "情報",
   },
-  fa: {
-    learnMore: "بیشتر بدانید",
-    viewMore: "مشاهده بیشتر",
-    informationIconAriaLabel: "اطلاعات",
-  },
   ky: {
     learnMore: "Кененирээк",
     viewMore: "Дагы көрүү",

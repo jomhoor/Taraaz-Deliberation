@@ -11,9 +11,15 @@ import { visualizer } from "rollup-plugin-visualizer";
 import tidewave from "tidewave/vite-plugin";
 import viteCompression from "vite-plugin-compression";
 
+import { config as dotenvConfig } from "dotenv";
 import { defineConfig } from "#q-app/wrappers";
 
 import { envSchema, validateEnv } from "./src/utils/processEnv";
+
+// Load .env files before the defineConfig callback so that process.env.KEY
+// reads in the `build.env` section are populated (Quasar CLI loads .env files
+// AFTER the config module is evaluated, so we must load them ourselves first).
+dotenvConfig();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -188,12 +194,7 @@ export default defineConfig((ctx) => {
         [
           "vite-plugin-checker",
           {
-            vueTsc: false,
-            eslint: {
-              lintCommand:
-                'eslint -c ./eslint.config.js "./src*/**/*.{ts,js,mjs,cjs,vue}"',
-              useFlatConfig: true,
-            },
+            vueTsc: true,
           },
           { server: false },
         ],

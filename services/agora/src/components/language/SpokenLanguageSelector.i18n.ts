@@ -117,17 +117,6 @@ export const spokenLanguageSelectorTranslations: Record<
     failedToSaveLanguages: "言語設定の保存に失敗しました",
     failedToLoadLanguages: "言語設定の読み込みに失敗しました",
   },
-  fa: {
-    selectedLanguages: "زبان‌های انتخاب شده",
-    addMoreLanguages: "افزودن زبان‌های بیشتر",
-    selectLanguages: "انتخاب زبان‌ها",
-    searchLanguages: "جستجوی زبان‌ها...",
-    noLanguagesFound: "زبانی یافت نشد",
-    allLanguagesSelected: "همه زبان‌ها انتخاب شده‌اند",
-    cannotRemoveLastLanguage: "باید حداقل یک زبان انتخاب شده باشد",
-    failedToSaveLanguages: "ذخیره ترجیحات زبان ناموفق بود",
-    failedToLoadLanguages: "بارگذاری ترجیحات زبان ناموفق بود",
-  },
   ky: {
     selectedLanguages: "Тандалган тилдер",
     addMoreLanguages: "Дагы тил кошуу",

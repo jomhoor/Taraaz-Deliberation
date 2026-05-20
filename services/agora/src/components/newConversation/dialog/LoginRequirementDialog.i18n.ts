@@ -169,14 +169,4 @@ export const loginRequirementDialogTranslations: Record<
     guestParticipationDescription:
       "Любой, у кого есть ссылка, может просматривать обсуждение, голосовать и добавлять высказывания",
   },
-  fa: {
-    requiresLoginTitle: "نیاز به ورود",
-    requiresLoginDescription:
-      "Anyone with the link can view the conversation, but will need to login to vote and contribute statements",
-    guestParticipationTitle: "مشارکت مهمان",
-    guestParticipationDescription:
-      "Anyone with the link can view the conversation, vote and contribute statements",
-    conversationSwitchedToPrivate:
-      "Conversation switched to private. Guest participation without event ticket verification is only available for private conversations.",
-  },
 };

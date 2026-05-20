@@ -52,11 +52,6 @@ export const activeExportBannerTranslations: Record<
       "エクスポートが進行中です。新しいエクスポートを開始する前に完了するまでお待ちください。",
     viewStatus: "エクスポート状態を表示",
   },
-  fa: {
-    message:
-      "You have an export in progress. Please wait for it to complete before starting a new one.",
-    viewStatus: "مشاهده وضعیت خروجی",
-  },
   ky: {
     message:
       "Экспорттоо жүрүп жатат. Жаңысын баштоодон мурун аяктаганын күтүңүз.",

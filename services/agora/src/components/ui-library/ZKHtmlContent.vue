@@ -31,6 +31,10 @@ const props = defineProps<{
   compactMode: boolean;
   enableLinks: boolean;
   alignment?: "auto" | "left" | "right";
+  // Optional explicit direction override. When provided, takes precedence over
+  // the document-level direction. Used by post bodies to follow per-content
+  // direction (ltr if English-only, rtl if any Farsi/Arabic/Hebrew present).
+  direction?: "ltr" | "rtl";
 }>();
 
 const { t } = useComponentI18n<ZKHtmlContentTranslations>(
@@ -38,6 +42,10 @@ const { t } = useComponentI18n<ZKHtmlContentTranslations>(
 );
 
 const contentDirection = computed(() => {
+  if (props.direction) {
+    return props.direction;
+  }
+
   if (typeof document === "undefined") {
     return "auto";
   }
@@ -93,8 +101,9 @@ const handleClick = (event: Event) => {
 }
 
 .textBreak--rtl {
-  direction: rtl;
-  text-align: right;
+  /* direction:rtl is set via the :dir="contentDirection" HTML attribute on the span.
+     text-align:right is set via the inline :style binding.
+     Writing them here causes the PostCSS RTLCSS plugin to flip them in RTL mode. */
   unicode-bidi: isolate;
   letter-spacing: 0.021em;
   word-spacing: 0.045em;

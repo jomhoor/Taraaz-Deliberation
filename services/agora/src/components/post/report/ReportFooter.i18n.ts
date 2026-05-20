@@ -47,8 +47,4 @@ export const reportFooterTranslations: Record<
     generatedOn: "Отчёт сформирован",
     poweredBy: "Работает на Taraaz Deliberation",
   },
-  fa: {
-    generatedOn: "گزارش تولید شده در",
-    poweredBy: "با پشتیبانی Taraaz Deliberation",
-  },
 };

@@ -95,15 +95,6 @@ export const conversationModerationTranslations: Record<
     moderate: "管理",
     withdraw: "取り下げ",
   },
-  fa: {
-    moderateConversation: "مدیریت گفتگو",
-    action: "اقدام",
-    reason: "دلیل",
-    explanationOptional: "توضیح (اختیاری)",
-    modify: "اصلاح",
-    moderate: "مدیریت",
-    withdraw: "بازپس‌گیری",
-  },
   ky: {
     moderateConversation: "Талкууну модерациялоо",
     action: "Аракет",

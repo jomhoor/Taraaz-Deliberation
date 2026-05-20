@@ -95,15 +95,6 @@ export const opinionAnalysisDialogTranslations: Record<
     noGroup: "グループなし",
     viewOriginal: "元の意見を見る",
   },
-  fa: {
-    title: "تحلیل نظر",
-    agree: "موافقم",
-    pass: "مطمئن نیستم",
-    disagree: "مخالفم",
-    total: "مجموع",
-    noGroup: "بدون گروه",
-    viewOriginal: "مشاهده نظر اصلی",
-  },
   ky: {
     title: "Пикир анализи",
     agree: "Макулмун",

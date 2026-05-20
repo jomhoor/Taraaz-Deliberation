@@ -60,9 +60,4 @@ export const reportOpinionListTranslations: Record<
     overall: "Общий",
     noItems: "Статистически значимые элементы для этого раздела не найдены.",
   },
-  fa: {
-    statement: "گزاره",
-    overall: "کلی",
-    noItems: "موارد معنادار آماری برای این بخش یافت نشد.",
-  },
 };

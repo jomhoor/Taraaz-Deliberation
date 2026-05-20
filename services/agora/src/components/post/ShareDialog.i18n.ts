@@ -60,11 +60,6 @@ export const shareDialogTranslations: Record<
     copiedToClipboard: "リンクをクリップボードにコピーしました",
     couldNotCopy: "クリップボードにコピーできませんでした",
   },
-  fa: {
-    copyLink: "کپی لینک",
-    copiedToClipboard: "لینک در کلیپ‌بورد کپی شد",
-    couldNotCopy: "کپی در کلیپ‌بورد ممکن نبود",
-  },
   ky: {
     copyLink: "Шилтемени көчүрүү",
     copiedToClipboard: "Шилтеме алмашуу буферине көчүрүлдү",

@@ -161,12 +161,4 @@ export const commentSortingSelectorTranslations: Record<
     myVotes: "Мои голоса",
     myVotesDescription: "Высказывания, за которые вы голосовали",
   },
-  fa: {
-    filterTitle: "فیلتر پاسخ‌ها بر اساس:",
-    discover: "کاوش",
-    new: "جدید",
-    moderationHistory: "تاریخچه مدیریت",
-    hidden: "مخفی",
-    myVotes: "رای‌های من",
-  },
 };

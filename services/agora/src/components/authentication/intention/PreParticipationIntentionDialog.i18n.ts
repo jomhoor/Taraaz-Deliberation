@@ -328,14 +328,4 @@ export const preParticipationIntentionDialogTranslations: Record<
     subMessageReturnToConversation: "Вы вернётесь к этому обсуждению.",
     subMessageReportRequired: "Для отправки жалобы на контент требуется учётная запись.",
   },
-  fa: {
-    title: "ورود به جمهور",
-    titleZupassOnly: "تأیید بلیت رویداد",
-    message: "برای شرکت در بحث‌ها وارد شوید",
-    messageBothRequired: "این گفتگو برای مشارکت نیاز به ورود و تأیید بلیت رویداد دارد",
-    messageZupassOnly: "این گفتگو برای مشارکت نیاز به تأیید بلیت رویداد دارد",
-    labelOk: "ورود",
-    labelOkZupass: "تأیید بلیت",
-    labelCancel: "لغو",
-  },
 };

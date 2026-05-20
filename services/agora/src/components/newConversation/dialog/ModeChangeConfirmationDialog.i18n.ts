@@ -107,18 +107,6 @@ export const modeChangeConfirmationDialogTranslations: Record<
     cancel: "キャンセル",
     continue: "続ける",
   },
-  fa: {
-    switchToImportMode: "به حالت واردسازی تغییر دهید؟",
-    switchingWillClear:
-      "Switching to import mode will clear the following fields from the conversation draft:",
-    title: "عنوان",
-    bodyText: "متن اصلی",
-    pollOptions: "گزینه‌های نظرسنجی",
-    settingsPreserved:
-      "Your privacy settings and organization selection will be preserved.",
-    cancel: "لغو",
-    continue: "ادامه",
-  },
   ky: {
     switchToImportMode: "Импорт режимине которуласызбы?",
     switchingWillClear:

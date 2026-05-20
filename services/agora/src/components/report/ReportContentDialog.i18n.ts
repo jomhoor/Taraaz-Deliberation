@@ -127,19 +127,6 @@ export const reportContentDialogTranslations: Record<
     reportTypeConversation: "会話",
     reportTypeOpinion: "意見",
   },
-  fa: {
-    submitReportTitle: "ارسال گزارش",
-    improveCommunityText:
-      "Thank you for helping us improve the community. What is the problem with this {reportType}?",
-    thanksForFeedbackTitle: "ممنون از بازخورد شما!",
-    flaggingReasonText:
-      "Why are you flagging this {reportType} as {selectedReason}?",
-    addExplanationLabel: "افزودن توضیح",
-    skipButton: "رد شدن",
-    submitButton: "ارسال",
-    reportTypeConversation: "conversation",
-    reportTypeOpinion: "statement",
-  },
   ky: {
     submitReportTitle: "Кабар жөнөтүү",
     improveCommunityText:

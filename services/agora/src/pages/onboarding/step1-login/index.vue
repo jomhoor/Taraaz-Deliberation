@@ -4,20 +4,10 @@
       <ClusterImageExample />
     </template>
     <template #footer>
-      <StepperLayout
-        :submit-call-back="() => {}"
-        :current-step="1"
-        :total-steps="5"
-        :enable-next-button="true"
-        :show-next-button="false"
-        :show-loading-button="false"
-      >
+      <StepperLayout :submit-call-back="() => { }" :current-step="1" :total-steps="5" :enable-next-button="true"
+        :show-next-button="false" :show-loading-button="false">
         <template #header>
-          <InfoHeader
-            :title="t('pageTitle')"
-            :description="t('description')"
-            icon-name="mdi-login"
-          />
+          <InfoHeader :title="t('pageTitle')" :description="t('description')" icon-name="mdi-login" />
         </template>
 
         <template #body>
@@ -38,7 +28,7 @@
           <template v-else-if="ssoQrMode">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
               <p style="text-align: center; font-size: 0.9rem; color: #6b7280;">
-                Scan with Jomhoor wallet to sign in
+                با دوربین اسکن کنید
               </p>
               <div v-if="deepLink && qrcode" style="border-radius: 8px; overflow: hidden; background: #fff;">
                 <img :src="qrcode" alt="QR code" style="width: 218px; height: 218px; display: block;" />
@@ -46,30 +36,24 @@
               <div v-else-if="ssoQrError" style="color: #ef4444; text-align: center; font-size: 0.85rem;">
                 {{ ssoQrError }}
               </div>
-              <div v-else style="width: 218px; height: 218px; display: flex; align-items: center; justify-content: center;">
+              <div v-else
+                style="width: 218px; height: 218px; display: flex; align-items: center; justify-content: center;">
                 <q-spinner size="2rem" />
               </div>
-              <ZKGradientButton
-                :label="t('cancel')"
-                @click="cancelSsoQr()"
-              />
+              <ZKGradientButton :label="t('cancel')" @click="cancelSsoQr()" />
             </div>
           </template>
 
           <!-- Normal login buttons -->
           <template v-else>
-            <ZKGradientButton
-              :label="t('loginWithPhone')"
-              @click="goToPhoneLogin()"
-            />
+            <ZKGradientButton :label="t('loginWithPhone')" @click="goToPhoneLogin()" />
 
-            <ZKGradientButton
-              :label="t('connectWallet')"
-              @click="goToJomhoorSso()"
-            />
+            <ZKGradientButton :label="t('connectWallet')" @click="goToJomhoorSso()" />
           </template>
 
-          <p><SignupAgreement /></p>
+          <p>
+            <SignupAgreement />
+          </p>
         </template>
       </StepperLayout>
     </template>
@@ -104,8 +88,8 @@ interface JomhoorWindow extends Window {
 }
 
 import {
-    type LoginOnboardingTranslations,
-    loginOnboardingTranslations,
+  type LoginOnboardingTranslations,
+  loginOnboardingTranslations,
 } from "./index.i18n";
 
 const { t } = useComponentI18n<LoginOnboardingTranslations>(

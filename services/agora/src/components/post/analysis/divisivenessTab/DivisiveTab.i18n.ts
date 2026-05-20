@@ -106,16 +106,6 @@ export const divisiveTabTranslations: Record<
     noDivisiveOpinionsMessage: "有意な分断的意見はまだ見つかりません。",
     lowerRankedDivider: "統計的有意性が低い",
   },
-  fa: {
-    divisiveTitle: "بحث‌برانگیز",
-    divisiveLongTitle: "چه چیزی شرکت‌کنندگان را در گروه‌های مختلف {keyword} می‌کند؟",
-    divisiveKeyword: "از هم جدا",
-    subtitle:
-      "گزاره‌هایی که گروه‌های نظر را در مقابل هم قرار می‌دهند. تنها معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
-    loadMore: "بارگذاری همه",
-    noDivisiveOpinionsMessage: "هنوز نظرات بحث‌برانگیز معناداری یافت نشده است.",
-    lowerRankedDivider: "از نظر آماری کم‌اهمیت‌تر",
-  },
   ky: {
     divisiveTitle: "Талаштуу",
     divisiveLongTitle: "Топтор аралык катышуучуларды эмне {keyword}?",

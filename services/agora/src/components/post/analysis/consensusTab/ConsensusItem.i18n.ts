@@ -65,12 +65,6 @@ export const consensusItemTranslations: Record<
     disagree: "同意しない",
     noVote: "投票しない",
   },
-  fa: {
-    agree: "موافقم",
-    pass: "مطمئن نیستم",
-    disagree: "مخالفم",
-    noVote: "بدون رای",
-  },
   ky: {
     agree: "Макулмун",
     pass: "Белгисиз",

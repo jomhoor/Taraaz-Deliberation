@@ -1,5 +1,5 @@
 <template>
-  <div class="title-section">
+  <div :dir="titleDirection" class="title-section">
     <ConversationChip
       v-if="isPrivate"
       :label="t('privateLabel')"
@@ -17,7 +17,14 @@
       background-color="#24292f"
       icon="mdi-github"
     />
-    <h1 class="conversation-title" :class="`conversation-title--${size}`">
+    <h1
+      :dir="titleDirection"
+      class="conversation-title"
+      :class="[
+        `conversation-title--${size}`,
+        { 'conversation-title--rtl': titleDirection === 'rtl' },
+      ]"
+    >
       {{ title }}
     </h1>
   </div>
@@ -26,6 +33,8 @@
 <script setup lang="ts">
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import type { ConversationType, ExternalSourceConfig } from "src/shared/types/zod";
+import { detectTextDirection } from "src/utils/text/textDirection";
+import { computed } from "vue";
 
 import ConversationChip from "./ConversationChip.vue";
 import {
@@ -33,13 +42,17 @@ import {
   conversationTitleTranslations,
 } from "./ConversationTitle.i18n";
 
-defineProps<{
+const props = defineProps<{
   isPrivate: boolean;
   title: string;
   size: "medium" | "large";
   conversationType: ConversationType;
   externalSourceConfig: ExternalSourceConfig | null;
 }>();
+
+// Direction is derived from the title's own characters, not from the app
+// locale: English-only → ltr; anything containing Farsi/Arabic/Hebrew → rtl.
+const titleDirection = computed(() => detectTextDirection(props.title));
 
 const { t } = useComponentI18n<ConversationTitleTranslations>(
   conversationTitleTranslations,
@@ -70,5 +83,10 @@ const { t } = useComponentI18n<ConversationTitleTranslations>(
 
 .conversation-title--large {
   font-size: 1.5rem;
+}
+
+.conversation-title--rtl {
+  text-align: right;
+  unicode-bidi: plaintext;
 }
 </style>

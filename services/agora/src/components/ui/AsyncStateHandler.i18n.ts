@@ -73,13 +73,6 @@ export const asyncStateHandlerTranslations: Record<
     emptyMessage: "利用可能なデータがありません",
     retry: "再試行",
   },
-  fa: {
-    loading: "در حال بارگذاری...",
-    errorTitle: "مشکلی پیش آمد",
-    defaultErrorMessage: "خطای غیرمنتظره‌ای رخ داد. لطفاً دوباره تلاش کنید.",
-    emptyMessage: "داده‌ای موجود نیست",
-    retry: "تلاش مجدد",
-  },
   ky: {
     loading: "Жүктөлүүдө...",
     retrying: "Кайра аракет кылынууда...",

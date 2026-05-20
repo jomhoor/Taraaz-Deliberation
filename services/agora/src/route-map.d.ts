@@ -41,6 +41,13 @@ declare module 'vue-router/auto-routes' {
       { all: ParamValue<false> },
       | never
     >,
+    '/auth/callback/': RouteRecordInfo<
+      '/auth/callback/',
+      '/auth/callback',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/conversation/[conversationSlugId]/edit/': RouteRecordInfo<
       '/conversation/[conversationSlugId]/edit/',
       '/conversation/:conversationSlugId/edit',
@@ -610,6 +617,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/[...all].vue': {
       routes:
         | '/[...all]'
+      views:
+        | never
+    }
+    'src/pages/auth/callback/index.vue': {
+      routes:
+        | '/auth/callback/'
       views:
         | never
     }

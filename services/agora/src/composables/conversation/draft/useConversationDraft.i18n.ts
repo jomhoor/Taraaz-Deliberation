@@ -57,14 +57,6 @@ export const useConversationDraftTranslations: Record<
     polisUrlInvalid: "有効なPolis URLを入力してください。",
     titleRequired: "続行するにはタイトルが必要です",
   },
-  fa: {
-    bodyExceedsLimit: "متن از حداکثر طول ({count}/{max}) بیشتر شده",
-    polisUrlRequired: "آدرس Polis لازم است",
-    polisUrlInvalid: "لطفاً یک آدرس Polis معتبر وارد کنید.",
-    pollMaxOptionsError: "حداکثر {max} گزینه نظرسنجی مجاز است",
-    pollMinOptionsError: "حداقل {min} گزینه نظرسنجی لازم است",
-    titleRequired: "عنوان برای ادامه لازم است",
-  },
   "zh-Hans": {
     bodyExceedsLimit: "正文超过最大长度 ({count}/{max})",
     polisUrlRequired: "需要 Polis URL",

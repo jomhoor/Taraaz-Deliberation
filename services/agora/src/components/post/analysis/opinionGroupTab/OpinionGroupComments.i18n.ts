@@ -85,14 +85,6 @@ export const opinionGroupCommentsTranslations: Record<
     allOthers: "他のすべての参加者",
     allOtherGroups: "すべての他のグループ",
   },
-  fa: {
-    opinionsTitle: "نظرات",
-    opinionsTitleLong: "نظرات نماینده",
-    noOpinionsMessage: "نظری برای این گروه موجود نیست.",
-    thisGroup: "این گروه",
-    allOthers: "سایرین",
-    allOtherGroups: "سایر گروه‌ها",
-  },
   ky: {
     opinionsTitle: "Пикирлер",
     opinionsTitleLong: "Өкүлчүлүктүү пикирлер",

@@ -74,12 +74,6 @@ export const cooldownBannerTranslations: Record<
       "クールダウンが終了しました。新しいエクスポートをリクエストできます。",
     viewLast: "前回のエクスポートを表示",
   },
-  fa: {
-    cooldownSeconds: "خروجی بعدی در {seconds} ثانیه",
-    cooldownMinutes: "خروجی بعدی در {minutes} دقیقه",
-    cooldownEnded: "زمان انتظار تمام شد. اکنون می‌توانید خروجی جدید درخواست کنید.",
-    viewLast: "مشاهده آخرین خروجی",
-  },
   ky: {
     cooldownSeconds: "Кийинки экспорт {seconds} секунддан кийин",
     cooldownMinutes: "Кийинки экспорт {minutes} мүнөттөн кийин",

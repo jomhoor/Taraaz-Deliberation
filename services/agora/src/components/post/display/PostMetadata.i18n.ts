@@ -165,21 +165,6 @@ export const postMetadataTranslations: Record<
     syncSuccess: "GitHub からの同期に成功しました",
     syncError: "GitHub からの同期に失敗しました",
   },
-  fa: {
-    closeConfirmMessage:
-      "آیا مطمئنید که می‌خواهید این گفتگو را ببندید؟ کاربران قادر به ارسال نظرات یا رای‌های جدید نخواهند بود.",
-    closeConfirmButton: "بستن گفتگو",
-    reopenConfirmMessage:
-      "این گفتگو بازگشایی شود؟ کاربران دوباره قادر به ارسال نظرات و رای دادن خواهند بود.",
-    reopenConfirmButton: "بازگشایی گفتگو",
-    cancelButton: "انصراف",
-    closeSuccess: "گفتگو با موفقیت بسته شد",
-    openSuccess: "گفتگو با موفقیت باز شد",
-    closeNotAllowed: "شما اجازه بستن این گفتگو را ندارید",
-    openNotAllowed: "شما اجازه باز کردن این گفتگو را ندارید",
-    alreadyClosed: "این گفتگو از قبل بسته شده است",
-    alreadyOpen: "این گفتگو از قبل باز است",
-  },
   ky: {
     closeConfirmMessage:
       "Бул талкууну жабууну каалайсызбы? Колдонуучулар жаңы пикирлерди же добуштарды жарыялай алышпайт.",

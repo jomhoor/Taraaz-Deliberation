@@ -98,15 +98,6 @@ export const exportHistoryListTranslations: Record<
     statusFailed: "失敗",
     statusCancelled: "キャンセル",
   },
-  fa: {
-    loadingExports: "در حال بارگذاری خروجی‌ها...",
-    noExportsYet: "هنوز خروجی‌ای وجود ندارد. اولین خروجی خود را در بالا درخواست کنید!",
-    errorLoadingExports: "بارگذاری تاریخچه خروجی ناموفق بود",
-    statusProcessing: "در حال پردازش",
-    statusCompleted: "تکمیل شد",
-    statusFailed: "ناموفق",
-    statusCancelled: "لغو شد",
-  },
   ky: {
     loadingExports: "Экспорттор жүктөлүүдө...",
     noExportsYet: "Азырынча экспорттор жок. Жогорудан биринчи экспортуңузду сураңыз!",

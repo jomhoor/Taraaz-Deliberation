@@ -215,43 +215,6 @@ export const editConversationTranslations: Record<
     createSurveyButton: "アンケートを作成",
     editSurveyButton: "アンケートを編集",
   },
-  fa: {
-    saveButton: "ذخیره",
-    titlePlaceholder: "عنوان گفتگو",
-    bodyPlaceholder: "چه در ذهن دارید؟",
-    updateSuccess: "گفتگو با موفقیت به‌روزرسانی شد",
-    updateError: "به‌روزرسانی گفتگو ناموفق بود",
-    notFoundError: "گفتگو یافت نشد",
-    notAuthorError: "شما نویسنده این گفتگو نیستید",
-    conversationLockedError: "این گفتگو قفل شده و قابل ویرایش نیست",
-    notFoundErrorTitle: "گفتگو یافت نشد",
-    notFoundErrorMessage: "بارگذاری گفتگو ناموفق بود",
-    notAuthorErrorTitle: "شما نویسنده این گفتگو نیستید",
-    notAuthorErrorMessage:
-      "فقط نویسنده اصلی می‌تواند این گفتگو را ویرایش کند",
-    conversationLockedErrorTitle:
-      "این گفتگو قفل شده و قابل ویرایش نیست",
-    conversationLockedErrorMessage:
-      "اگر لازم است این گفتگو از حالت قفل خارج شود، با مدیر تماس بگیرید",
-    invalidAccessSettingsError:
-      "تنظیمات دسترسی نامعتبر است. برای گفتگوهای خصوصی نمی‌توان ورود را الزامی کرد.",
-    pollAlreadyExistsError:
-      "ایجاد نظرسنجی ممکن نیست: این گفتگو از قبل نظرسنجی دارد",
-    noPollToRemoveError:
-      "Cannot remove poll: this conversation does not have a poll",
-    noPollToKeepError:
-      "Cannot keep poll: this conversation does not have a poll",
-    noPollToReplaceError:
-      "Cannot replace poll: this conversation does not have a poll",
-    loadingErrorTitle: "بارگذاری گفتگو ناموفق بود",
-    loadingErrorMessage: "خطایی هنگام بارگذاری گفتگو رخ داد",
-    pollChangeWarningMessage:
-      "Changing poll options will reset all existing votes. Are you sure you want to continue?",
-    removePollWarningMessage:
-      "Removing the poll will delete all existing votes. Are you sure you want to continue?",
-    pollChangeWarningConfirm: "بله، ادامه دهید",
-    pollChangeWarningCancel: "لغو",
-  },
   ar: {
     saveButton: "حفظ",
     titlePlaceholder: "عنوان المحادثة",

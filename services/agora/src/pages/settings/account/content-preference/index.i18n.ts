@@ -35,9 +35,6 @@ export const contentPreferenceTranslations: Record<
   ja: {
     contentPreference: "コンテンツ設定",
   },
-  fa: {
-    contentPreference: "ترجیحات محتوا",
-  },
   ky: {
     contentPreference: "Мазмун тандоолору",
   },

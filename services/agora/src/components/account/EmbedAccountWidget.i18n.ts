@@ -45,10 +45,6 @@ export const embedAccountWidgetTranslations: Record<
     logoutButton: "ログアウト",
     logoutTooltip: "ログアウト",
   },
-  fa: {
-    logoutButton: "خروج",
-    logoutTooltip: "خروج",
-  },
   ky: {
     logoutButton: "Чыгуу",
     logoutTooltip: "Чыгуу",

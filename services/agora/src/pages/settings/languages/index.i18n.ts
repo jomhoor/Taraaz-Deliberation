@@ -157,22 +157,6 @@ export const languagesSettingsTranslations: Record<
     other: "その他",
     others: "その他",
   },
-  fa: {
-    pageTitle: "زبان",
-    displayLanguageLabel: "زبان نمایش",
-    spokenLanguagesLabel: "زبان‌های مکالمه",
-    displayLanguageTitle: "زبان نمایش",
-    displayLanguageDescription:
-      "زبان ترجیحی شما برای سرتیترها، دکمه‌ها و سایر متن‌های اپ تراز",
-    additionalLanguagesTitle: "زبان‌های اضافی",
-    additionalLanguagesDescription:
-      "برای محتوایی که می‌خواهید در تراز مشاهده کنید",
-    englishFallback: "انگلیسی",
-    noneSelected: "هیچ‌کدام انتخاب نشده",
-    and: "و",
-    other: "دیگر",
-    others: "دیگران",
-  },
   ky: {
     pageTitle: "Тил",
     displayLanguageLabel: "Көрсөтүү тили",

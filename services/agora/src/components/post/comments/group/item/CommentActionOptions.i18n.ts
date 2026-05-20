@@ -45,10 +45,6 @@ export const commentActionOptionsTranslations: Record<
     agoraOpinion: "Agora 意見",
     copiedToClipboard: "リンクをクリップボードにコピーしました",
   },
-  fa: {
-    agoraOpinion: "نظر جمهور",
-    copiedToClipboard: "لینک در کلیپ‌بورد کپی شد",
-  },
   ky: {
     agoraOpinion: "Agora пикири",
     copiedToClipboard: "Шилтеме алмашуу буферине көчүрүлдү",

@@ -40,9 +40,6 @@ export const webShareTranslations: Record<
   ja: {
     copiedToClipboard: "リンクをクリップボードにコピーしました",
   },
-  fa: {
-    copiedToClipboard: "لینک در کلیپ‌بورد کپی شد",
-  },
   ky: {
     copiedToClipboard: "Шилтеме алмашуу буферине көчүрүлдү",
   },

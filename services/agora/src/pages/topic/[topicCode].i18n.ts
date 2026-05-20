@@ -32,9 +32,6 @@ export const topicPageTranslations: Record<SupportedDisplayLanguageCodes, TopicP
   ja: {
     loadPostsHere: "投稿を読み込む",
   },
-  fa: {
-    loadPostsHere: "بارگذاری پست‌ها در اینجا",
-  },
   ky: {
     loadPostsHere: "Посттарды жүктөө",
   },
