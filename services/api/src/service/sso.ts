@@ -253,6 +253,25 @@ export async function exchangeSsoCode({
                     userAgent,
                     sessionExpiry,
                 });
+                // Soft-delete any stale sso_account whose owner user was deleted
+                // but whose sso_account row was not cleaned up. getSsoAuthState
+                // uses innerJoin(userTable) and filters out soft-deleted users via
+                // .find(r => !r.isDeleted), so it returns null for activeOwner and
+                // falls through to "register" — which then hits a unique-constraint
+                // violation. Cleaning up here is safe: the only way determineAuthType
+                // returns "register" is when getSsoAuthState found no active owner,
+                // meaning any existing sso_account is guaranteed to belong to a
+                // deleted user.
+                await tx
+                    .update(ssoAccountTable)
+                    .set({ isDeleted: true })
+                    .where(
+                        and(
+                            eq(ssoAccountTable.ssoSubject, ssoSub),
+                            eq(ssoAccountTable.clientId, CLIENT_ID),
+                            eq(ssoAccountTable.isDeleted, false),
+                        ),
+                    );
                 await tx.insert(ssoAccountTable).values({
                     userId: authResult.userId,
                     ssoSubject: ssoSub,
