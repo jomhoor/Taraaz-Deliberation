@@ -112,7 +112,7 @@ import {
     fetchUserReportsByCommentSlugId,
     fetchUserReportsByPostSlugId,
 } from "./service/report.js";
-import { exchangeSsoCode } from "./service/sso.js";
+import { exchangeSsoCode, initiateSsoDesktopSession, completeSsoDesktopSessionFromMobile, pollSsoDesktopSession } from "./service/sso.js";
 import {
     getAllTopics,
     getUserFollowedTopics,
@@ -2525,6 +2525,76 @@ server.after(() => {
                 ssoUrl: config.SSO_URL,
                 ssoClientSecret: config.SSO_CLIENT_SECRET,
                 sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
+            });
+        },
+    });
+
+    // SSO Desktop QR flow — Step 1: desktop initiates, gets deep link for QR
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/desktop/initiate`,
+        schema: {
+            response: {
+                200: Dto.ssoDesktopInitiate200,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            if (!config.SSO_CLIENT_SECRET) {
+                throw server.httpErrors.serviceUnavailable("SSO not configured");
+            }
+            const redirectUri = `${config.AGORA_ORIGIN ?? ""}/auth/callback`;
+            return await initiateSsoDesktopSession({
+                db,
+                didWrite,
+                ssoUrl: config.SSO_URL,
+                ssoClientSecret: config.SSO_CLIENT_SECRET,
+                redirectUri,
+            });
+        },
+    });
+
+    // SSO Desktop QR flow — Step 2: wallet POSTs the OAuth code after user approval
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/desktop/mobile-complete`,
+        schema: {
+            body: Dto.ssoDesktopMobileCompleteRequest,
+            response: {
+                200: Dto.ssoDesktopMobileComplete200,
+            },
+        },
+        handler: async (request) => {
+            if (!config.SSO_CLIENT_SECRET) {
+                throw server.httpErrors.serviceUnavailable("SSO not configured");
+            }
+            const userAgent = request.headers["user-agent"] ?? "Unknown device";
+            return await completeSsoDesktopSessionFromMobile({
+                db,
+                sessionId: request.body.session_id,
+                code: request.body.code,
+                userAgent,
+                ssoUrl: config.SSO_URL,
+                ssoClientSecret: config.SSO_CLIENT_SECRET,
+                sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
+            });
+        },
+    });
+
+    // SSO Desktop QR flow — Step 3: desktop polls for session completion
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/desktop/poll`,
+        schema: {
+            response: {
+                200: Dto.ssoDesktopPoll200,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            return await pollSsoDesktopSession({
+                db,
+                didWrite,
             });
         },
     });
