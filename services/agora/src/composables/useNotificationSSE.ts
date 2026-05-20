@@ -55,14 +55,14 @@ export function useNotificationSSE() {
 
       // Fresh UCAN for each connection attempt — prevents replay guard rejection
       const encodedUcan = await buildEncodedUcan(
-        "/api/v1/notification/stream",
+        "/api/v1/realtime/stream",
         { method: "GET" },
       );
       const authHeader = buildAuthorizationHeader(encodedUcan);
 
       // In dev, use empty base so the request goes through the Vite proxy
       const baseUrl = process.env.DEV ? "" : (processEnv.VITE_API_BASE_URL || "");
-      const url = `${baseUrl}/api/v1/notification/stream`;
+      const url = `${baseUrl}/api/v1/realtime/stream`;
 
       const response = await fetch(url, {
         method: "GET",

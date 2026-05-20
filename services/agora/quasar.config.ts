@@ -131,6 +131,7 @@ export default defineConfig((ctx) => {
           crypto: resolve(__dirname, "src/stubs/crypto.js"),
           "source-map-js": resolve(__dirname, "src/stubs/source-map-js.js"),
           url: resolve(__dirname, "src/stubs/url.js"),
+          "sanitize-html": resolve(__dirname, "src/stubs/sanitize-html.js"),
         };
 
         // Add Sentry plugin in production (non-staging) builds
