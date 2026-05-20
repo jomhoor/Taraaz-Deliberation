@@ -11,38 +11,42 @@ export const reportFooterTranslations: Record<
 > = {
   en: {
     generatedOn: "Report generated on",
-    poweredBy: "Powered by Agora Citizen Network",
+    poweredBy: "Powered by Taraaz Deliberation",
   },
   ar: {
     generatedOn: "تم إنشاء التقرير في",
-    poweredBy: "مدعوم من شبكة أغورا المواطنين",
+    poweredBy: "مدعوم من Taraaz Deliberation",
   },
   es: {
     generatedOn: "Informe generado el",
-    poweredBy: "Desarrollado por Agora Citizen Network",
+    poweredBy: "Desarrollado por Taraaz Deliberation",
   },
   fr: {
     generatedOn: "Rapport généré le",
-    poweredBy: "Propulsé par Agora Citizen Network",
+    poweredBy: "Propulsé par Taraaz Deliberation",
   },
   "zh-Hans": {
     generatedOn: "报告生成于",
-    poweredBy: "由 Agora Citizen Network 提供支持",
+    poweredBy: "由 Taraaz Deliberation 提供支持",
   },
   "zh-Hant": {
     generatedOn: "報告生成於",
-    poweredBy: "由 Agora Citizen Network 提供支持",
+    poweredBy: "由 Taraaz Deliberation 提供支持",
   },
   ja: {
     generatedOn: "レポート生成日",
-    poweredBy: "Agora Citizen Network 提供",
+    poweredBy: "Taraaz Deliberation 提供",
   },
   ky: {
     generatedOn: "Отчёт түзүлгөн күн",
-    poweredBy: "Agora Citizen Network тарабынан иштетилет",
+    poweredBy: "Taraaz Deliberation тарабынан иштетилет",
   },
   ru: {
     generatedOn: "Отчёт сформирован",
-    poweredBy: "Работает на Agora Citizen Network",
+    poweredBy: "Работает на Taraaz Deliberation",
+  },
+  fa: {
+    generatedOn: "گزارش تولید شده در",
+    poweredBy: "با پشتیبانی Taraaz Deliberation",
   },
 };

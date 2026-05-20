@@ -145,15 +145,15 @@ export const consensusTabTranslations: Record<
     agreementsTitle: "تأیید شد",
     disagreementsTitle: "رد شد",
     agreementsLongTitle:
-      "Which statements are {keyword} by all groups?",
+      "کدام گزاره‌ها توسط همه گروه‌ها {keyword} شده‌اند؟",
     disagreementsLongTitle:
-      "Which statements are {keyword} by all groups?",
-    agreementsKeyword: "approved",
-    disagreementsKeyword: "rejected",
+      "کدام گزاره‌ها توسط همه گروه‌ها {keyword} شده‌اند؟",
+    agreementsKeyword: "تأیید",
+    disagreementsKeyword: "رد",
     subtitleAgree:
-      "Statements all opinion groups agree to agree on. Not a simple majority, but a cross-group consensus. Only the most statistically significant are shown.",
+      "گزاره‌هایی که همه گروه‌های نظر بر موافقت با آن‌ها توافق دارند. نه اکثریت ساده، بلکه اجماع میان‌گروهی. تنها معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
     subtitleDisagree:
-      "Statements all opinion groups agree to disagree on. Not a simple majority, but a cross-group consensus. Only the most statistically significant are shown.",
+      "گزاره‌هایی که همه گروه‌های نظر بر مخالفت با آن‌ها توافق دارند. نه اکثریت ساده، بلکه اجماع میان‌گروهی. تنها معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
     loadMore: "بارگذاری همه",
     noAgreementsMessage: "هنوز اجماعی شکل نگرفته است.",
     noDisagreementsMessage: "هنوز اجماعی شکل نگرفته است.",

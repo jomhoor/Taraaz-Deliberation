@@ -180,14 +180,14 @@ export const editConversationTranslations: Record<
     saveButton: "ذخیره تغییرات",
     titlePlaceholder: "چه سؤالی می‌خواهید بپرسید؟",
     bodyPlaceholder:
-      "Body text. Provide context or relevant resources. Make sure it's aligned with the main question!",
+      "متن اصلی را بنویسید. زمینه یا منابع مرتبط را اضافه کنید و مطمئن شوید با پرسش اصلی هم‌راستاست.",
     pageTitle: "ویرایش گفتگو",
     notFoundError: "گفتگو یافت نشد",
     notAuthorError: "شما مجاز به ویرایش این گفتگو نیستید",
     loadingError: "بارگذاری داده‌های گفتگو ناموفق بود",
     pollChangeWarningTitle: "هشدار: تغییر نظرسنجی",
     pollChangeWarningMessage:
-      "Modifying the poll options will clear all existing votes. This action cannot be undone. Do you want to continue?",
+      "با تغییر گزینه‌های نظرسنجی، همه آراهای موجود پاک می‌شوند. این کار قابل بازگشت نیست. آیا می‌خواهید ادامه دهید؟",
     pollChangeWarningConfirm: "بله، آرا پاک شود",
     pollChangeWarningCancel: "لغو",
     updateSuccess: "گفتگو با موفقیت به‌روزرسانی شد",

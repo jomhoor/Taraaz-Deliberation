@@ -55,7 +55,7 @@ function handleItemClick(): void {
   color: inherit;
   cursor: pointer;
   width: 100%;
-  text-align: left;
+  text-align: start;
   background: none;
   border: none;
   padding: 0;

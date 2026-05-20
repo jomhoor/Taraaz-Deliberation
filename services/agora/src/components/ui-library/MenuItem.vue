@@ -148,4 +148,30 @@ defineProps<{
   align-self: flex-start;
   margin-top: 0.125rem;
 }
+
+:global(html[lang|="fa"] .menu-item) {
+  font-size: 1rem;
+  direction: rtl;
+}
+
+:global(html[lang|="fa"] .menu-item__left) {
+  justify-content: flex-start;
+}
+
+:global(html[lang|="fa"] .menu-item__content) {
+  justify-content: flex-start;
+  text-align: right;
+}
+
+:global(html[lang|="fa"] .menu-item__label) {
+  font-size: clamp(1.08rem, 2.8vw, 1.12rem);
+  direction: rtl;
+  text-align: right;
+  letter-spacing: 0.01em;
+  word-spacing: 0.025em;
+}
+
+:global(html[lang|="fa"] .menu-item__value) {
+  font-size: 0.95rem;
+}
 </style>

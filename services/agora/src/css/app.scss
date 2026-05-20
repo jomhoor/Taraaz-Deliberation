@@ -17,7 +17,23 @@
     format("truetype-variations");
 }
 
-/* Parastoo — Persian/Farsi font (variable weight 400–700) */
+@font-face {
+  font-family: Nian;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("./fonts/Nian/Nian.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Nian;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("./fonts/Nian/Nian Bold.ttf") format("truetype");
+}
+
+/* Parastoo — Persian/Farsi fallback font */
 @font-face {
   font-family: Parastoo;
   font-style: normal;
@@ -88,35 +104,101 @@ a {
   text-decoration: none;
 }
 
-/* Persian (Farsi) font override — applies Parastoo when locale is fa */
-html[lang="fa"] {
+/* Persian (Farsi) font override — applies Nian for fa locale variants like fa and fa-IR */
+html[lang|="fa"] {
   direction: rtl;
 
   /* Override Maz UI font variable */
-  --maz-font-family: Parastoo, "Segoe UI", Tahoma, Arial, sans-serif;
+  --maz-font-family: Nian, Parastoo, "Segoe UI", Tahoma, Arial, sans-serif;
 
   body {
     font-family:
+      Nian,
       Parastoo,
       "Segoe UI",
       Tahoma,
       Arial,
       sans-serif;
+    word-spacing: 0.2em;
+    letter-spacing: 0.03em;
+    line-height: 1.9;
   }
 
-  /* Force Parastoo on ALL elements — overrides any component-level font-family */
-  *,
-  button,
-  input,
-  textarea,
-  select,
-  .q-btn,
-  .q-field,
-  .q-card,
-  .q-item,
-  .report-container,
-  .button-text {
-    font-family: Parastoo, "Segoe UI", Tahoma, Arial, sans-serif !important;
+  /* Restore PrimeIcons after the broad Persian font override. */
+  .pi,
+  .pi::before {
+    font-family: primeicons !important;
+  }
+
+  /* Quasar still uses font-based Material and MDI icon sets in several places. */
+  .material-icons,
+  .material-icons::before,
+  .material-icons-outlined,
+  .material-icons-outlined::before,
+  .material-icons-round,
+  .material-icons-round::before,
+  .material-icons-sharp,
+  .material-icons-sharp::before,
+  .material-icons-two-tone,
+  .material-icons-two-tone::before,
+  .notranslate.material-icons,
+  .notranslate.material-icons::before {
+    font-family: "Material Icons" !important;
+  }
+
+  .mdi,
+  .mdi::before,
+  .mdi-set,
+  .mdi-set::before {
+    font-family: "Material Design Icons" !important;
+  }
+
+  /* RTL layout for settings list items */
+  .menu-item {
+    direction: rtl;
+  }
+
+  .menu-item__chevron {
+    transform: scaleX(-1);
+  }
+
+  /* Button/link text alignment */
+  .settings-item {
+    text-align: right;
+  }
+
+  /* Drawer content: q-scrollarea container resets direction to ltr internally,
+     so we must re-apply RTL on the content div. */
+  .q-drawer .q-scrollarea__content {
+    direction: rtl;
+  }
+
+  /* Drawer navigation items */
+  .settingItemStyle {
+    direction: rtl;
+  }
+
+  /* Drawer username bar */
+  .usernameBar {
+    direction: rtl;
+    padding-left: 0;
+    padding-right: 1rem;
+  }
+
+  /* Fix English text rendering in RTL containers:
+     unicode-bidi: plaintext lets the browser apply BIDI algorithm per-paragraph
+     so Latin words keep their natural LTR order and spaces render correctly. */
+  p,
+  li,
+  span,
+  .section-description,
+  article p,
+  article li,
+  article h2,
+  article h3 {
+    unicode-bidi: plaintext;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   /* Preserve monospace where intentional */
@@ -126,6 +208,17 @@ html[lang="fa"] {
   samp,
   .monospace {
     font-family: monospace !important;
+  }
+
+  /* Analysis report: override the component's hardcoded system font stack */
+  .report-container {
+    font-family:
+      Nian,
+      Parastoo,
+      "Segoe UI",
+      Tahoma,
+      Arial,
+      sans-serif !important;
   }
 }
 

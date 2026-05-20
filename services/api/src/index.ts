@@ -3369,7 +3369,7 @@ server.after(() => {
                     : stats;
                 const ogAuthor = org ?? author;
 
-                const canonicalUrl = `${siteUrl}/feed/conversation/${encodeURIComponent(slugId)}/`;
+                const canonicalUrl = `${siteUrl}/conversation/${encodeURIComponent(slugId)}/`;
                 const ogImageUrl = `${siteUrl}/og/conversation/${encodeURIComponent(slugId)}/image`;
 
                 // Escape HTML entities in dynamic values to prevent injection

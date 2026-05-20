@@ -112,4 +112,15 @@ export const reportPageTranslations: Record<
       "Этот отчёт предназначен для больших экранов. Пожалуйста, откройте его на компьютере или планшете.",
     goBack: "Назад",
   },
+  fa: {
+    pageTitle: "گزارش تحلیلی",
+    downloadImages: "دانلود تصاویر (ZIP)",
+    downloadPdf: "دانلود PDF",
+    generating: "در حال تولید...",
+    loadingError: "بارگذاری داده‌های گفتگو ناموفق بود",
+    narrowScreenTitle: "نیاز به صفحه‌نمایش بزرگ‌تر",
+    narrowScreenMessage:
+      "این گزارش برای صفحه‌نمایش‌های بزرگ طراحی شده است. لطفاً آن را روی رایانه یا تبلت باز کنید.",
+    goBack: "بازگشت",
+  },
 };

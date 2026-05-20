@@ -4,7 +4,10 @@
     <!-- Footer navigation items should be keyboard accessible for users with motor disabilities -->
     <div class="menu-bar-container" @click="handleContainerClick">
       <TopMenuWrapper>
-        <div class="menu-bar-grid" :class="{ 'force-center': centerContent }">
+        <div
+          class="menu-bar-grid"
+          :class="{ 'force-center': centerContent, 'menu-bar-grid--rtl': isRtl }"
+        >
           <div v-if="$slots.left" class="left-section">
             <slot name="left"></slot>
           </div>
@@ -23,7 +26,9 @@
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from "quasar";
 import { type DefaultMenuBarProps } from "src/utils/model/props";
+import { computed } from "vue";
 
 import TopMenuWrapper from "./TopMenuWrapper.vue";
 
@@ -31,6 +36,9 @@ const props = withDefaults(defineProps<DefaultMenuBarProps>(), {
   clickToScrollTop: true,
   centerContent: false,
 });
+
+const $q = useQuasar();
+const isRtl = computed(() => $q.lang.rtl === true);
 
 function handleContainerClick(): void {
   if (props.clickToScrollTop) {
@@ -53,6 +61,18 @@ function handleContainerClick(): void {
   align-items: center;
   width: 100%;
   gap: 1rem;
+
+  &--rtl {
+    flex-direction: row-reverse;
+
+    .left-section {
+      justify-content: flex-end;
+    }
+
+    .right-section {
+      justify-content: flex-start;
+    }
+  }
 
   .left-section,
   .right-section {

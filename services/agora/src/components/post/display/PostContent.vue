@@ -16,13 +16,15 @@
       @open-moderation-history="$emit('openModerationHistory')"
     />
 
-    <div class="postDiv">
+    <div class="postDiv" :class="{ 'postDiv--compact': compactMode }">
       <div>
         <ConversationTitleWithPrivacyLabel
           :is-private="!extendedPostData.metadata.isIndexed"
           :title="extendedPostData.payload.title"
           size="medium"
           :conversation-type="extendedPostData.metadata.conversationType"
+          :alignment="isCompactRtl ? 'right' : 'auto'"
+          :full-width="isCompactRtl"
         />
 
         <EventTicketRequirementBanner
@@ -44,6 +46,7 @@
           :html-body="extendedPostData.payload.body"
           :compact-mode="compactMode"
           :enable-links="compactMode ? false : true"
+          :alignment="isCompactRtl ? 'right' : 'auto'"
         />
       </div>
 
@@ -80,7 +83,7 @@
 
 <script setup lang="ts">
 import type { ExtendedConversation } from "src/shared/types/zod";
-import { defineAsyncComponent } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 
 import ConversationTitleWithPrivacyLabel from "../../features/conversation/ConversationTitleWithPrivacyLabel.vue";
 import ZKCard from "../../ui-library/ZKCard.vue";
@@ -89,7 +92,7 @@ import PollWrapper from "./poll/PollWrapper.vue";
 import PostLockedMessage from "./PostLockedMessage.vue";
 import PostMetadata from "./PostMetadata.vue";
 
-defineProps<{
+const props = defineProps<{
   extendedPostData: ExtendedConversation;
   compactMode: boolean;
 }>();
@@ -102,6 +105,14 @@ defineEmits<{
 const EventTicketRequirementBanner = defineAsyncComponent(
   () => import("../EventTicketRequirementBanner.vue")
 );
+
+const isCompactRtl = computed(() => {
+  if (!props.compactMode || typeof document === "undefined") {
+    return false;
+  }
+
+  return document.documentElement.getAttribute("dir") === "rtl";
+});
 </script>
 
 <style scoped lang="scss">
@@ -123,6 +134,34 @@ const EventTicketRequirementBanner = defineAsyncComponent(
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.postDiv--compact {
+  width: 100%;
+}
+
+:global(html[lang="fa"]) .postDiv--compact {
+  align-items: stretch;
+  text-align: right;
+}
+
+:global(html[lang="fa"]) .postDiv--compact > div,
+:global(html[lang="fa"]) .postDiv--compact .bodyDiv {
+  width: 100%;
+}
+
+:global(html[lang="fa"]) .postDiv--compact :deep(.title-section) {
+  display: block;
+  width: 100%;
+}
+
+:global(html[lang="fa"]) .postDiv--compact :deep(.conversation-title),
+:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak),
+:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak p),
+:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak div),
+:global(html[lang="fa"]) .postDiv--compact :deep(.textBreak li) {
+  direction: rtl;
+  text-align: right !important;
 }
 
 .lockCardStyle {

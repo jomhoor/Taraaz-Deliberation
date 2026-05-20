@@ -1,4 +1,4 @@
-import html2canvas from "html2canvas";
+import { toCanvas } from "html-to-image";
 import jsPDF from "jspdf";
 import { type MaybeRefOrGetter, ref, toValue } from "vue";
 
@@ -11,6 +11,9 @@ interface ImageCapture {
   name: string;
 }
 
+// html-to-image uses SVG foreignObject rendering, which runs the browser's
+// actual text shaping engine. This correctly handles Arabic/Persian ligatures
+// and RTL text — unlike html2canvas which draws text glyph-by-glyph.
 async function captureElement({
   element,
   showCaptureHeaders = false,
@@ -20,27 +23,29 @@ async function captureElement({
   showCaptureHeaders?: boolean;
   showCaptureFooters?: boolean;
 }): Promise<HTMLCanvasElement> {
-  const needsClone = showCaptureHeaders || showCaptureFooters;
-  return html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    backgroundColor: "#ffffff",
-    onclone: needsClone
-      ? (clonedDoc) => {
-          if (showCaptureHeaders) {
-            clonedDoc.querySelectorAll(".capture-only").forEach((el) => {
-              (el as HTMLElement).style.display = "block";
-            });
-          }
-          if (showCaptureFooters) {
-            clonedDoc.querySelectorAll(".capture-footer").forEach((el) => {
-              (el as HTMLElement).style.display = "block";
-            });
-          }
-        }
-      : undefined,
-  });
+  // Temporarily reveal elements that only appear in captures
+  const shownEls: HTMLElement[] = [];
+  if (showCaptureHeaders) {
+    element.querySelectorAll<HTMLElement>(".capture-only").forEach((el) => {
+      el.style.display = "block";
+      shownEls.push(el);
+    });
+  }
+  if (showCaptureFooters) {
+    element.querySelectorAll<HTMLElement>(".capture-footer").forEach((el) => {
+      el.style.display = "block";
+      shownEls.push(el);
+    });
+  }
+
+  try {
+    return await toCanvas(element, {
+      pixelRatio: 2,
+      backgroundColor: "#ffffff",
+    });
+  } finally {
+    shownEls.forEach((el) => { el.style.display = ""; });
+  }
 }
 
 function canvasToBlob({

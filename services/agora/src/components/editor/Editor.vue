@@ -490,4 +490,32 @@ watch(
   color: $negative;
   font-weight: var(--font-weight-bold);
 }
+
+:global(html[lang|="fa"] .editor .tiptap p.is-editor-empty:first-child::before) {
+  float: right;
+  width: 100%;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: isolate;
+  font-size: 1.08rem;
+}
+
+:global(html[lang|="fa"] .editor .ProseMirror) {
+  direction: rtl;
+  text-align: right;
+  font-size: 1.08rem;
+  line-height: 1.8;
+  letter-spacing: 0.012em;
+  word-spacing: 0.03em;
+}
+
+:global(html[lang|="fa"] .editor .ProseMirror p),
+:global(html[lang|="fa"] .editor .ProseMirror li) {
+  direction: rtl;
+  text-align: right;
+}
+
+:global(html[lang|="fa"] .character-count-footer) {
+  font-size: 0.95rem;
+}
 </style>

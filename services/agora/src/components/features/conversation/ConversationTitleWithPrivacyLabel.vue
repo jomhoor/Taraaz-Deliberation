@@ -14,7 +14,16 @@
     >
       {{ t("prioritizationLabel") }}
     </div>
-    <h1 dir="auto" class="conversation-title" :class="`conversation-title--${size}`">
+    <h1
+      :dir="contentDirection"
+      class="conversation-title"
+      :class="[
+        `conversation-title--${size}`,
+        { 'conversation-title--full-width': fullWidth },
+        { 'conversation-title--rtl': contentDirection === 'rtl' },
+      ]"
+      :style="{ textAlign: resolvedAlignment }"
+    >
       {{ title }}
     </h1>
   </div>
@@ -23,6 +32,7 @@
 <script setup lang="ts">
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import type { ConversationType } from "src/shared/types/zod";
+import { computed } from "vue";
 
 import {
   type ConversationTitleWithPrivacyLabelTranslations,
@@ -34,15 +44,35 @@ interface Props {
   title: string;
   size: "medium" | "large";
   conversationType?: ConversationType;
+  alignment?: "auto" | "left" | "right";
+  fullWidth?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   conversationType: "polis",
+  alignment: "auto",
+  fullWidth: false,
 });
 
 const { t } = useComponentI18n<ConversationTitleWithPrivacyLabelTranslations>(
   conversationTitleWithPrivacyLabelTranslations
 );
+
+const contentDirection = computed(() => {
+  if (typeof document === "undefined") {
+    return "auto";
+  }
+
+  return document.documentElement.getAttribute("dir") === "rtl" ? "rtl" : "ltr";
+});
+
+const resolvedAlignment = computed(() => {
+  if (props.alignment !== "auto") {
+    return props.alignment;
+  }
+
+  return contentDirection.value === "rtl" ? "right" : "left";
+});
 </script>
 
 <style scoped lang="scss">
@@ -51,6 +81,7 @@ const { t } = useComponentI18n<ConversationTitleWithPrivacyLabelTranslations>(
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .privacy-label {
@@ -75,6 +106,20 @@ const { t } = useComponentI18n<ConversationTitleWithPrivacyLabelTranslations>(
   line-height: 1.3;
   min-width: 0;
   max-width: 100%;
+  width: 100%;
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+.conversation-title--full-width {
+  display: block;
+  width: 100%;
+}
+
+.conversation-title--rtl {
+  text-align: right;
+  letter-spacing: 0.027em;
+  word-spacing: 0.045em;
 }
 
 .conversation-title--medium {

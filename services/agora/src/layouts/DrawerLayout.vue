@@ -1,6 +1,9 @@
 <template>
   <div>
-    <q-layout view="lHh LpR lFf">
+    <q-layout
+      view="lHh LpR lFf"
+      :class="{ 'drawer-layout--rtl': isRtl }"
+    >
       <q-header
         :reveal="enableHeaderReveal"
         :model-value="props.generalProps.enableHeader"
@@ -36,6 +39,7 @@
       <q-drawer
         v-model="showMobileDrawer"
         :behavior="drawerBehavior"
+        :side="drawerSide"
         :width="300"
         :overlay="drawerBehavior == 'mobile'"
         :no-swipe-open="noSwipeOpen"
@@ -51,6 +55,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { useQuasar } from "quasar";
 import FooterBar from "src/components/navigation/footer/FooterBar.vue";
 import SideDrawer from "src/components/navigation/SideDrawer.vue";
 import WidthWrapper from "src/components/navigation/WidthWrapper.vue";
@@ -58,12 +63,20 @@ import { useLayoutHeaderStore } from "src/stores/layout/header";
 import { useNavigationStore } from "src/stores/navigation";
 import { useNotificationRefresher } from "src/utils/component/notification/menuRefresher";
 import { type MainLayoutProps } from "src/utils/model/props";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 const props = defineProps<MainLayoutProps>();
 
+const $q = useQuasar();
+
 const { showMobileDrawer, drawerBehavior } = storeToRefs(useNavigationStore());
 const { reveal: revealHeader } = storeToRefs(useLayoutHeaderStore());
+
+// In RTL, Quasar's "left" drawer is mirrored to physical right (right: 0, border-left,
+// translateX(100%) when closed). Using "left" always lets Quasar handle RTL correctly.
+const drawerSide = computed(() => "left");
+
+const isRtl = computed(() => $q.lang.rtl === true);
 
 useNotificationRefresher();
 
@@ -123,4 +136,6 @@ function captureHeaderReveal(reveal: boolean) {
 .headerStyle {
   background-color: $app-background-color;
 }
+
+
 </style>

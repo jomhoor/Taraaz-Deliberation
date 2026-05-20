@@ -93,8 +93,10 @@ export const clusterInformationDialogTranslations: Record<
   fa: {
     title: "گروه‌های اجماع",
     description1:
-      "Consensus groups are created based on how people agree and disagree with statements.",
+      "گروه‌های اجماع بر اساس نحوه موافقت و مخالفت افراد با گزاره‌ها ایجاد می‌شوند.",
     description2:
-      "We use machine learning to identify different schools of thought. This is the very same algorithm powering pol.is, the open-source wikisurvey tool developed by Computational Democracy.",
+      "ما از یادگیری ماشین برای شناسایی مکاتب فکری مختلف استفاده می‌کنیم. این همان الگوریتمی است که پایه pol.is را تشکیل می‌دهد، ابزار متن‌باز wikisurvey توسعه‌یافته توسط Computational Democracy.",
+    description3:
+      "شرکت‌کنندگان باید حداقل به {minVotes} گزاره رأی دهند تا در گروهی قرار گیرند. کسانی که هنوز به این آستانه نرسیده‌اند به عنوان بدون گروه نمایش داده می‌شوند.",
   },
 };

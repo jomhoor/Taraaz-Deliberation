@@ -73,4 +73,12 @@ export const meTabTranslations: Record<string, MeTabTranslations> = {
     keepVotingToRefineAnalysis: "Продолжайте голосовать для уточнения анализа",
     voteMore: "Голосовать ещё",
   },
+  fa: {
+    whereDoIStandTitle: "موضع من",
+    notAssignedToGroup: "شما به هیچ گروهی تعلق ندارید",
+    youAgreeWith: "شما موافقید با",
+    voteToUnlock: "برای باز کردن قفل، به گزاره‌های بیشتری رأی دهید",
+    keepVotingToRefineAnalysis: "برای دقیق‌تر شدن تحلیل، به رأی دادن ادامه دهید",
+    voteMore: "بیشتر رأی دهید",
+  },
 };

@@ -49,7 +49,7 @@ export default defineConfig((ctx) => {
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
-    css: ["app.scss", "~primeicons/primeicons.css"],
+    css: ["app.scss", "~primeicons/primeicons.css", "~quasar/dist/quasar.rtl.css"],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [

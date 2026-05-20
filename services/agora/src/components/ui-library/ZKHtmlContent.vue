@@ -1,11 +1,16 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
   <span
-    dir="auto"
+    :dir="contentDirection"
     class="textBreak"
-    :class="{ truncate: compactMode, coloredHrefs: !compactMode }"
+    :class="{
+      truncate: compactMode,
+      coloredHrefs: !compactMode,
+      'textBreak--rtl': contentDirection === 'rtl',
+    }"
     role="user-content"
     :aria-label="compactMode ? t('postContentPreview') : t('postContent')"
+    :style="{ textAlign: resolvedAlignment }"
     @click="handleClick"
     v-html="sanitizedHtmlBody"
   ></span>
@@ -25,11 +30,28 @@ const props = defineProps<{
   htmlBody: string;
   compactMode: boolean;
   enableLinks: boolean;
+  alignment?: "auto" | "left" | "right";
 }>();
 
 const { t } = useComponentI18n<ZKHtmlContentTranslations>(
   zkHtmlContentTranslations
 );
+
+const contentDirection = computed(() => {
+  if (typeof document === "undefined") {
+    return "auto";
+  }
+
+  return document.documentElement.getAttribute("dir") === "rtl" ? "rtl" : "ltr";
+});
+
+const resolvedAlignment = computed(() => {
+  if (props.alignment && props.alignment !== "auto") {
+    return props.alignment;
+  }
+
+  return contentDirection.value === "rtl" ? "right" : "left";
+});
 
 const sanitizedHtmlBody = computed(() => {
   try {
@@ -61,12 +83,33 @@ const handleClick = (event: Event) => {
 
 <style lang="scss" scoped>
 .textBreak {
+  display: block;
   font-size: 0.9rem;
   line-height: normal;
+  text-align: start;
+  width: 100%;
+}
+
+.textBreak--rtl {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: isolate;
+  letter-spacing: 0.021em;
+  word-spacing: 0.045em;
+  line-height: 1.8;
 }
 
 :deep(p) {
   margin-bottom: 0.5rem;
+}
+
+:deep(p),
+:deep(div),
+:deep(li),
+:deep(ul),
+:deep(ol) {
+  direction: inherit;
+  text-align: inherit;
 }
 
 :deep(p:empty) {

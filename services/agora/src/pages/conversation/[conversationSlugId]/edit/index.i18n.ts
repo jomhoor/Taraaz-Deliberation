@@ -248,15 +248,15 @@ export const editConversationTranslations: Record<
     notFoundErrorMessage: "بارگذاری گفتگو ناموفق بود",
     notAuthorErrorTitle: "شما نویسنده این گفتگو نیستید",
     notAuthorErrorMessage:
-      "Only the original author can edit this conversation",
+      "فقط نویسنده اصلی می‌تواند این گفتگو را ویرایش کند",
     conversationLockedErrorTitle:
-      "This conversation is locked and cannot be edited",
+      "این گفتگو قفل شده و قابل ویرایش نیست",
     conversationLockedErrorMessage:
-      "Please contact a moderator if you need this conversation to be unlocked",
+      "اگر لازم است این گفتگو از حالت قفل خارج شود، با مدیر تماس بگیرید",
     invalidAccessSettingsError:
-      "Invalid access settings. Login cannot be required for private conversations.",
+      "تنظیمات دسترسی نامعتبر است. برای گفتگوهای خصوصی نمی‌توان ورود را الزامی کرد.",
     pollAlreadyExistsError:
-      "Cannot create poll: this conversation already has a poll",
+      "ایجاد نظرسنجی ممکن نیست: این گفتگو از قبل نظرسنجی دارد",
     noPollToRemoveError:
       "Cannot remove poll: this conversation does not have a poll",
     noPollToKeepError:

@@ -133,15 +133,15 @@ export const languagesSettingsTranslations: Record<
     spokenLanguagesLabel: "زبان‌های مکالمه",
     displayLanguageTitle: "زبان نمایش",
     displayLanguageDescription:
-      "Your preferred language for the Agora App headers, buttons and other text",
+      "زبان ترجیحی شما برای سرتیترها، دکمه‌ها و سایر متن‌های اپ تراز",
     additionalLanguagesTitle: "زبان‌های اضافی",
     additionalLanguagesDescription:
-      "For content you would like to see on Agora",
+      "برای محتوایی که می‌خواهید در تراز مشاهده کنید",
     englishFallback: "انگلیسی",
     noneSelected: "هیچ‌کدام انتخاب نشده",
-    and: "and",
-    other: "other",
-    others: "others",
+    and: "و",
+    other: "دیگر",
+    others: "دیگران",
   },
   ky: {
     pageTitle: "Тил",

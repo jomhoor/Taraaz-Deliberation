@@ -9,7 +9,7 @@
     }"
   >
     <template #header>
-      <div class="topBar">
+      <div :class="['topBar', { 'topBar--rtl': isRtl }]">
         <MenuButton />
 
         <div class="tabScroller">
@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { useQuasar } from "quasar";
 import CompactPostList from "src/components/feed/CompactPostList.vue";
 import FeaturedConversationBanner from "src/components/feed/FeaturedConversationBanner.vue";
 import WidthWrapper from "src/components/navigation/WidthWrapper.vue";
@@ -75,6 +76,7 @@ import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import { useAuthenticationStore } from "src/stores/authentication";
 import type { HomeFeedSortOption } from "src/stores/homeFeed";
 import { useHomeFeedStore } from "src/stores/homeFeed";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 import { type HomeTranslations, homeTranslations } from "./index.i18n";
@@ -82,8 +84,10 @@ import { type HomeTranslations, homeTranslations } from "./index.i18n";
 const { t } = useComponentI18n<HomeTranslations>(homeTranslations);
 
 const route = useRoute();
+const $q = useQuasar();
 
 const { MenuButton, LoginButton } = useMenuBarActions();
+const isRtl = computed(() => $q.lang.rtl === true);
 
 const { currentHomeFeedTab } = storeToRefs(useHomeFeedStore());
 const { isLoggedIn } = storeToRefs(useAuthenticationStore());
@@ -108,6 +112,10 @@ function selectedTab(tab: HomeFeedSortOption) {
   padding: 0.5rem;
   width: 100%;
   overflow: hidden;
+
+  &--rtl {
+    flex-direction: row-reverse;
+  }
 }
 
 .tabScroller {

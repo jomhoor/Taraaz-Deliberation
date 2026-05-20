@@ -120,5 +120,7 @@ export const analysisPageTranslations: Record<
     analysisErrorMessage: "بارگذاری داده‌های تحلیل ممکن نبود. لطفاً دوباره تلاش کنید.",
     noAnalysisData: "داده‌های تحلیل برای این گفتگو موجود نیست",
     retryAnalysis: "تلاش مجدد بارگذاری",
+    generateReport: "تولید گزارش",
+    report: "گزارش",
   },
 };

@@ -1,7 +1,7 @@
 <template>
   <div class="report-header">
     <div class="header-top">
-      <div class="branding">Agora Citizen Network</div>
+      <div class="branding">Taraaz Deliberation</div>
       <div class="stats-row">
         <div class="stat-item">
           <span class="stat-value">

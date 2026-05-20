@@ -39,7 +39,7 @@
       class="report-section-block"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
       </div>
@@ -59,7 +59,7 @@
         class="report-section-block"
       >
         <div class="detail-context capture-only">
-          <span class="detail-branding">Agora Citizen Network</span>
+          <span class="detail-branding">Taraaz Deliberation</span>
           <span class="detail-separator">·</span>
           <span class="detail-title">{{ conversationTitle }}</span>
         </div>
@@ -83,7 +83,7 @@
       class="report-section-block detail-section"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
         <span class="detail-separator">·</span>
@@ -107,7 +107,7 @@
       class="report-section-block detail-section"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
         <template v-if="agreementChunks.length > 1">
@@ -142,7 +142,7 @@
       class="report-section-block detail-section"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
         <span class="detail-separator">·</span>
@@ -166,7 +166,7 @@
       class="report-section-block detail-section"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
         <template v-if="disagreementChunks.length > 1">
@@ -201,7 +201,7 @@
       class="report-section-block detail-section"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
         <span class="detail-separator">·</span>
@@ -225,7 +225,7 @@
       class="report-section-block detail-section"
     >
       <div class="detail-context capture-only">
-        <span class="detail-branding">Agora Citizen Network</span>
+        <span class="detail-branding">Taraaz Deliberation</span>
         <span class="detail-separator">·</span>
         <span class="detail-title">{{ conversationTitle }}</span>
         <template v-if="divisiveChunks.length > 1">
@@ -410,6 +410,8 @@ defineExpose({
     Roboto,
     sans-serif;
 }
+
+
 
 .report-section-block {
   padding: 6mm 4mm;

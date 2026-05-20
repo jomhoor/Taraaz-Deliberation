@@ -88,10 +88,10 @@ export const divisiveTabTranslations: Record<
   },
   fa: {
     divisiveTitle: "بحث‌برانگیز",
-    divisiveLongTitle: "چه چیزی مردم را در گروه‌های مختلف {keyword} می‌کند؟",
-    divisiveKeyword: "divides",
+    divisiveLongTitle: "چه چیزی شرکت‌کنندگان را در گروه‌های مختلف {keyword} می‌کند؟",
+    divisiveKeyword: "از هم جدا",
     subtitle:
-      "Statements that split opinion groups against each other. Only the most statistically significant are shown.",
+      "گزاره‌هایی که گروه‌های نظر را در مقابل هم قرار می‌دهند. تنها معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
     loadMore: "بارگذاری همه",
     noDivisiveOpinionsMessage: "هنوز نظرات بحث‌برانگیز معناداری یافت نشده است.",
     lowerRankedDivider: "از نظر آماری کم‌اهمیت‌تر",

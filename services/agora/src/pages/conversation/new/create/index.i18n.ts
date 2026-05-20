@@ -91,9 +91,9 @@ export const createConversationTranslations: Record<
     titlePlaceholder: "چه سؤالی می‌خواهید بپرسید؟ (الزامی)",
     titleRequired: "عنوان برای ادامه لازم است",
     bodyPlaceholder:
-      "Body text. Provide context or relevant resources. Make sure it's aligned with the main question!",
+      "متن اصلی را بنویسید. زمینه یا منابع مرتبط را اضافه کنید و مطمئن شوید با پرسش اصلی هم‌راستاست.",
     activeImportMessage:
-      "You have an import in progress. Please wait for it to complete before starting a new one.",
+      "یک واردسازی در حال انجام است. پیش از شروع واردسازی جدید، صبر کنید تا این یکی کامل شود.",
     viewImportStatus: "مشاهده وضعیت واردسازی",
   },
   ky: {

@@ -2,6 +2,14 @@
   <div>
     <div class="container">
       <div>
+        <div v-if="drawerBehavior == 'mobile'" class="mobileDismissRow">
+          <ZKIconButton
+            icon="ci:chevron-right"
+            aria-label="Close menu"
+            @click="closeDrawer"
+          />
+        </div>
+
         <div v-if="drawerBehavior == 'desktop'" class="logoDiv">
           <img src="/images/icons/agora-wings.svg" class="logoStyle1" />
           <img src="/images/icons/agora-text.svg" class="logoStyle2" />
@@ -86,6 +94,7 @@ import DisplayUsername from "../features/user/DisplayUsername.vue";
 import StartConversationButtonLong from "../newConversation/StartConversationButtonLong.vue";
 import NewNotificationIndicator from "../notification/NewNotificationIndicator.vue";
 import ZKHoverEffect from "../ui-library/ZKHoverEffect.vue";
+import ZKIconButton from "../ui-library/ZKIconButton.vue";
 import ZKStyledIcon from "../ui-library/ZKStyledIcon.vue";
 import {
   type SideDrawerTranslations,
@@ -191,6 +200,10 @@ function handleNavigationClick(): void {
     showMobileDrawer.value = false;
   }
 }
+
+function closeDrawer(): void {
+  showMobileDrawer.value = false;
+}
 </script>
 
 <style lang="scss" scoped>
@@ -200,6 +213,12 @@ function handleNavigationClick(): void {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+}
+
+.mobileDismissRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 0.5rem;
 }
 
 .settingItemStyle {

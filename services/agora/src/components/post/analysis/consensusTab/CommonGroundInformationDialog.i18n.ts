@@ -70,10 +70,10 @@ export const commonGroundInformationDialogTranslations: Record<
   fa: {
     agreementsTitle: "تأیید شد",
     agreementsDescription:
-      "These are statements all opinion groups agree to agree on.\n\nThis goes beyond a simple majority: even if most individuals approve, a single group's disapproval — no matter how small the group — is enough to exclude a statement.\n\nOnly statements that reflect true cross-group consensus appear here, not those based on majority rule alone.\n\nOnly the most statistically significant are shown first.",
+      "اینها گزاره‌هایی هستند که همه گروه‌های نظر بر موافقت با آن‌ها توافق دارند.\n\nاین فراتر از اکثریت ساده است: حتی اگر اکثر افراد موافق باشند، مخالفت یک گروه — هر چقدر هم کوچک — کافی است تا گزاره‌ای حذف شود.\n\nتنها گزاره‌هایی که اجماع واقعی میان‌گروهی را نشان می‌دهند اینجا نمایش داده می‌شوند، نه آنهایی که صرفاً بر اساس قانون اکثریت هستند.\n\nابتدا معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
     disagreementsTitle: "رد شد",
     disagreementsDescription:
-      "These are statements all opinion groups agree to disagree on.\n\nThis goes beyond a simple majority: even if most individuals reject, a single group's approval — no matter how small the group — is enough to exclude a statement.\n\nOnly statements that reflect true cross-group consensus appear here, not those based on majority rule alone.\n\nOnly the most statistically significant are shown first.",
+      "اینها گزاره‌هایی هستند که همه گروه‌های نظر بر مخالفت با آن‌ها توافق دارند.\n\nاین فراتر از اکثریت ساده است: حتی اگر اکثر افراد مخالف باشند، موافقت یک گروه — هر چقدر هم کوچک — کافی است تا گزاره‌ای حذف شود.\n\nتنها گزاره‌هایی که اجماع واقعی میان‌گروهی را نشان می‌دهند اینجا نمایش داده می‌شوند، نه آنهایی که صرفاً بر اساس قانون اکثریت هستند.\n\nابتدا معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
   },
   ky: {
     agreementsTitle: "Жактырылган",

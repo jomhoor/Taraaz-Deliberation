@@ -68,10 +68,10 @@ export const shortcutBarTranslations: Record<SupportedDisplayLanguageCodes, Shor
       groups: "グループ",
     },
   fa: {
-      summary: "Summary",
+      summary: "خلاصه",
       me: "من",
-      agreements: "تأیید شد",
-      disagreements: "رد شد",
+      agreements: "تأیید شده",
+      disagreements: "رد شده",
       divisive: "بحث‌برانگیز",
       groups: "گروه‌ها",
   },

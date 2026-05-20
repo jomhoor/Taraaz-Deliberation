@@ -47,7 +47,7 @@ export const divisiveInformationDialogTranslations: Record<
   fa: {
     title: "نظرات بحث‌برانگیز",
     description:
-      "Statements where opinion groups disagree with each other. One group approves while another rejects.\n\nThese reveal the key dividing lines in the conversation.\n\nOnly the most statistically significant are shown first.",
+      "گزاره‌هایی که گروه‌های نظر با یکدیگر موافق نیستند. یک گروه تأیید می‌کند در حالی که گروه دیگر رد می‌کند.\n\nاین گزاره‌ها خطوط اصلی تقسیم‌بندی در گفتگو را آشکار می‌کنند.\n\nابتدا معنادارترین موارد از نظر آماری نمایش داده می‌شوند.",
   },
   ky: {
     title: "Талаштуу пикирлер",

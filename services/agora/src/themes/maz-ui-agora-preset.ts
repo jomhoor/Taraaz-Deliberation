@@ -8,7 +8,7 @@ export const agoraPreset = definePreset({
     foundation: {
       "base-font-size": "16px",
       "font-family":
-        "AlbertSans, InterSans, system-ui, -apple-system, sans-serif",
+        "var(--maz-font-family, AlbertSans, InterSans, system-ui, -apple-system, sans-serif)",
       radius: "0.7rem",
       "border-width": "1px",
     },

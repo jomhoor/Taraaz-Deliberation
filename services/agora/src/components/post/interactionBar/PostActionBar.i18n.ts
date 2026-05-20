@@ -114,5 +114,12 @@ export const postActionBarTranslations: Record<
   fa: {
     share: "اشتراک‌گذاری",
     copiedToClipboard: "لینک در کلیپ‌بورد کپی شد",
+    totalVotes: "مجموع آرا",
+    totalParticipants: "مجموع شرکت‌کنندگان",
+    usedForAnalysis: "استفاده‌شده در تحلیل",
+    moderatedVotesExplanation:
+      "آرای مربوط به گزاره‌های مدیریت‌شده از تحلیل حذف می‌شوند.",
+    moderatedParticipantsExplanation:
+      "شرکت‌کنندگانی که فقط به گزاره‌های مدیریت‌شده رأی داده‌اند از تحلیل حذف می‌شوند.",
   },
 };

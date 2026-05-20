@@ -85,4 +85,12 @@ export const reportHeaderTranslations: Record<
     votes: "Голоса",
     footnote: "Голоса за модерированные высказывания исключены из анализа.",
   },
+  fa: {
+    by: "توسط",
+    of: "از",
+    participants: "شرکت‌کنندگان",
+    statements: "گزاره‌ها",
+    votes: "آرا",
+    footnote: "آرا به گزاره‌های تحت نظارت از تحلیل حذف می‌شوند.",
+  },
 };
