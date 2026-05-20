@@ -88,7 +88,7 @@ export const loginOnboardingTranslations: Record<
   fa: {
     pageTitle: "ورود",
     description: "لطفاً روش ورود را انتخاب کنید.",
-    connectWallet: "اتصال کیف پول جمهور",
+    connectWallet: "اتصال کیف جمهور",
     loginWithRarimo: "ورود با Rarimo",
     loginWithPhone: "ورود با شماره تلفن",
     loginWithEmail: "ورود با ایمیل",
