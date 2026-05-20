@@ -11,6 +11,8 @@
           :html-body="opinionItem.opinion"
           :compact-mode="false"
           :enable-links="false"
+          :direction="opinionDirection"
+          :alignment="opinionDirection === 'rtl' ? 'right' : 'left'"
         />
       </div>
 
@@ -55,6 +57,7 @@ import { StandardMenuBar } from "src/components/navigation/header/variants";
 import ZKGradientButton from "src/components/ui-library/ZKGradientButton.vue";
 import ZKHtmlContent from "src/components/ui-library/ZKHtmlContent.vue";
 import { usePageLayout } from "src/composables/layout/usePageLayout";
+import { detectHtmlTextDirection } from "src/utils/text/textDirection";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import type {
   ModerationReason,
@@ -69,7 +72,7 @@ import {
   opinionModerationActionMapping,
 } from "src/utils/component/moderations";
 import { getSingleRouteParam } from "src/utils/router/params";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import {
@@ -132,6 +135,10 @@ const opinionItem = ref<OpinionItem>({
     status: "unmoderated",
   },
 });
+
+const opinionDirection = computed(() =>
+  detectHtmlTextDirection(opinionItem.value.opinion)
+);
 
 onMounted(async () => {
   await initializeData();

@@ -44,6 +44,8 @@
                 :html-body="item.opinion"
                 :compact-mode="false"
                 :enable-links="false"
+                :direction="detectHtmlTextDirection(item.opinion)"
+                :alignment="detectHtmlTextDirection(item.opinion) === 'rtl' ? 'right' : 'left'"
               />
             </div>
           </td>
@@ -88,6 +90,7 @@
 <script setup lang="ts">
 import ZKHtmlContent from "src/components/ui-library/ZKHtmlContent.vue";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
+import { detectHtmlTextDirection } from "src/utils/text/textDirection";
 import type {
   AnalysisOpinionItem,
   ClusterStats,

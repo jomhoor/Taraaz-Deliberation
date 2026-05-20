@@ -86,7 +86,10 @@ const { t } = useComponentI18n<ConversationTitleTranslations>(
 }
 
 .conversation-title--rtl {
-  text-align: right;
+  /* text-align: start resolves to right when dir="rtl" is set on the element.
+     Using the logical value avoids PostCSS RTLCSS flipping it to text-align:left
+     when the app UI is in RTL mode. */
+  text-align: start;
   unicode-bidi: plaintext;
 }
 </style>

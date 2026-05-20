@@ -46,6 +46,8 @@
             :html-body="opinionItem.opinion"
             :compact-mode="false"
             :enable-links="false"
+            :direction="opinionDirection"
+            :alignment="opinionDirection === 'rtl' ? 'right' : 'left'"
           />
         </div>
 
@@ -65,6 +67,8 @@
 import ConversationTitle from "src/components/features/conversation/ConversationTitle.vue";
 import UserIdentityCard from "src/components/features/user/UserIdentityCard.vue";
 import type { OpinionItem } from "src/shared/types/zod";
+import { detectHtmlTextDirection } from "src/utils/text/textDirection";
+import { computed } from "vue";
 
 import SpaLink from "../../ui-library/SpaLink.vue";
 import ZKHoverEffect from "../../ui-library/ZKHoverEffect.vue";
@@ -72,7 +76,7 @@ import ZKHtmlContent from "../../ui-library/ZKHtmlContent.vue";
 import CommentActionOptions from "../comments/group/item/CommentActionOptions.vue";
 import CommentModeration from "../comments/group/item/CommentModeration.vue";
 
-defineProps<{
+const props = defineProps<{
   conversationSlugId: string;
   conversationTitle: string;
   isIndexed: boolean;
@@ -81,6 +85,10 @@ defineProps<{
   conversationAuthorUsername: string;
   conversationOrganizationName: string;
 }>();
+
+const opinionDirection = computed(() =>
+  detectHtmlTextDirection(props.opinionItem.opinion)
+);
 </script>
 
 <style scoped lang="scss">
