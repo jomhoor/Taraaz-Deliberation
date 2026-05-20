@@ -21,6 +21,8 @@ export function useGoBackButtonHandler() {
     // Vue Router 4 stores the previous path in window.history.state.back.
     // It is null when the current page is the first in the session (direct
     // URL entry, page refresh, or app opened via link).
+    // Only trust state.back — history.length counts external entries too
+    // and would cause router.go(-1) to leave the app.
     if (window.history.state?.back != null) {
       router.go(-1);
     } else {

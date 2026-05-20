@@ -1,40 +1,30 @@
-import * as authService from "@/service/auth.js";
-import * as authUtilService from "@/service/authUtil.js";
-import { cleanupStuckExportsOnStartup } from "@/service/conversationExport/core.js";
-import * as conversationExportService from "@/service/conversationExport/index.js";
-import { createExportNotification } from "@/service/conversationExport/notifications.js";
-import { cleanupStuckImportsOnStartup } from "@/service/conversationImport/database.js";
-import * as conversationImportService from "@/service/conversationImport/index.js";
-import { createImportNotification } from "@/service/conversationImport/notifications.js";
-import * as csvImportService from "@/service/csvImport.js";
-import { zodCsvFiles } from "@/service/csvImport.js";
-import * as feedService from "@/service/feed.js";
-import * as postService from "@/service/post.js";
-import * as postEditService from "@/service/postEdit.js";
-import { MAX_CSV_FILE_SIZE } from "@/shared-app-api/csvUpload.js";
+import { Dto, type GetConversationResponse } from "@/shared/types/dto.js";
 import {
-    authenticate200,
-    authenticateEmail200,
-    authenticateEmailRequestBody,
     authenticateRequestBody,
-    checkLoginStatusResponse,
-    verifyEmailOtpReqBody,
-    verifyOtp200,
     verifyOtpReqBody,
-    type AuthenticateEmailResponse,
+    authenticate200,
+    verifyOtp200,
+    authenticateEmailRequestBody,
+    authenticateEmail200,
+    verifyEmailOtpReqBody,
+    checkLoginStatusResponse,
     type AuthenticateResponse,
+    type AuthenticateEmailResponse,
     type VerifyOtp200,
 } from "@/shared/types/dto-auth.js";
-import { Dto, type GetConversationResponse } from "@/shared/types/dto.js";
+import { normalizeEmail } from "@/shared/types/zod-email.js";
+import { generateOgImage } from "@/service/ogImage.js";
+import { exchangeSsoCode, initiateSsoDesktopSession, completeSsoDesktopSessionFromMobile, pollSsoDesktopSession } from "./service/sso.js";
 import fastifyAuth from "@fastify/auth";
 import fastifyCors from "@fastify/cors";
 import fastifyMultipart from "@fastify/multipart";
+import fastifyRateLimit from "@fastify/rate-limit";
 import fastifySensible from "@fastify/sensible";
 import fastifySSE from "@fastify/sse";
 import fastifySwagger from "@fastify/swagger";
 import * as ucans from "@ucans/ucans";
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
-import { type FastifyError, type FastifyRequest } from "fastify";
+import { type FastifyRequest, type FastifyError } from "fastify";
 import {
     jsonSchemaTransform,
     serializerCompiler,
@@ -43,14 +33,79 @@ import {
 } from "fastify-type-provider-zod";
 import fs from "fs";
 import { config, log, server } from "./app.js";
+import * as authService from "@/service/auth.js";
+import * as authUtilService from "@/service/authUtil.js";
+import * as csvImportService from "@/service/csvImport.js";
+import * as feedService from "@/service/feed.js";
+import * as postService from "@/service/post.js";
+import * as postEditService from "@/service/postEdit.js";
+import { checkConversationParticipation } from "@/service/participationGate.js";
+import * as surveyService from "@/service/survey.js";
+import { useCommonPost } from "@/service/common.js";
+import { MAX_CSV_FILE_SIZE } from "@/shared-app-api/csvUpload.js";
+import { checkFeatureAccess } from "@/shared-app-api/featureAccess.js";
+import { checkMaxDiffAllowed } from "@/shared-app-api/maxdiffLogic.js";
+import { zodCsvFiles } from "@/service/csvImport.js";
+import * as conversationExportService from "@/service/conversationExport/index.js";
+import * as conversationImportService from "@/service/conversationImport/index.js";
+import { cleanupStuckImportsOnStartup } from "@/service/conversationImport/database.js";
+import {
+    cleanupStuckExportsOnStartup,
+    createExportWorker,
+} from "@/service/conversationExport/core.js";
+import { createImportNotification } from "@/service/conversationImport/notifications.js";
+import { createExportNotification } from "@/service/conversationExport/notifications.js";
+import type { ValkeyRef } from "@/service/valkeyRef.js";
 import { validateS3Access } from "./service/s3.js";
+
+import { backfillImportBodies } from "@/service/importBodyBackfill.js";
+import { backfillLegacyMaxdiffComparisons } from "@/service/maxdiffComparisonBackfill.js";
 // import * as polisService from "@/service/polis.js";
 // import * as migrationService from "@/service/migration.js";
-import { canModerateConversation, canModerateConversationByOpinionSlugId, isSiteModeratorAccount, isSiteOrgAdminAccount } from "@/service/authUtil.js";
-import { generateOgImage } from "@/service/ogImage.js";
+import {
+    httpMethodToAbility,
+    httpUrlToResourcePointer,
+} from "./shared-app-api/ucan/ucan.js";
+import {
+    deleteOpinionBySlugId,
+    fetchAnalysisByConversationSlugId,
+    fetchOpinionsByPostSlugId,
+    fetchOpinionsByOpinionSlugIdList,
+    postNewOpinion,
+} from "./service/comment.js";
+import {
+    saveMaxdiffResult,
+    loadMaxdiffResult,
+    getMaxdiffResults,
+    computeGlobalUncertainty,
+} from "./service/maxdiff.js";
+import { generateCandidateSets } from "./service/maxdiffRouting.js";
+import {
+    fetchMaxdiffItems,
+    updateMaxdiffItemLifecycle,
+} from "./service/maxdiffItem.js";
+import {
+    verifyWebhookSignature,
+    parseWebhookPayload,
+    handleIssueWebhook,
+    syncGitHubIssues,
+    createGitHubClient,
+} from "./service/externalSource/github.js";
+import {
+    castVoteForOpinionSlugId,
+    getUserVotesForPostSlugIds as getUserVotesByConversations,
+} from "./service/voting.js";
+import {
+    getFilteredUserComments,
+    getUserPosts,
+    getUserProfile,
+} from "./service/user.js";
 import axios, { type AxiosInstance } from "axios";
-import { eq } from "drizzle-orm";
-import twilio from "twilio";
+import {
+    generateVerificationLink,
+    verifyUserStatusAndAuthenticate,
+} from "./service/rarimo.js";
+import { verifyEventTicket } from "./service/zupass.js";
 import {
     checkUserNameInUse,
     deleteUserAccount,
@@ -58,40 +113,25 @@ import {
     submitUsernameChange,
 } from "./service/account.js";
 import {
-    addUserOrganizationMapping,
-    createOrganization,
-    deleteOrganization,
-    getAllOrganizations,
-    getOrganizationsByUsername,
-    removeUserOrganizationMapping,
-} from "./service/administrator/organization.js";
-import type { DeviceLoginStatusInternal } from "./service/authUtil.js";
+    isSiteModeratorAccount,
+    isSiteOrgAdminAccount,
+    canModerateConversation,
+    canModerateConversationByOpinionSlugId,
+} from "@/service/authUtil.js";
 import {
-    deleteOpinionBySlugId,
-    fetchAnalysisByConversationSlugId,
-    fetchOpinionsByOpinionSlugIdList,
-    fetchOpinionsByPostSlugId,
-    postNewOpinion,
-} from "./service/comment.js";
-import { createExportBuffer } from "./service/exportBuffer.js";
-import { createImportBuffer } from "./service/importBuffer.js";
-import {
-    getLanguagePreferences,
-    updateLanguagePreferences,
-} from "./service/language.js";
-import {
-    getMaxdiffResults,
-    loadMaxdiffResult,
-    saveMaxdiffResult,
-} from "./service/maxdiff.js";
-import {
-    fetchModerationReportByPostSlugId as getConversationModerationStatus,
     fetchModerationReportByCommentSlugId as getOpinionModerationStatus,
+    fetchModerationReportByPostSlugId as getConversationModerationStatus,
     moderateByCommentSlugId,
     moderateByPostSlugId,
     withdrawModerationReportByCommentSlugId,
     withdrawModerationReportByPostSlugId,
 } from "./service/moderation.js";
+import {
+    createUserReportByCommentSlugId,
+    createUserReportByPostSlugId,
+    fetchUserReportsByCommentSlugId,
+    fetchUserReportsByPostSlugId,
+} from "./service/report.js";
 import {
     getUserMutePreferences,
     muteUserByUsername,
@@ -100,57 +140,51 @@ import {
     getNotifications,
     markAllNotificationsAsRead,
 } from "./service/notification.js";
-import { NotificationSSEManager } from "./service/notificationSSE.js";
-import { getUserPollResponse, submitPollResponse } from "./service/poll.js";
+import twilio from "twilio";
+import { initializeValkey } from "./shared-backend/valkey.js";
+import { createVoteBuffer } from "./service/voteBuffer.js";
+import { createImportBuffer } from "./service/importBuffer.js";
+import { createUcanReplayGuard } from "./service/ucanReplayGuard.js";
+import { RealtimeSSEManager } from "./service/realtimeSSE.js";
 import {
-    generateVerificationLink,
-    verifyUserStatusAndAuthenticate,
-} from "./service/rarimo.js";
-import {
-    createUserReportByCommentSlugId,
-    createUserReportByPostSlugId,
-    fetchUserReportsByCommentSlugId,
-    fetchUserReportsByPostSlugId,
-} from "./service/report.js";
-import { exchangeSsoCode, initiateSsoDesktopSession, completeSsoDesktopSessionFromMobile, pollSsoDesktopSession } from "./service/sso.js";
+    addUserOrganizationMapping,
+    createOrganization,
+    deleteOrganization,
+    getAllOrganizations,
+    getOrganizationsByUsername,
+    removeUserOrganizationMapping,
+} from "./service/administrator/organization.js";
+import type { DeviceIsKnownTrueLoginStatus } from "./shared/types/zod.js";
+import type { DeviceLoginStatusInternal } from "./service/authUtil.js";
 import {
     getAllTopics,
     getUserFollowedTopics,
     userFollowTopicByCode,
     userUnfollowTopicByCode,
 } from "./service/topic.js";
-import { createUcanReplayGuard } from "./service/ucanReplayGuard.js";
 import {
-    getFilteredUserComments,
-    getUserPosts,
-    getUserProfile,
-} from "./service/user.js";
-import { createVoteBuffer } from "./service/voteBuffer.js";
-import {
-    castVoteForOpinionSlugId,
-    getUserVotesForPostSlugIds as getUserVotesByConversations,
-} from "./service/voting.js";
-import { verifyEventTicket } from "./service/zupass.js";
-import {
-    httpMethodToAbility,
-    httpUrlToResourcePointer,
-} from "./shared-app-api/ucan/ucan.js";
-import { createDb } from "./shared-backend/db.js";
-import {
-    initializeGoogleCloudCredentials,
-    type GoogleCloudCredentials,
-} from "./shared-backend/googleCloudAuth.js";
-import { deviceTable } from "./shared-backend/schema.js";
-import { initializeValkey } from "./shared-backend/valkey.js";
+    getLanguagePreferences,
+    updateLanguagePreferences,
+} from "./service/language.js";
 import {
     ZodSupportedDisplayLanguageCodes,
     type SupportedDisplayLanguageCodes,
 } from "./shared/languages.js";
-import type { DeviceIsKnownTrueLoginStatus } from "./shared/types/zod.js";
+import { createDb } from "./shared-backend/db.js";
+import { deviceTable } from "./shared-backend/schema.js";
+import { eq } from "drizzle-orm";
+import {
+    initializeGoogleCloudCredentials,
+    type GoogleCloudCredentials,
+} from "./shared-backend/googleCloudAuth.js";
 import { nowZeroMs } from "./shared/util.js";
 
 server.register(fastifySensible);
 server.register(fastifyAuth);
+server.register(fastifyRateLimit, {
+    global: false,
+    hook: "preHandler",
+});
 server.register(fastifyCors, {
     origin: (origin, cb) => {
         if (config.NODE_ENV === "development") {
@@ -184,10 +218,6 @@ server.register(fastifyMultipart, {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
 await server.register(fastifySSE as any);
 
-// Register rate limiting plugin (applied per-route, not globally)
-import fastifyRateLimit from "@fastify/rate-limit";
-await server.register(fastifyRateLimit, { global: false });
-
 // Add schema validator and serializer
 server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
@@ -205,7 +235,9 @@ const speciallyAuthorizedEmails: string[] =
         ? []
         : config.SPECIALLY_AUTHORIZED_EMAILS !== undefined &&
             config.SPECIALLY_AUTHORIZED_EMAILS.length !== 0
-          ? config.SPECIALLY_AUTHORIZED_EMAILS.replace(/\s/g, "").split(",")
+          ? config.SPECIALLY_AUTHORIZED_EMAILS.replace(/\s/g, "")
+                .split(",")
+                .map((email) => normalizeEmail(email))
           : [];
 
 const axiosVerificatorSvc: AxiosInstance = axios.create({
@@ -230,7 +262,6 @@ log.info(
         : "[API] Reacher email verification disabled (REACHER_BASE_URL not set)",
 );
 
-
 // Initialize Twilio when credentials are available (any environment),
 // or require them in production mode
 const hasTwilioCreds =
@@ -239,6 +270,17 @@ const hasTwilioCreds =
     config.TWILIO_SERVICE_SID !== undefined;
 const mustSendActualSms = config.NODE_ENV === "production" || hasTwilioCreds;
 const isImportDisabled = config.IMPORT_BUFFER_MAX_BATCH_SIZE === 0;
+const maxdiffConnectorRateLimitConfig = {
+    max: 10,
+    timeWindow: 60 * 1000,
+    groupId: "maxdiff-github-connector",
+};
+const githubWebhookRateLimitConfig = {
+    max: 60,
+    timeWindow: 60 * 1000,
+    groupId: "maxdiff-github-webhook",
+};
+
 let twilioClient: twilio.Twilio | undefined;
 if (mustSendActualSms) {
     if (
@@ -253,7 +295,52 @@ if (mustSendActualSms) {
             config.TWILIO_ACCOUNT_SID,
             config.TWILIO_AUTH_TOKEN,
         );
-        log.info("[API] Twilio SMS client initialized");
+    }
+}
+
+// GitHub integration: webhook secret and access token must both be set or both unset
+const hasGitHubWebhookSecret = config.GITHUB_WEBHOOK_SECRET !== undefined;
+const hasGitHubAccessToken = config.GITHUB_ACCESS_TOKEN !== undefined;
+if (hasGitHubWebhookSecret !== hasGitHubAccessToken) {
+    log.error(
+        "GITHUB_WEBHOOK_SECRET and GITHUB_ACCESS_TOKEN must both be set or both be unset",
+    );
+    process.exit(1);
+}
+
+// MaxDiff GitHub feature: precedence validation
+if (config.MAXDIFF_GITHUB_ENABLED) {
+    if (!config.MAXDIFF_ENABLED) {
+        log.error("MAXDIFF_GITHUB_ENABLED requires MAXDIFF_ENABLED to be true");
+        process.exit(1);
+    }
+    if (!hasGitHubWebhookSecret || !hasGitHubAccessToken) {
+        log.error(
+            "MAXDIFF_GITHUB_ENABLED requires GITHUB_WEBHOOK_SECRET and GITHUB_ACCESS_TOKEN to be set",
+        );
+        process.exit(1);
+    }
+    if (!config.IS_MAXDIFF_GITHUB_ORG_ONLY && config.IS_MAXDIFF_ORG_ONLY) {
+        log.error(
+            "IS_MAXDIFF_GITHUB_ORG_ONLY cannot be false when IS_MAXDIFF_ORG_ONLY is true (GitHub orgs must be a subset of MaxDiff orgs)",
+        );
+        process.exit(1);
+    }
+    // Validate GitHub org whitelist is a subset of MaxDiff org whitelist
+    const maxdiffOrgs = config.MAXDIFF_ALLOWED_ORGS.trim();
+    const gitHubOrgs = config.MAXDIFF_GITHUB_ALLOWED_ORGS.trim();
+    if (maxdiffOrgs !== "" && gitHubOrgs !== "") {
+        const maxdiffOrgList = maxdiffOrgs.split(",").map((s) => s.trim());
+        const gitHubOrgList = gitHubOrgs.split(",").map((s) => s.trim());
+        const invalidOrgs = gitHubOrgList.filter(
+            (org) => !maxdiffOrgList.includes(org),
+        );
+        if (invalidOrgs.length > 0) {
+            log.error(
+                `MAXDIFF_GITHUB_ALLOWED_ORGS contains orgs not in MAXDIFF_ALLOWED_ORGS: ${invalidOrgs.join(", ")}`,
+            );
+            process.exit(1);
+        }
     }
 }
 
@@ -269,8 +356,8 @@ if (mustSendActualSms) {
 server.register(fastifySwagger, {
     openapi: {
         info: {
-            title: "Taraaz تراز",
-            description: "Taraaz API",
+            title: "Agora Citizen Network",
+            description: "Agora API",
             version: "1.0.0",
         },
         servers: [],
@@ -388,69 +475,161 @@ if (
 }
 
 // Initialize Valkey (optional - for vote buffer persistence and UCAN replay protection)
-const queueValkey = await initializeValkey({
-    valkeyUrl: config.QUEUE_VALKEY_URL,
-    log,
-    type: "Queue",
-});
+const queueValkeyRef: ValkeyRef = {
+    current: await initializeValkey({
+        valkeyUrl: config.QUEUE_VALKEY_URL,
+        log,
+        type: "Queue",
+    }),
+};
 
-if (queueValkey === undefined) {
-    log.warn(
-        "[API] Valkey not configured — UCAN replay protection uses in-memory store. " +
-            "This provides single-instance protection only. " +
-            "Set QUEUE_VALKEY_URL for cross-instance replay prevention.",
-    );
-}
+let queueValkeyReconnectInterval: NodeJS.Timeout | undefined;
+let queueValkeyReconnectInProgress = false;
+
+const getQueuePersistenceMode = (): string => {
+    if (queueValkeyRef.current !== undefined) {
+        return "Valkey";
+    }
+
+    if (config.QUEUE_VALKEY_URL !== undefined) {
+        return "in-memory until Valkey reconnects";
+    }
+
+    return "in-memory only";
+};
 
 // Initialize UCAN replay guard (prevents token replay attacks)
-const ucanReplayGuard = createUcanReplayGuard({ valkey: queueValkey });
+const ucanReplayGuard = createUcanReplayGuard({ valkeyRef: queueValkeyRef });
+
+if (queueValkeyRef.current === undefined) {
+    if (config.QUEUE_VALKEY_URL === undefined) {
+        log.warn(
+            "[API] Valkey not configured — UCAN replay protection uses in-memory store. " +
+                "This provides single-instance protection only. " +
+                "Set QUEUE_VALKEY_URL for cross-instance replay prevention.",
+        );
+    } else {
+        log.warn(
+            "[API] Queue Valkey unavailable on startup — using in-memory fallback temporarily and retrying in background",
+        );
+
+        queueValkeyReconnectInterval = setInterval(() => {
+            if (
+                queueValkeyRef.current !== undefined ||
+                queueValkeyReconnectInProgress
+            ) {
+                return;
+            }
+
+            queueValkeyReconnectInProgress = true;
+            void (async () => {
+                const nextValkey = await initializeValkey({
+                    valkeyUrl: config.QUEUE_VALKEY_URL,
+                    log,
+                    type: "Queue",
+                });
+
+                if (nextValkey === undefined) {
+                    return;
+                }
+
+                try {
+                    const syncedReplayTokenCount =
+                        await ucanReplayGuard.syncToValkey({
+                            valkey: nextValkey,
+                        });
+                    queueValkeyRef.current = nextValkey;
+                    log.info(
+                        `[API] Queue Valkey connected in background — replay guard and buffers now use Valkey (migrated ${String(syncedReplayTokenCount)} replay tokens)`,
+                    );
+
+                    if (queueValkeyReconnectInterval !== undefined) {
+                        clearInterval(queueValkeyReconnectInterval);
+                        queueValkeyReconnectInterval = undefined;
+                    }
+                } catch (error) {
+                    nextValkey.close();
+                    throw error;
+                }
+            })()
+                .catch((error: unknown) => {
+                    log.error(
+                        error,
+                        "[API] Queue Valkey reconnected but replay token migration failed",
+                    );
+                })
+                .finally(() => {
+                    queueValkeyReconnectInProgress = false;
+                });
+        }, 5000);
+        queueValkeyReconnectInterval.unref();
+    }
+}
 log.info(
     `[API] UCAN replay guard initialized — mode: ${
-        queueValkey !== undefined
-            ? "Valkey"
-            : "in-memory (single-instance only)"
+        config.QUEUE_VALKEY_URL === undefined
+            ? "in-memory (single-instance only)"
+            : getQueuePersistenceMode()
     }`,
 );
 
 // Initialize Notification SSE Manager for real-time notifications
-const notificationSSEManager = new NotificationSSEManager();
-notificationSSEManager.initialize();
+const realtimeSSEManager = new RealtimeSSEManager();
+realtimeSSEManager.initialize();
+
+// Periodic engagement ranking check for "Following" tab.
+// Every 60s, computes top 10 engagement slug IDs and broadcasts
+// "popular_conversation" to all clients if the ranking changed.
+let cachedTopEngagementSlugIds: string[] = [];
+const popularConversationCheckInterval = setInterval(() => {
+    void (async () => {
+        try {
+            const topSlugIds = await feedService.getTopEngagementSlugIds({
+                db,
+            });
+            const changed =
+                topSlugIds.length !== cachedTopEngagementSlugIds.length ||
+                topSlugIds.some(
+                    (id, i) => id !== cachedTopEngagementSlugIds[i],
+                );
+            if (changed) {
+                cachedTopEngagementSlugIds = topSlugIds;
+                realtimeSSEManager.broadcastToAll({
+                    event: "popular_conversation",
+                    data: { topConversationSlugIdList: topSlugIds },
+                });
+            }
+        } catch (error) {
+            log.error(error, "[API] Popular conversation check failed");
+        }
+    })();
+}, 60_000);
+popularConversationCheckInterval.unref();
 
 // Initialize VoteBuffer (batches votes to reduce DB contention)
 const voteBuffer = createVoteBuffer({
     db,
-    valkey: queueValkey,
+    valkeyRef: queueValkeyRef,
     flushIntervalMs: config.VOTE_BUFFER_FLUSH_INTERVAL_MS,
     valkeyBatchLimit: config.VOTE_BUFFER_VALKEY_BATCH_LIMIT,
-    notificationSSEManager,
+    realtimeSSEManager,
 });
 log.info(
-    `[API] Vote buffer initialized (flush interval: ${String(config.VOTE_BUFFER_FLUSH_INTERVAL_MS)}ms, batch limit: ${String(config.VOTE_BUFFER_VALKEY_BATCH_LIMIT)}, persistence: ${queueValkey !== undefined ? "Valkey" : "in-memory only"})`,
+    `[API] Vote buffer initialized (flush interval: ${String(config.VOTE_BUFFER_FLUSH_INTERVAL_MS)}ms, batch limit: ${String(config.VOTE_BUFFER_VALKEY_BATCH_LIMIT)}, persistence: ${getQueuePersistenceMode()})`,
 );
 
-// Initialize ExportBuffer (batches export requests to reduce system load)
-const exportBuffer = createExportBuffer({
+// Initialize SQL-backed export worker.
+const exportWorker = createExportWorker({
     db,
-    valkey: queueValkey,
-    notificationSSEManager,
-    flushIntervalMs: 1000,
-    maxBatchSize: config.EXPORT_CONVOS_BUFFER_MAX_BATCH_SIZE,
-    maxConcurrency: config.EXPORT_CONVOS_BUFFER_MAX_CONCURRENCY,
-    cooldownSeconds: config.EXPORT_CONVOS_COOLDOWN_SECONDS,
-    exportExpiryDays: config.EXPORT_CONVOS_EXPIRY_DAYS,
-    staleThresholdMs: config.EXPORT_CONVOS_BUFFER_STALE_THRESHOLD_MS,
-    staleCleanupEveryNFlushes:
-        config.EXPORT_CONVOS_BUFFER_STALE_CLEANUP_EVERY_N_FLUSHES,
+    realtimeSSEManager,
 });
-log.info(
-    `[API] Export buffer initialized (flush interval: 1s, max batch: ${String(config.EXPORT_CONVOS_BUFFER_MAX_BATCH_SIZE)}, cooldown: ${String(config.EXPORT_CONVOS_COOLDOWN_SECONDS)}s, persistence: ${queueValkey !== undefined ? "Valkey" : "in-memory only"})`,
-);
+log.info("[API] Export worker initialized (SQL queue)");
 
 // Initialize ImportBuffer (batches import requests to reduce system load)
 const importBuffer = createImportBuffer({
     db,
-    valkey: queueValkey,
-    notificationSSEManager,
+    valkeyRef: queueValkeyRef,
+    realtimeSSEManager,
     voteBuffer,
     axiosPolis,
     flushIntervalMs: config.IMPORT_BUFFER_FLUSH_INTERVAL_MS,
@@ -461,7 +640,7 @@ const importBuffer = createImportBuffer({
         config.IMPORT_BUFFER_STALE_CLEANUP_EVERY_N_FLUSHES,
 });
 log.info(
-    `[API] Import buffer initialized (flush interval: ${String(config.IMPORT_BUFFER_FLUSH_INTERVAL_MS)}ms, max batch: ${String(config.IMPORT_BUFFER_MAX_BATCH_SIZE)}, max concurrency: ${String(config.IMPORT_BUFFER_MAX_CONCURRENCY)}, persistence: ${queueValkey !== undefined ? "Valkey" : "in-memory only"})`,
+    `[API] Import buffer initialized (flush interval: ${String(config.IMPORT_BUFFER_FLUSH_INTERVAL_MS)}ms, max batch: ${String(config.IMPORT_BUFFER_MAX_BATCH_SIZE)}, max concurrency: ${String(config.IMPORT_BUFFER_MAX_CONCURRENCY)}, persistence: ${getQueuePersistenceMode()})`,
 );
 
 // Cleanup stuck imports/exports from previous server session
@@ -487,7 +666,7 @@ const performStartupCleanup = async (): Promise<void> => {
                         importId: stuckImport.id,
                         conversationId: null,
                         type: "import_failed",
-                        notificationSSEManager,
+                        realtimeSSEManager,
                     });
                 } catch (notificationError: unknown) {
                     log.error(
@@ -514,10 +693,12 @@ const performStartupCleanup = async (): Promise<void> => {
                     await createExportNotification({
                         db,
                         userId: stuckExport.userId,
-                        exportId: stuckExport.id,
+                        exportRequestId: stuckExport.id,
+                        exportSlugId: stuckExport.slugId,
                         conversationId: stuckExport.conversationId,
                         type: "export_failed",
-                        notificationSSEManager,
+                        failureReason: stuckExport.failureReason ?? undefined,
+                        realtimeSSEManager,
                     });
                 } catch (notificationError: unknown) {
                     log.error(
@@ -537,6 +718,12 @@ const performStartupCleanup = async (): Promise<void> => {
 
 // Run cleanup (non-blocking)
 void performStartupCleanup();
+
+// Backfill: clean import metadata from conversation bodies (non-blocking, idempotent)
+void backfillImportBodies({ db });
+
+// Backfill: restore legacy MaxDiff comparison rows for the scoring worker
+void backfillLegacyMaxdiffComparisons({ db, valkey: queueValkeyRef.current });
 
 interface ExpectedDeviceStatus {
     userId?: string;
@@ -592,18 +779,15 @@ function getEncodedUcan(request: FastifyRequest): string {
 
 interface VerifyUcanAndDeviceStatusReturn {
     didWrite: string;
-    encodedUcan: string;
     deviceStatus: DeviceLoginStatusInternal;
 }
 interface VerifyUcanKnownDeviceReturn {
     didWrite: string;
-    encodedUcan: string;
     deviceStatus: DeviceIsKnownTrueLoginStatus;
 }
 
 interface VerifyUcanReturn {
     didWrite: string;
-    encodedUcan: string;
 }
 async function verifyUcan(request: FastifyRequest): Promise<VerifyUcanReturn> {
     const encodedUcan = getEncodedUcan(request);
@@ -632,7 +816,7 @@ async function verifyUcan(request: FastifyRequest): Promise<VerifyUcanReturn> {
     });
     if (!result.ok) {
         log.error(
-            `UCAN verification failed - encodedUcan: ${encodedUcan}, SERVER_DID: ${SERVER_DID}, scheme: ${scheme}, hierPart: ${hierPart}, parsedUcan: ${JSON.stringify(parsedUcan)}, result: ${JSON.stringify(result)}`,
+            `UCAN verification failed - issuer: ${rootIssuerDid}, SERVER_DID: ${SERVER_DID}, scheme: ${scheme}, hierPart: ${hierPart}, result: ${JSON.stringify(result)}`,
         );
         if (Array.isArray(result.error)) {
             result.error.forEach((err, i) => {
@@ -663,7 +847,6 @@ async function verifyUcan(request: FastifyRequest): Promise<VerifyUcanReturn> {
     }
 
     return {
-        encodedUcan: encodedUcan,
         didWrite: rootIssuerDid,
     };
 }
@@ -683,7 +866,7 @@ async function verifyUcanAndDeviceStatus(
     };
     let actualOptions = options;
     actualOptions ??= defaultOptions;
-    const { encodedUcan, didWrite } = await verifyUcan(request);
+    const { didWrite } = await verifyUcan(request);
     const now = nowZeroMs();
     const deviceStatus = await authUtilService.getDeviceStatus({
         db,
@@ -773,9 +956,44 @@ async function verifyUcanAndDeviceStatus(
 
     return {
         didWrite: didWrite,
-        encodedUcan: encodedUcan,
         deviceStatus: deviceStatus,
     };
+}
+
+// Validates the UCAN and gets device status without enforcing any status
+// requirements. Use for endpoints that serve both known and unknown devices
+// (e.g. public pages with optional personalization).
+// When no auth header is present, returns an unauthenticated response with
+// didWrite undefined and isKnown: false.
+type VerifyUcanOptionalAuthReturn =
+    | {
+          didWrite: string;
+          deviceStatus: DeviceLoginStatusInternal;
+      }
+    | {
+          didWrite: undefined;
+          deviceStatus: Extract<DeviceLoginStatusInternal, { isKnown: false }>;
+      };
+
+async function verifyUcanOptionalAuth(
+    db: PostgresDatabase,
+    request: FastifyRequest,
+): Promise<VerifyUcanOptionalAuthReturn> {
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+        return {
+            didWrite: undefined,
+            deviceStatus: {
+                isKnown: false,
+                isLoggedIn: false,
+                isRegistered: false,
+                credentials: { email: null, phone: null, rarimo: null },
+            },
+        };
+    }
+    return await verifyUcanAndDeviceStatus(db, request, {
+        expectedDeviceStatus: undefined,
+    });
 }
 
 // always return userId !== undefined
@@ -803,7 +1021,7 @@ async function verifyUcanAndKnownDeviceStatus(
     } else {
         actualOptions = defaultOptions;
     }
-    const { didWrite, encodedUcan, deviceStatus } =
+    const { didWrite, deviceStatus } =
         await verifyUcanAndDeviceStatus(db, request, actualOptions);
     if (!deviceStatus.isKnown) {
         log.error(
@@ -815,7 +1033,6 @@ async function verifyUcanAndKnownDeviceStatus(
     }
     return {
         didWrite,
-        encodedUcan,
         deviceStatus,
     };
 }
@@ -834,6 +1051,15 @@ function checkMaxdiffEnabled(): void {
     if (!config.MAXDIFF_ENABLED) {
         throw server.httpErrors.serviceUnavailable(
             "MaxDiff feature is currently disabled",
+        );
+    }
+}
+
+function checkMaxdiffGitHubEnabled(): void {
+    checkMaxdiffEnabled();
+    if (!config.MAXDIFF_GITHUB_ENABLED) {
+        throw server.httpErrors.serviceUnavailable(
+            "MaxDiff GitHub integration is currently disabled",
         );
     }
 }
@@ -884,12 +1110,6 @@ server.after(() => {
             body: authenticateRequestBody,
             response: { 200: authenticate200 },
         },
-        config: {
-            rateLimit: {
-                max: config.AUTH_RATE_LIMIT_MAX,
-                timeWindow: config.AUTH_RATE_LIMIT_WINDOW_MS,
-            },
-        },
         handler: async (request) => {
             // This endpoint is accessible without being logged in
             // this endpoint could be especially subject to attacks such as DDoS or man-in-the-middle (to associate their own DID instead of the legitimate user's ones for example)
@@ -902,7 +1122,10 @@ server.after(() => {
             );
             // wrapper function for Typescript to be happy with the zod discriminated union type
             async function doAuthenticate(): Promise<AuthenticateResponse> {
-                if (deviceStatus.isLoggedIn && deviceStatus.credentials.phone !== null) {
+                if (
+                    deviceStatus.isLoggedIn &&
+                    deviceStatus.credentials.phone !== null
+                ) {
                     return {
                         success: false,
                         reason: "already_has_credential",
@@ -910,10 +1133,12 @@ server.after(() => {
                 }
                 const userAgent =
                     request.headers["user-agent"] ?? "Unknown device";
+                const now = nowZeroMs();
 
                 // backend intentionally does NOT say whether it is a register or a login - in order to protect privacy and give no information to potential attackers
                 return await authService.authenticateAttempt({
                     db,
+                    now,
                     twilioClient,
                     twilioServiceSid: config.TWILIO_SERVICE_SID,
                     doUseTestCode:
@@ -948,12 +1173,6 @@ server.after(() => {
                 200: verifyOtp200,
             },
         },
-        config: {
-            rateLimit: {
-                max: config.AUTH_RATE_LIMIT_MAX,
-                timeWindow: config.AUTH_RATE_LIMIT_WINDOW_MS,
-            },
-        },
         handler: async (request) => {
             const { didWrite, deviceStatus } = await verifyUcanAndDeviceStatus(
                 db,
@@ -963,14 +1182,19 @@ server.after(() => {
                 },
             );
             async function doVerifyPhoneOtp(): Promise<VerifyOtp200> {
-                if (deviceStatus.isLoggedIn && deviceStatus.credentials.phone !== null) {
+                if (
+                    deviceStatus.isLoggedIn &&
+                    deviceStatus.credentials.phone !== null
+                ) {
                     return {
                         success: false,
                         reason: "already_has_credential",
                     };
                 }
+                const now = nowZeroMs();
                 return await authService.verifyPhoneOtp({
                     db,
+                    now,
                     maxAttempt: config.EMAIL_OTP_MAX_ATTEMPT_AMOUNT,
                     didWrite,
                     code: request.body.code,
@@ -993,19 +1217,19 @@ server.after(() => {
             body: authenticateEmailRequestBody,
             response: { 200: authenticateEmail200 },
         },
-        config: {
-            rateLimit: {
-                max: config.AUTH_RATE_LIMIT_MAX,
-                timeWindow: config.AUTH_RATE_LIMIT_WINDOW_MS,
-            },
-        },
         handler: async (request) => {
-            const { didWrite, deviceStatus } =
-                await verifyUcanAndDeviceStatus(db, request, {
+            const { didWrite, deviceStatus } = await verifyUcanAndDeviceStatus(
+                db,
+                request,
+                {
                     expectedDeviceStatus: undefined,
-                });
+                },
+            );
             async function doAuthenticateEmail(): Promise<AuthenticateEmailResponse> {
-                if (deviceStatus.isLoggedIn && deviceStatus.credentials.email !== null) {
+                if (
+                    deviceStatus.isLoggedIn &&
+                    deviceStatus.credentials.email !== null
+                ) {
                     return {
                         success: false,
                         reason: "already_has_credential",
@@ -1019,9 +1243,11 @@ server.after(() => {
                 );
                 const headerLanguageCode: SupportedDisplayLanguageCodes =
                     parsedLang.success ? parsedLang.data : "en";
+                const now = nowZeroMs();
 
                 return await authService.authenticateEmailAttempt({
                     db,
+                    now,
                     axiosReacher,
                     email: request.body.email,
                     isRequestingNewCode: request.body.isRequestingNewCode,
@@ -1033,7 +1259,7 @@ server.after(() => {
                     doUseTestCode:
                         config.NODE_ENV !== "production" &&
                         speciallyAuthorizedEmails.includes(
-                            request.body.email,
+                            normalizeEmail(request.body.email),
                         ),
                     testCode: config.TEST_CODE,
                     userAgent: userAgent,
@@ -1053,26 +1279,28 @@ server.after(() => {
                 200: verifyOtp200,
             },
         },
-        config: {
-            rateLimit: {
-                max: config.AUTH_RATE_LIMIT_MAX,
-                timeWindow: config.AUTH_RATE_LIMIT_WINDOW_MS,
-            },
-        },
         handler: async (request) => {
-            const { didWrite, deviceStatus } =
-                await verifyUcanAndDeviceStatus(db, request, {
+            const { didWrite, deviceStatus } = await verifyUcanAndDeviceStatus(
+                db,
+                request,
+                {
                     expectedDeviceStatus: undefined,
-                });
+                },
+            );
             async function doVerifyEmailOtp(): Promise<VerifyOtp200> {
-                if (deviceStatus.isLoggedIn && deviceStatus.credentials.email !== null) {
+                if (
+                    deviceStatus.isLoggedIn &&
+                    deviceStatus.credentials.email !== null
+                ) {
                     return {
                         success: false,
                         reason: "already_has_credential",
                     };
                 }
+                const now = nowZeroMs();
                 return await authService.verifyEmailOtp({
                     db,
+                    now,
                     maxAttempt: config.EMAIL_OTP_MAX_ATTEMPT_AMOUNT,
                     didWrite,
                     code: request.body.code,
@@ -1102,9 +1330,110 @@ server.after(() => {
         },
     });
 
+    // Jomhoor wallet authentication moved to sso-svc (see /v1/authorize flow).
+    // The Phase-0 challenge/submit/verify-status shim that accepted `nationality`
+    // over the wallet channel was removed in M0 cleanup.
+
+    // SSO (Jomhoor Sign-In): exchange OAuth2 code + PKCE verifier for a Taraaz session
     server.withTypeProvider<ZodTypeProvider>().route({
         method: "POST",
-        url: `/api/${apiVersion}/conversation/fetch-recent`,
+        url: `/api/${apiVersion}/auth/sso/exchange`,
+        schema: {
+            body: Dto.ssoExchangeRequest,
+            response: {
+                200: Dto.ssoExchange200,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            if (!config.SSO_CLIENT_SECRET) {
+                throw server.httpErrors.serviceUnavailable("SSO not configured");
+            }
+            const userAgent = request.headers["user-agent"] ?? "Unknown device";
+            return await exchangeSsoCode({
+                db,
+                didWrite,
+                code: request.body.code,
+                codeVerifier: request.body.code_verifier,
+                userAgent,
+                ssoUrl: config.SSO_URL,
+                ssoClientSecret: config.SSO_CLIENT_SECRET,
+                sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
+            });
+        },
+    });
+
+    // SSO Desktop QR flow — Step 1: desktop initiates, gets deep link for QR
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/desktop/initiate`,
+        schema: {
+            response: {
+                200: Dto.ssoDesktopInitiate200,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            if (!config.SSO_CLIENT_SECRET) {
+                throw server.httpErrors.serviceUnavailable("SSO not configured");
+            }
+            const redirectUri = `${config.AGORA_ORIGIN ?? ""}/auth/callback`;
+            return await initiateSsoDesktopSession({
+                db,
+                didWrite,
+                ssoUrl: config.SSO_URL,
+                ssoClientSecret: config.SSO_CLIENT_SECRET,
+                redirectUri,
+            });
+        },
+    });
+
+    // SSO Desktop QR flow — Step 2: wallet POSTs the OAuth code after user approval
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/desktop/mobile-complete`,
+        schema: {
+            body: Dto.ssoDesktopMobileCompleteRequest,
+            response: {
+                200: Dto.ssoDesktopMobileComplete200,
+            },
+        },
+        handler: async (request) => {
+            if (!config.SSO_CLIENT_SECRET) {
+                throw server.httpErrors.serviceUnavailable("SSO not configured");
+            }
+            const userAgent = request.headers["user-agent"] ?? "Unknown device";
+            return await completeSsoDesktopSessionFromMobile({
+                db,
+                sessionId: request.body.session_id,
+                code: request.body.code,
+                userAgent,
+                ssoUrl: config.SSO_URL,
+                ssoClientSecret: config.SSO_CLIENT_SECRET,
+                sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
+            });
+        },
+    });
+
+    // SSO Desktop QR flow — Step 3: desktop polls for session completion
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/auth/sso/desktop/poll`,
+        schema: {
+            response: {
+                200: Dto.ssoDesktopPoll200,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            return await pollSsoDesktopSession({
+                db,
+                didWrite,
+            });
+        },
+    });
+
+    server.withTypeProvider<ZodTypeProvider>().route({
         schema: {
             body: Dto.fetchFeedRequest,
             response: {
@@ -1112,35 +1441,15 @@ server.after(() => {
             },
         },
         handler: async (request) => {
-            let isAuthenticatedRequest = false;
-            const authHeader = request.headers.authorization;
-            if (authHeader !== undefined) {
-                isAuthenticatedRequest = true;
-            } else {
-                isAuthenticatedRequest = false;
-            }
-            if (isAuthenticatedRequest) {
-                const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
-                    db,
-                    request,
-                    {
-                        expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                    },
-                );
-
-                return await feedService.fetchFeed({
-                    db: db,
-                    personalizationUserId: deviceStatus.userId,
-                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
-                    sortAlgorithm: request.body.sortAlgorithm,
-                });
-            } else {
-                return await feedService.fetchFeed({
-                    db: db,
-                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
-                    sortAlgorithm: request.body.sortAlgorithm,
-                });
-            }
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            return await feedService.fetchFeed({
+                db: db,
+                personalizationUserId: deviceStatus.isKnown
+                    ? deviceStatus.userId
+                    : undefined,
+                baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
+                sortAlgorithm: request.body.sortAlgorithm,
+            });
         },
     });
 
@@ -1167,7 +1476,9 @@ server.after(() => {
             });
 
             if (!isMod) {
-                throw server.httpErrors.unauthorized("User is not a site moderator");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site moderator",
+                );
             }
 
             await moderateByPostSlugId({
@@ -1198,18 +1509,23 @@ server.after(() => {
                     },
                 },
             );
-            const { isAuthorized, isSiteModerator } = await canModerateConversationByOpinionSlugId({
-                db: db,
-                userId: deviceStatus.userId,
-                opinionSlugId: request.body.opinionSlugId,
-            });
+            const { isAuthorized, isSiteModerator } =
+                await canModerateConversationByOpinionSlugId({
+                    db: db,
+                    userId: deviceStatus.userId,
+                    opinionSlugId: request.body.opinionSlugId,
+                });
 
             if (!isAuthorized) {
-                throw server.httpErrors.unauthorized("User is not authorized to moderate this conversation");
+                throw server.httpErrors.unauthorized(
+                    "User is not authorized to moderate this conversation",
+                );
             }
 
             if (!isSiteModerator && request.body.moderationAction === "hide") {
-                throw server.httpErrors.forbidden("Only site moderators can hide opinions");
+                throw server.httpErrors.forbidden(
+                    "Only site moderators can hide opinions",
+                );
             }
 
             await moderateByCommentSlugId({
@@ -1219,6 +1535,7 @@ server.after(() => {
                 moderationAction: request.body.moderationAction,
                 moderationExplanation: request.body.moderationExplanation,
                 userId: deviceStatus.userId,
+                isSiteModerator,
             });
         },
     });
@@ -1246,7 +1563,9 @@ server.after(() => {
             });
 
             if (!isMod) {
-                throw server.httpErrors.unauthorized("User is not a site moderator");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site moderator",
+                );
             }
 
             await withdrawModerationReportByPostSlugId({
@@ -1273,20 +1592,22 @@ server.after(() => {
                     },
                 },
             );
-            const { isAuthorized, isSiteModerator } = await canModerateConversationByOpinionSlugId({
-                db: db,
-                userId: deviceStatus.userId,
-                opinionSlugId: request.body.opinionSlugId,
-            });
+            const { isAuthorized, isSiteModerator } =
+                await canModerateConversationByOpinionSlugId({
+                    db: db,
+                    userId: deviceStatus.userId,
+                    opinionSlugId: request.body.opinionSlugId,
+                });
 
             if (!isAuthorized) {
-                throw server.httpErrors.unauthorized("User is not authorized to moderate this conversation");
+                throw server.httpErrors.unauthorized(
+                    "User is not authorized to moderate this conversation",
+                );
             }
 
             await withdrawModerationReportByCommentSlugId({
                 db: db,
                 commentSlugId: request.body.opinionSlugId,
-                callerUserId: deviceStatus.userId,
                 isSiteModerator,
             });
         },
@@ -1318,7 +1639,9 @@ server.after(() => {
             });
 
             if (!isMod) {
-                throw server.httpErrors.unauthorized("User is not a site moderator");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site moderator",
+                );
             }
 
             return await getConversationModerationStatus({
@@ -1348,14 +1671,17 @@ server.after(() => {
                     },
                 },
             );
-            const { isAuthorized } = await canModerateConversationByOpinionSlugId({
-                db: db,
-                userId: deviceStatus.userId,
-                opinionSlugId: request.body.opinionSlugId,
-            });
+            const { isAuthorized } =
+                await canModerateConversationByOpinionSlugId({
+                    db: db,
+                    userId: deviceStatus.userId,
+                    opinionSlugId: request.body.opinionSlugId,
+                });
 
             if (!isAuthorized) {
-                throw server.httpErrors.unauthorized("User is not authorized to moderate this conversation");
+                throw server.httpErrors.unauthorized(
+                    "User is not authorized to moderate this conversation",
+                );
             }
 
             return await getOpinionModerationStatus({
@@ -1548,7 +1874,7 @@ server.after(() => {
             },
         },
         handler: async (request, reply) => {
-            const { didWrite, encodedUcan } = await verifyUcan(request);
+            const { didWrite } = await verifyUcan(request);
 
             const now = nowZeroMs();
             const castVoteResponse = await castVoteForOpinionSlugId({
@@ -1556,64 +1882,12 @@ server.after(() => {
                 voteBuffer: voteBuffer,
                 opinionSlugId: request.body.opinionSlugId,
                 didWrite: didWrite,
-                proof: encodedUcan,
                 votingAction: request.body.chosenOption,
                 userAgent: request.headers["user-agent"] ?? "Unknown device",
                 now: now,
                 returnIsUserClustered: request.body.returnIsUserClustered,
             });
             reply.send(castVoteResponse);
-        },
-    });
-
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/poll/respond`,
-        schema: {
-            body: Dto.pollRespondRequest,
-            response: {
-                200: Dto.pollRespondResponse,
-            },
-        },
-        handler: async (request, reply) => {
-            const { didWrite, encodedUcan } = await verifyUcan(request);
-            const now = nowZeroMs();
-            const pollResponse = await submitPollResponse({
-                db: db,
-                proof: encodedUcan,
-                didWrite: didWrite,
-                postSlugId: request.body.conversationSlugId,
-                voteOptionChoice: request.body.voteOptionChoice,
-                userAgent: request.headers["user-agent"] ?? "Unknown device",
-                now: now,
-            });
-            reply.send(pollResponse);
-        },
-    });
-
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/user/poll/get-response-by-conversations`,
-        schema: {
-            body: Dto.getUserPollResponseByConversationsRequest,
-            response: {
-                200: Dto.getUserPollResponseByConversationsResponse,
-            },
-        },
-        handler: async (request) => {
-            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
-                db,
-                request,
-                {
-                    expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                },
-            );
-
-            return await getUserPollResponse({
-                db: db,
-                postSlugIdList: request.body,
-                authorId: deviceStatus.userId,
-            });
         },
     });
 
@@ -1624,23 +1898,45 @@ server.after(() => {
         url: `/api/${apiVersion}/maxdiff/save`,
         schema: {
             body: Dto.maxdiffSaveRequest,
+            response: {
+                200: Dto.maxdiffSaveResponse,
+            },
         },
-        handler: async (request, reply) => {
+        handler: async (request) => {
             checkMaxdiffEnabled();
-            const { deviceStatus } =
-                await verifyUcanAndKnownDeviceStatus(db, request, {
-                    expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                });
-            await saveMaxdiffResult({
+            const { didWrite } = await verifyUcan(request);
+            const now = nowZeroMs();
+            const participationCheck = await checkConversationParticipation({
                 db,
                 conversationSlugId: request.body.conversationSlugId,
-                userId: deviceStatus.userId,
+                didWrite,
+                userAgent: request.headers["user-agent"] ?? "Unknown device",
+                now,
+            });
+            if (!participationCheck.success) {
+                return participationCheck;
+            }
+            const { conversationId } = await saveMaxdiffResult({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                userId: participationCheck.participantId,
                 ranking: request.body.ranking,
                 comparisons: request.body.comparisons,
                 isComplete: request.body.isComplete,
                 isMaxdiffOrgOnly: config.IS_MAXDIFF_ORG_ONLY,
+                valkey: queueValkeyRef.current,
             });
-            reply.send({});
+            const { items, uncertainty } = await computeGlobalUncertainty({
+                db,
+                conversationId,
+            });
+            const candidateSets = generateCandidateSets({
+                userComparisons: request.body.comparisons,
+                items,
+                globalUncertainty: uncertainty,
+                bufferSize: 1,
+            });
+            return { success: true as const, candidateSets };
         },
     });
 
@@ -1655,15 +1951,34 @@ server.after(() => {
         },
         handler: async (request) => {
             checkMaxdiffEnabled();
-            const { deviceStatus } =
-                await verifyUcanAndKnownDeviceStatus(db, request, {
-                    expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            const { id: conversationId } =
+                await useCommonPost().getPostMetadataFromSlugId({
+                    db,
+                    conversationSlugId: request.body.conversationSlugId,
                 });
-            return await loadMaxdiffResult({
-                db,
-                conversationSlugId: request.body.conversationSlugId,
-                userId: deviceStatus.userId,
+            const [loadData, { items, uncertainty }] = await Promise.all([
+                deviceStatus.isKnown
+                    ? loadMaxdiffResult({
+                          db,
+                          conversationId,
+                          userId: deviceStatus.userId,
+                      })
+                    : Promise.resolve({
+                          ranking: null,
+                          comparisons: null,
+                          isComplete: false,
+                          perUserScores: null,
+                      }),
+                computeGlobalUncertainty({ db, conversationId }),
+            ]);
+            const candidateSets = generateCandidateSets({
+                userComparisons: loadData.comparisons ?? [],
+                items,
+                globalUncertainty: uncertainty,
+                bufferSize: 1,
             });
+            return { ...loadData, candidateSets };
         },
     });
 
@@ -1681,7 +1996,185 @@ server.after(() => {
             return await getMaxdiffResults({
                 db,
                 conversationSlugId: request.body.conversationSlugId,
+                lifecycleFilter: request.body.lifecycleFilter,
+                valkey: queueValkeyRef.current,
             });
+        },
+    });
+
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/maxdiff/items/fetch`,
+        schema: {
+            body: Dto.maxdiffItemsFetchRequest,
+            response: {
+                200: Dto.maxdiffItemsFetchResponse,
+            },
+        },
+        handler: async (request) => {
+            return await fetchMaxdiffItems({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                lifecycleFilter: request.body.lifecycleFilter,
+            });
+        },
+    });
+
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/maxdiff/items/lifecycle/update`,
+        schema: {
+            body: Dto.maxdiffItemLifecycleUpdateRequest,
+        },
+        handler: async (request, reply) => {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
+                    expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
+                },
+            );
+            await updateMaxdiffItemLifecycle({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                itemSlugId: request.body.itemSlugId,
+                newStatus: request.body.newStatus,
+                requestingUserId: deviceStatus.userId,
+                valkey: queueValkeyRef.current,
+            });
+            reply.send({});
+        },
+    });
+
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/maxdiff/sync`,
+        config: {
+            rateLimit: maxdiffConnectorRateLimitConfig,
+        },
+        schema: {
+            body: Dto.maxdiffSyncRequest,
+            response: {
+                200: Dto.maxdiffSyncResponse,
+            },
+        },
+        handler: async (request) => {
+            checkMaxdiffGitHubEnabled();
+            if (config.GITHUB_ACCESS_TOKEN === undefined) {
+                throw server.httpErrors.serviceUnavailable(
+                    "GitHub access token not configured",
+                );
+            }
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
+                    expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
+                },
+            );
+            const githubClient = createGitHubClient({
+                accessToken: config.GITHUB_ACCESS_TOKEN,
+            });
+            return await syncGitHubIssues({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                requestingUserId: deviceStatus.userId,
+                githubClient,
+                valkey: queueValkeyRef.current,
+            });
+        },
+    });
+
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/maxdiff/github/preview`,
+        config: {
+            rateLimit: maxdiffConnectorRateLimitConfig,
+        },
+        schema: {
+            body: Dto.maxdiffGitHubPreviewRequest,
+            response: {
+                200: Dto.maxdiffGitHubPreviewResponse,
+            },
+        },
+        handler: async (request) => {
+            checkMaxdiffGitHubEnabled();
+            if (config.GITHUB_ACCESS_TOKEN === undefined) {
+                throw server.httpErrors.serviceUnavailable(
+                    "GitHub access token not configured",
+                );
+            }
+            await verifyUcanAndKnownDeviceStatus(db, request, {
+                expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
+            });
+            const githubClient = createGitHubClient({
+                accessToken: config.GITHUB_ACCESS_TOKEN,
+            });
+            const issues = await githubClient.listIssues({
+                repo: request.body.repository,
+                label: request.body.label,
+            });
+            return {
+                issues: issues.map((issue) => ({
+                    number: issue.number,
+                    title: issue.title,
+                    body: issue.body,
+                    state: issue.state,
+                    htmlUrl: issue.htmlUrl,
+                })),
+            };
+        },
+    });
+
+    // GitHub webhook (no auth — verified via HMAC)
+    server.route({
+        method: "POST",
+        url: `/api/${apiVersion}/webhook/github`,
+        config: {
+            rateLimit: githubWebhookRateLimitConfig,
+        },
+        handler: async (request, reply) => {
+            checkMaxdiffGitHubEnabled();
+            if (config.GITHUB_WEBHOOK_SECRET === undefined) {
+                throw server.httpErrors.serviceUnavailable(
+                    "GitHub webhook secret not configured",
+                );
+            }
+
+            const signature = request.headers["x-hub-signature-256"];
+            if (typeof signature !== "string") {
+                throw server.httpErrors.unauthorized(
+                    "Missing X-Hub-Signature-256 header",
+                );
+            }
+
+            const rawBody = JSON.stringify(request.body);
+            if (
+                !verifyWebhookSignature({
+                    payload: rawBody,
+                    signature,
+                    secret: config.GITHUB_WEBHOOK_SECRET,
+                })
+            ) {
+                throw server.httpErrors.unauthorized("Invalid signature");
+            }
+
+            const event = request.headers["x-github-event"];
+            if (event !== "issues") {
+                // We only handle issue events
+                reply.send({ ok: true });
+                return;
+            }
+
+            const payload = parseWebhookPayload({
+                rawPayload: request.body,
+            });
+            await handleIssueWebhook({
+                db,
+                payload,
+                valkey: queueValkeyRef.current,
+            });
+            reply.send({ ok: true });
         },
     });
 
@@ -1692,7 +2185,7 @@ server.after(() => {
             body: Dto.deleteOpinionRequest,
         },
         handler: async (request, reply) => {
-            const { deviceStatus, encodedUcan, didWrite } =
+            const { deviceStatus } =
                 await verifyUcanAndKnownDeviceStatus(db, request, {
                     expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
                 });
@@ -1700,8 +2193,6 @@ server.after(() => {
                 db: db,
                 opinionSlugId: request.body.opinionSlugId,
                 userId: deviceStatus.userId,
-                proof: encodedUcan,
-                didWrite: didWrite,
             });
             reply.send();
         },
@@ -1717,7 +2208,7 @@ server.after(() => {
             },
         },
         handler: async (request, reply) => {
-            const { didWrite, encodedUcan } = await verifyUcan(request);
+            const { didWrite } = await verifyUcan(request);
             const now = nowZeroMs();
             const newOpinionResponse = await postNewOpinion({
                 db: db,
@@ -1725,11 +2216,10 @@ server.after(() => {
                 commentBody: request.body.opinionBody,
                 conversationSlugId: request.body.conversationSlugId,
                 didWrite: didWrite,
-                proof: encodedUcan,
                 userAgent: request.headers["user-agent"] ?? "Unknown device",
                 now: now,
                 isSeed: false,
-                notificationSSEManager: notificationSSEManager,
+                realtimeSSEManager: realtimeSSEManager,
             });
             reply.send(newOpinionResponse);
         },
@@ -1745,39 +2235,17 @@ server.after(() => {
             },
         },
         handler: async (request) => {
-            let isAuthenticatedRequest = false;
-            const authHeader = request.headers.authorization;
-            if (authHeader !== undefined) {
-                isAuthenticatedRequest = true;
-            } else {
-                isAuthenticatedRequest = false;
-            }
-            if (isAuthenticatedRequest) {
-                const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
-                    db,
-                    request,
-                    {
-                        expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                    },
-                );
-
-                const opinionItemsPerSlugId = await fetchOpinionsByPostSlugId({
-                    db: db,
-                    postSlugId: request.body.conversationSlugId,
-                    filterTarget: request.body.filter,
-                    personalizationUserId: deviceStatus.userId,
-                    limit: 3000,
-                });
-                return Array.from(opinionItemsPerSlugId.values());
-            } else {
-                const opinionItemsPerSlugId = await fetchOpinionsByPostSlugId({
-                    db: db,
-                    postSlugId: request.body.conversationSlugId,
-                    filterTarget: request.body.filter,
-                    limit: 3000,
-                });
-                return Array.from(opinionItemsPerSlugId.values());
-            }
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            const opinionItemsPerSlugId = await fetchOpinionsByPostSlugId({
+                db: db,
+                postSlugId: request.body.conversationSlugId,
+                filterTarget: request.body.filter,
+                personalizationUserId: deviceStatus.isKnown
+                    ? deviceStatus.userId
+                    : undefined,
+                limit: 3000,
+            });
+            return Array.from(opinionItemsPerSlugId.values());
         },
     });
 
@@ -1791,60 +2259,39 @@ server.after(() => {
             },
         },
         handler: async (request) => {
-            let isAuthenticatedRequest = false;
-            const authHeader = request.headers.authorization;
-            if (authHeader !== undefined) {
-                isAuthenticatedRequest = true;
-            } else {
-                isAuthenticatedRequest = false;
-            }
-            if (isAuthenticatedRequest) {
-                const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
-                    db,
-                    request,
-                    {
-                        expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                    },
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+
+            // Get display language from validated header or use default "en"
+            const parsedHeaderDisplayLanguage =
+                ZodSupportedDisplayLanguageCodes.safeParse(
+                    request.headers["accept-language"],
                 );
+            const headerDisplayLanguage: SupportedDisplayLanguageCodes =
+                parsedHeaderDisplayLanguage.success
+                    ? parsedHeaderDisplayLanguage.data
+                    : "en";
 
-                // Get display language from validated header or use default "en"
-                const parsedHeaderDisplayLanguage =
-                    ZodSupportedDisplayLanguageCodes.safeParse(
-                        request.headers["accept-language"],
-                    );
-                const headerDisplayLanguage: SupportedDisplayLanguageCodes =
-                    parsedHeaderDisplayLanguage.success
-                        ? parsedHeaderDisplayLanguage.data
-                        : "en";
+            // Get user's display language from DB if known (falls back to header language)
+            const displayLanguage = deviceStatus.isKnown
+                ? await getLanguagePreferences({
+                      db,
+                      userId: deviceStatus.userId,
+                      request: {
+                          currentDisplayLanguage: headerDisplayLanguage,
+                      },
+                  }).then((prefs) => prefs.displayLanguage)
+                : headerDisplayLanguage;
 
-                // Get user's display language from DB (falls back to header language)
-                const displayLanguage = await getLanguagePreferences({
-                    db,
-                    userId: deviceStatus.userId,
-                    request: { currentDisplayLanguage: headerDisplayLanguage },
-                }).then((prefs) => prefs.displayLanguage);
-
-                const analysis = await fetchAnalysisByConversationSlugId({
-                    db: db,
-                    conversationSlugId: request.body.conversationSlugId,
-                    personalizationUserId: deviceStatus.userId,
-                    displayLanguage,
-                    googleCloudCredentials,
-                });
-                return analysis;
-            } else {
-                // Get display language from validated header or use default "en"
-                const displayLanguage =
-                    request.headers["accept-language"] ?? "en";
-
-                const analysis = await fetchAnalysisByConversationSlugId({
-                    db: db,
-                    conversationSlugId: request.body.conversationSlugId,
-                    displayLanguage,
-                    googleCloudCredentials,
-                });
-                return analysis;
-            }
+            const analysis = await fetchAnalysisByConversationSlugId({
+                db: db,
+                conversationSlugId: request.body.conversationSlugId,
+                personalizationUserId: deviceStatus.isKnown
+                    ? deviceStatus.userId
+                    : undefined,
+                displayLanguage,
+                googleCloudCredentials,
+            });
+            return analysis;
         },
     });
 
@@ -1891,7 +2338,9 @@ server.after(() => {
             });
 
             if (!isMod) {
-                throw server.httpErrors.unauthorized("User is not a site moderator");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site moderator",
+                );
             }
             const opinionItemsPerSlugId = await fetchOpinionsByPostSlugId({
                 db: db,
@@ -1910,7 +2359,7 @@ server.after(() => {
             body: Dto.deleteConversationRequest,
         },
         handler: async (request, reply) => {
-            const { didWrite, encodedUcan, deviceStatus } =
+            const { deviceStatus } =
                 await verifyUcanAndKnownDeviceStatus(db, request, {
                     expectedKnownDeviceStatus: { isLoggedIn: true },
                 });
@@ -1918,8 +2367,6 @@ server.after(() => {
                 db: db,
                 conversationSlugId: request.body.conversationSlugId,
                 userId: deviceStatus.userId,
-                proof: encodedUcan,
-                didWrite: didWrite,
             });
             reply.send();
         },
@@ -1935,10 +2382,13 @@ server.after(() => {
             },
         },
         handler: async (request) => {
-            const { deviceStatus } =
-                await verifyUcanAndKnownDeviceStatus(db, request, {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
                     expectedKnownDeviceStatus: { isLoggedIn: true },
-                });
+                },
+            );
             return await postService.closeConversation({
                 db: db,
                 conversationSlugId: request.body.conversationSlugId,
@@ -1957,10 +2407,13 @@ server.after(() => {
             },
         },
         handler: async (request) => {
-            const { deviceStatus } =
-                await verifyUcanAndKnownDeviceStatus(db, request, {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
                     expectedKnownDeviceStatus: { isLoggedIn: true },
-                });
+                },
+            );
             return await postService.openConversation({
                 db: db,
                 conversationSlugId: request.body.conversationSlugId,
@@ -1979,7 +2432,7 @@ server.after(() => {
             },
         },
         handler: async (request, reply) => {
-            const { didWrite, encodedUcan, deviceStatus } =
+            const { didWrite, deviceStatus } =
                 await verifyUcanAndKnownDeviceStatus(db, request, {
                     expectedKnownDeviceStatus: {
                         isLoggedIn: true,
@@ -1988,33 +2441,65 @@ server.after(() => {
                 });
 
             if (request.body.conversationType === "maxdiff") {
-                checkMaxdiffEnabled();
-                if (
-                    config.IS_MAXDIFF_ORG_ONLY &&
-                    !request.body.postAsOrganization
-                ) {
-                    throw server.httpErrors.forbidden(
-                        "MaxDiff is restricted to organization conversations",
-                    );
-                }
-                const allowedOrgs = config.MAXDIFF_ALLOWED_ORGS;
-                if (allowedOrgs.trim() !== "") {
-                    if (!request.body.postAsOrganization) {
-                        throw server.httpErrors.forbidden(
-                            "MaxDiff is restricted to specific organizations",
-                        );
+                const maxdiffCheck = checkMaxDiffAllowed({
+                    maxdiffEnabled: config.MAXDIFF_ENABLED,
+                    isMaxdiffOrgOnly: config.IS_MAXDIFF_ORG_ONLY,
+                    maxdiffAllowedOrgs: config.MAXDIFF_ALLOWED_ORGS,
+                    maxdiffAllowedUsers: config.MAXDIFF_ALLOWED_USERS,
+                    postAsOrganization: !!request.body.postAsOrganization,
+                    organizationName: request.body.postAsOrganization ?? "",
+                    userId: deviceStatus.userId,
+                });
+                if (!maxdiffCheck.allowed) {
+                    switch (maxdiffCheck.reason) {
+                        case "disabled":
+                            throw server.httpErrors.serviceUnavailable(
+                                "MaxDiff feature is currently disabled",
+                            );
+                        case "org_required":
+                            throw server.httpErrors.forbidden(
+                                "MaxDiff is restricted to organization conversations",
+                            );
+                        case "org_not_in_whitelist":
+                            throw server.httpErrors.forbidden(
+                                "This organization is not allowed to create MaxDiff conversations",
+                            );
+                        case "user_not_in_whitelist":
+                            throw server.httpErrors.forbidden(
+                                "This user is not allowed to create MaxDiff conversations",
+                            );
                     }
-                    const orgList = allowedOrgs
-                        .split(",")
-                        .map((s) => s.trim());
-                    if (
-                        !orgList.includes(
-                            request.body.postAsOrganization,
-                        )
-                    ) {
-                        throw server.httpErrors.forbidden(
-                            "This organization is not allowed to create MaxDiff conversations",
-                        );
+                }
+            }
+
+            if ((request.body.surveyConfig?.questions.length ?? 0) > 0) {
+                const surveyCheck = checkFeatureAccess({
+                    featureEnabled: config.SURVEY_ENABLED,
+                    isOrgOnly: config.IS_SURVEY_ORG_ONLY,
+                    allowedOrgs: config.SURVEY_ALLOWED_ORGS,
+                    allowedUsers: config.SURVEY_ALLOWED_USERS,
+                    postAsOrganization: !!request.body.postAsOrganization,
+                    organizationName: request.body.postAsOrganization ?? "",
+                    userId: deviceStatus.userId,
+                });
+                if (!surveyCheck.allowed) {
+                    switch (surveyCheck.reason) {
+                        case "disabled":
+                            throw server.httpErrors.serviceUnavailable(
+                                "Survey feature is currently disabled",
+                            );
+                        case "org_required":
+                            throw server.httpErrors.forbidden(
+                                "Survey configuration is restricted to organization conversations",
+                            );
+                        case "org_not_in_whitelist":
+                            throw server.httpErrors.forbidden(
+                                "This organization is not allowed to configure surveys",
+                            );
+                        case "user_not_in_whitelist":
+                            throw server.httpErrors.forbidden(
+                                "This user is not allowed to configure surveys",
+                            );
                     }
                 }
             }
@@ -2024,10 +2509,8 @@ server.after(() => {
                 voteBuffer: voteBuffer,
                 conversationTitle: request.body.conversationTitle,
                 conversationBody: request.body.conversationBody ?? null,
-                pollingOptionList: request.body.pollingOptionList ?? null,
                 authorId: deviceStatus.userId,
                 didWrite: didWrite,
-                proof: encodedUcan,
                 indexConversationAt: request.body.indexConversationAt,
                 postAsOrganization: request.body.postAsOrganization,
                 isIndexed: request.body.isIndexed,
@@ -2036,7 +2519,18 @@ server.after(() => {
                 isImporting: false,
                 seedOpinionList: request.body.seedOpinionList,
                 requiresEventTicket: request.body.requiresEventTicket,
+                externalSourceConfig: request.body.externalSourceConfig ?? null,
+                surveyConfig: request.body.surveyConfig ?? null,
+                googleCloudCredentials,
             });
+
+            // Broadcast to all connected clients (except the creator) that a new conversation exists
+            realtimeSSEManager.broadcastToAllExcept({
+                event: "new_conversation",
+                data: { timestamp: Date.now() },
+                excludeUserId: deviceStatus.userId,
+            });
+
             reply.send({ conversationSlugId });
         },
     });
@@ -2057,7 +2551,7 @@ server.after(() => {
                 );
             }
 
-            const { didWrite, encodedUcan, deviceStatus } =
+            const { didWrite, deviceStatus } =
                 await verifyUcanAndKnownDeviceStatus(db, request, {
                     expectedKnownDeviceStatus: {
                         isLoggedIn: true,
@@ -2074,11 +2568,33 @@ server.after(() => {
                 );
             }
 
-            // Validate organization restriction for imports
-            authUtilService.validateOrgImportRestriction(
-                request.body.postAsOrganization,
-                config.IS_ORG_IMPORT_ONLY,
-            );
+            const importCheck = checkFeatureAccess({
+                featureEnabled: true,
+                isOrgOnly: config.IS_ORG_IMPORT_ONLY,
+                allowedOrgs: config.IMPORT_ALLOWED_ORGS,
+                allowedUsers: config.IMPORT_ALLOWED_USERS,
+                postAsOrganization: !!request.body.postAsOrganization,
+                organizationName: request.body.postAsOrganization ?? "",
+                userId: deviceStatus.userId,
+            });
+            if (!importCheck.allowed) {
+                switch (importCheck.reason) {
+                    case "disabled":
+                        break;
+                    case "org_required":
+                        throw server.httpErrors.forbidden(
+                            "Import feature restricted to organizations",
+                        );
+                    case "org_not_in_whitelist":
+                        throw server.httpErrors.forbidden(
+                            "This organization is not allowed to import conversations",
+                        );
+                    case "user_not_in_whitelist":
+                        throw server.httpErrors.forbidden(
+                            "This user is not allowed to import conversations",
+                        );
+                }
+            }
 
             // Verify organization membership if specified
             if (
@@ -2110,10 +2626,9 @@ server.after(() => {
                     isIndexed: request.body.isIndexed,
                     requiresEventTicket: request.body.requiresEventTicket,
                 },
-                proof: encodedUcan,
                 didWrite,
                 importBuffer,
-                notificationSSEManager,
+                realtimeSSEManager,
             });
         },
     });
@@ -2177,7 +2692,7 @@ server.after(() => {
                 );
             }
 
-            const { didWrite, encodedUcan, deviceStatus } =
+            const { didWrite, deviceStatus } =
                 await verifyUcanAndKnownDeviceStatus(db, request, {
                     expectedKnownDeviceStatus: {
                         isLoggedIn: true,
@@ -2219,11 +2734,33 @@ server.after(() => {
             const parsedFields =
                 Dto.importCsvConversationFormRequest.parse(formFields);
 
-            // Check organization restriction (same as URL import)
-            authUtilService.validateOrgImportRestriction(
-                parsedFields.postAsOrganization,
-                config.IS_ORG_IMPORT_ONLY,
-            );
+            const importCheck = checkFeatureAccess({
+                featureEnabled: true,
+                isOrgOnly: config.IS_ORG_IMPORT_ONLY,
+                allowedOrgs: config.IMPORT_ALLOWED_ORGS,
+                allowedUsers: config.IMPORT_ALLOWED_USERS,
+                postAsOrganization: !!parsedFields.postAsOrganization,
+                organizationName: parsedFields.postAsOrganization ?? "",
+                userId: deviceStatus.userId,
+            });
+            if (!importCheck.allowed) {
+                switch (importCheck.reason) {
+                    case "disabled":
+                        break;
+                    case "org_required":
+                        throw server.httpErrors.forbidden(
+                            "Import feature restricted to organizations",
+                        );
+                    case "org_not_in_whitelist":
+                        throw server.httpErrors.forbidden(
+                            "This organization is not allowed to import conversations",
+                        );
+                    case "user_not_in_whitelist":
+                        throw server.httpErrors.forbidden(
+                            "This user is not allowed to import conversations",
+                        );
+                }
+            }
 
             // Verify organization membership if specified
             if (parsedFields.postAsOrganization !== undefined) {
@@ -2253,10 +2790,9 @@ server.after(() => {
                         isIndexed: parsedFields.isIndexed,
                         requiresEventTicket: parsedFields.requiresEventTicket,
                     },
-                    proof: encodedUcan,
                     didWrite,
                     importBuffer,
-                    notificationSSEManager,
+                    realtimeSSEManager,
                 });
 
             reply.send({ importSlugId });
@@ -2327,45 +2863,20 @@ server.after(() => {
             },
         },
         handler: async (request) => {
-            let isAuthenticatedRequest = false;
-            const authHeader = request.headers.authorization;
-            if (authHeader !== undefined) {
-                isAuthenticatedRequest = true;
-            } else {
-                isAuthenticatedRequest = false;
-            }
-            if (isAuthenticatedRequest) {
-                const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
-                    db,
-                    request,
-                    {
-                        expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                    },
-                );
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            const postItem = await postService.fetchPostBySlugId({
+                db: db,
+                conversationSlugId: request.body.conversationSlugId,
+                personalizedUserId: deviceStatus.isKnown
+                    ? deviceStatus.userId
+                    : undefined,
+                baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
+            });
 
-                const postItem = await postService.fetchPostBySlugId({
-                    db: db,
-                    conversationSlugId: request.body.conversationSlugId,
-                    personalizedUserId: deviceStatus.userId,
-                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
-                });
-
-                const response: GetConversationResponse = {
-                    conversationData: postItem,
-                };
-                return response;
-            } else {
-                const postItem = await postService.fetchPostBySlugId({
-                    db: db,
-                    conversationSlugId: request.body.conversationSlugId,
-                    baseImageServiceUrl: config.IMAGES_SERVICE_BASE_URL,
-                });
-
-                const response: GetConversationResponse = {
-                    conversationData: postItem,
-                };
-                return response;
-            }
+            const response: GetConversationResponse = {
+                conversationData: postItem,
+            };
+            return response;
         },
     });
 
@@ -2409,7 +2920,7 @@ server.after(() => {
             },
         },
         handler: async (request, reply) => {
-            const { didWrite, encodedUcan, deviceStatus } =
+            const { deviceStatus } =
                 await verifyUcanAndKnownDeviceStatus(db, request, {
                     expectedKnownDeviceStatus: {
                         isLoggedIn: true,
@@ -2420,12 +2931,239 @@ server.after(() => {
             const updateResult = await postEditService.updateConversation({
                 db: db,
                 userId: deviceStatus.userId,
-                didWrite: didWrite,
-                proof: encodedUcan,
+                googleCloudCredentials,
                 data: request.body,
             });
 
             reply.send(updateResult);
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/form/fetch`,
+        schema: {
+            body: Dto.surveyFormFetchRequest,
+            response: {
+                200: Dto.surveyFormFetchResponse,
+            },
+        },
+        handler: async (request) => {
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            const parsedHeaderDisplayLanguage =
+                ZodSupportedDisplayLanguageCodes.safeParse(
+                    request.headers["accept-language"],
+                );
+            const headerDisplayLanguage: SupportedDisplayLanguageCodes =
+                parsedHeaderDisplayLanguage.success
+                    ? parsedHeaderDisplayLanguage.data
+                    : "en";
+            const displayLanguage = deviceStatus.isKnown
+                ? await getLanguagePreferences({
+                      db,
+                      userId: deviceStatus.userId,
+                      request: {
+                          currentDisplayLanguage: headerDisplayLanguage,
+                      },
+                  }).then((prefs) => prefs.displayLanguage)
+                : headerDisplayLanguage;
+            return await surveyService.fetchSurveyForm({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                participantId: deviceStatus.isKnown
+                    ? deviceStatus.userId
+                    : undefined,
+                displayLanguage,
+                googleCloudCredentials,
+            });
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/status/check`,
+        schema: {
+            body: Dto.surveyStatusCheckRequest,
+            response: {
+                200: Dto.surveyStatusCheckResponse,
+            },
+        },
+        handler: async (request) => {
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            return await surveyService.checkSurveyStatus({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                participantId: deviceStatus.isKnown
+                    ? deviceStatus.userId
+                    : undefined,
+            });
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/answer/save`,
+        schema: {
+            body: Dto.surveyAnswerSaveRequest,
+            response: {
+                200: Dto.surveyAnswerSaveResponse,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            return await surveyService.saveSurveyAnswer({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                questionSlugId: request.body.questionSlugId,
+                answer: request.body.answer,
+                didWrite,
+                userAgent: request.headers["user-agent"] ?? "Unknown device",
+                now: nowZeroMs(),
+                valkey: queueValkeyRef.current,
+            });
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/response/withdraw`,
+        schema: {
+            body: Dto.surveyResponseWithdrawRequest,
+            response: {
+                200: Dto.surveyResponseWithdrawResponse,
+            },
+        },
+        handler: async (request) => {
+            const { didWrite } = await verifyUcan(request);
+            return await surveyService.withdrawSurveyResponse({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                didWrite,
+                userAgent: request.headers["user-agent"] ?? "Unknown device",
+                now: nowZeroMs(),
+                valkey: queueValkeyRef.current,
+            });
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/config/update`,
+        schema: {
+            body: Dto.surveyConfigUpdateRequest,
+            response: {
+                200: Dto.surveyConfigUpdateResponse,
+            },
+        },
+        handler: async (request) => {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
+                    expectedKnownDeviceStatus: {
+                        isLoggedIn: true,
+                        isRegistered: true,
+                    },
+                },
+            );
+            return await surveyService.updateSurveyConfigByAuthor({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                userId: deviceStatus.userId,
+                surveyConfig: request.body.surveyConfig,
+                now: nowZeroMs(),
+                valkey: queueValkeyRef.current,
+                googleCloudCredentials,
+            });
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/config/delete`,
+        schema: {
+            body: Dto.surveyConfigDeleteRequest,
+            response: {
+                200: Dto.surveyConfigDeleteResponse,
+            },
+        },
+        handler: async (request) => {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
+                    expectedKnownDeviceStatus: {
+                        isLoggedIn: true,
+                        isRegistered: true,
+                    },
+                },
+            );
+            await surveyService.deleteSurveyConfigByAuthor({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                userId: deviceStatus.userId,
+                now: nowZeroMs(),
+                valkey: queueValkeyRef.current,
+            });
+            return { success: true as const };
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/results/aggregated`,
+        schema: {
+            body: Dto.surveyResultsAggregatedRequest,
+            response: {
+                200: Dto.surveyResultsAggregatedResponse,
+            },
+        },
+        handler: async (request) => {
+            const { deviceStatus } = await verifyUcanOptionalAuth(db, request);
+            const parsedHeaderDisplayLanguage =
+                ZodSupportedDisplayLanguageCodes.safeParse(
+                    request.headers["accept-language"],
+                );
+            const headerDisplayLanguage: SupportedDisplayLanguageCodes =
+                parsedHeaderDisplayLanguage.success
+                    ? parsedHeaderDisplayLanguage.data
+                    : "en";
+            const displayLanguage = deviceStatus.isKnown
+                ? await getLanguagePreferences({
+                      db,
+                      userId: deviceStatus.userId,
+                      request: {
+                          currentDisplayLanguage: headerDisplayLanguage,
+                      },
+                  }).then((prefs) => prefs.displayLanguage)
+                : headerDisplayLanguage;
+            return await surveyService.fetchSurveyAggregatedResults({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                userId: deviceStatus.isKnown ? deviceStatus.userId : undefined,
+                displayLanguage,
+                googleCloudCredentials,
+            });
+        },
+    });
+    server.withTypeProvider<ZodTypeProvider>().route({
+        method: "POST",
+        url: `/api/${apiVersion}/survey/completion/counts`,
+        schema: {
+            body: Dto.surveyCompletionCountsRequest,
+            response: {
+                200: Dto.surveyCompletionCountsResponse,
+            },
+        },
+        handler: async (request) => {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
+                    expectedKnownDeviceStatus: {
+                        isLoggedIn: true,
+                        isRegistered: true,
+                    },
+                },
+            );
+            return await surveyService.fetchSurveyCompletionCounts({
+                db,
+                conversationSlugId: request.body.conversationSlugId,
+                userId: deviceStatus.userId,
+            });
         },
     });
     server.withTypeProvider<ZodTypeProvider>().route({
@@ -2496,118 +3234,18 @@ server.after(() => {
         },
     });
 
-    // Jomhoor wallet authentication moved to sso-svc (see /v1/authorize flow).
-    // The Phase-0 challenge/submit/verify-status shim that accepted `nationality`
-    // over the wallet channel was removed in M0 cleanup.
-
-    // SSO (Jomhoor Sign-In): exchange OAuth2 code + PKCE verifier for a Taraaz session
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/sso/exchange`,
-        schema: {
-            body: Dto.ssoExchangeRequest,
-            response: {
-                200: Dto.ssoExchange200,
-            },
-        },
-        handler: async (request) => {
-            const { didWrite } = await verifyUcan(request);
-            if (!config.SSO_CLIENT_SECRET) {
-                throw server.httpErrors.serviceUnavailable("SSO not configured");
-            }
-            const userAgent = request.headers["user-agent"] ?? "Unknown device";
-            return await exchangeSsoCode({
-                db,
-                didWrite,
-                code: request.body.code,
-                codeVerifier: request.body.code_verifier,
-                userAgent,
-                ssoUrl: config.SSO_URL,
-                ssoClientSecret: config.SSO_CLIENT_SECRET,
-                sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
-            });
-        },
-    });
-
-    // SSO Desktop QR flow — Step 1: desktop initiates, gets deep link for QR
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/sso/desktop/initiate`,
-        schema: {
-            response: {
-                200: Dto.ssoDesktopInitiate200,
-            },
-        },
-        handler: async (request) => {
-            const { didWrite } = await verifyUcan(request);
-            if (!config.SSO_CLIENT_SECRET) {
-                throw server.httpErrors.serviceUnavailable("SSO not configured");
-            }
-            const redirectUri = `${config.AGORA_ORIGIN ?? ""}/auth/callback`;
-            return await initiateSsoDesktopSession({
-                db,
-                didWrite,
-                ssoUrl: config.SSO_URL,
-                ssoClientSecret: config.SSO_CLIENT_SECRET,
-                redirectUri,
-            });
-        },
-    });
-
-    // SSO Desktop QR flow — Step 2: wallet POSTs the OAuth code after user approval
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/sso/desktop/mobile-complete`,
-        schema: {
-            body: Dto.ssoDesktopMobileCompleteRequest,
-            response: {
-                200: Dto.ssoDesktopMobileComplete200,
-            },
-        },
-        handler: async (request) => {
-            if (!config.SSO_CLIENT_SECRET) {
-                throw server.httpErrors.serviceUnavailable("SSO not configured");
-            }
-            const userAgent = request.headers["user-agent"] ?? "Unknown device";
-            return await completeSsoDesktopSessionFromMobile({
-                db,
-                sessionId: request.body.session_id,
-                code: request.body.code,
-                userAgent,
-                ssoUrl: config.SSO_URL,
-                ssoClientSecret: config.SSO_CLIENT_SECRET,
-                sessionLifetimeDays: config.SESSION_LIFETIME_DAYS,
-            });
-        },
-    });
-
-    // SSO Desktop QR flow — Step 3: desktop polls for session completion
-    server.withTypeProvider<ZodTypeProvider>().route({
-        method: "POST",
-        url: `/api/${apiVersion}/auth/sso/desktop/poll`,
-        schema: {
-            response: {
-                200: Dto.ssoDesktopPoll200,
-            },
-        },
-        handler: async (request) => {
-            const { didWrite } = await verifyUcan(request);
-            return await pollSsoDesktopSession({
-                db,
-                didWrite,
-            });
-        },
-    });
-
     server.withTypeProvider<ZodTypeProvider>().route({
         method: "POST",
         url: `/api/${apiVersion}/user/delete`,
         schema: {},
         handler: async (request, reply) => {
-            const { deviceStatus } =
-                await verifyUcanAndKnownDeviceStatus(db, request, {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(
+                db,
+                request,
+                {
                     expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                });
+                },
+            );
             await deleteUserAccount({
                 db: db,
                 userId: deviceStatus.userId,
@@ -2694,7 +3332,9 @@ server.after(() => {
             });
 
             if (!isOrgAdmin) {
-                throw server.httpErrors.unauthorized("User is not a site org admin");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site org admin",
+                );
             }
 
             await addUserOrganizationMapping({
@@ -2729,7 +3369,9 @@ server.after(() => {
             });
 
             if (!isOrgAdmin) {
-                throw server.httpErrors.unauthorized("User is not a site org admin");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site org admin",
+                );
             }
 
             await removeUserOrganizationMapping({
@@ -2767,7 +3409,9 @@ server.after(() => {
             });
 
             if (!isOrgAdmin) {
-                throw server.httpErrors.unauthorized("User is not a site org admin");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site org admin",
+                );
             }
 
             return await getOrganizationsByUsername({
@@ -2803,7 +3447,9 @@ server.after(() => {
             });
 
             if (!isOrgAdmin) {
-                throw server.httpErrors.unauthorized("User is not a site org admin");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site org admin",
+                );
             }
 
             return await getAllOrganizations({
@@ -2836,7 +3482,9 @@ server.after(() => {
             });
 
             if (!isOrgAdmin) {
-                throw server.httpErrors.unauthorized("User is not a site org admin");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site org admin",
+                );
             }
 
             await createOrganization({
@@ -2873,7 +3521,9 @@ server.after(() => {
             });
 
             if (!isOrgAdmin) {
-                throw server.httpErrors.unauthorized("User is not a site org admin");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site org admin",
+                );
             }
 
             await deleteOrganization({
@@ -2966,7 +3616,9 @@ server.after(() => {
             });
 
             if (!isAuthorized) {
-                throw server.httpErrors.unauthorized("User is not authorized to view reports for this conversation");
+                throw server.httpErrors.unauthorized(
+                    "User is not authorized to view reports for this conversation",
+                );
             }
 
             return await fetchUserReportsByPostSlugId({
@@ -2996,14 +3648,17 @@ server.after(() => {
                     },
                 },
             );
-            const { isAuthorized } = await canModerateConversationByOpinionSlugId({
-                db: db,
-                userId: deviceStatus.userId,
-                opinionSlugId: request.body.opinionSlugId,
-            });
+            const { isAuthorized } =
+                await canModerateConversationByOpinionSlugId({
+                    db: db,
+                    userId: deviceStatus.userId,
+                    opinionSlugId: request.body.opinionSlugId,
+                });
 
             if (!isAuthorized) {
-                throw server.httpErrors.unauthorized("User is not authorized to view reports for this conversation");
+                throw server.httpErrors.unauthorized(
+                    "User is not authorized to view reports for this conversation",
+                );
             }
 
             return await fetchUserReportsByCommentSlugId({
@@ -3109,61 +3764,67 @@ server.after(() => {
         },
     });
 
-    // SSE endpoint for real-time notifications
-    // Accepts auth from Authorization header (new fetch-based frontend)
-    // or query param ?auth= (legacy EventSource fallback)
+    // SSE endpoint for real-time events (notifications + global broadcasts).
+    // Auth is optional: authenticated users receive personal notifications +
+    // global events; anonymous users receive only global events.
     server.withTypeProvider<ZodTypeProvider>().route({
         method: "GET",
-        url: `/api/${apiVersion}/notification/stream`,
+        url: `/api/${apiVersion}/realtime/stream`,
         sse: true, // Enable SSE mode - provides reply.sse.* methods
         handler: async (request, reply) => {
-            // Authenticate BEFORE initializing SSE to allow proper HTTP error responses
-            let deviceStatus;
-            try {
-                // Accept auth from Authorization header (fetch) or query param (EventSource fallback)
-                if (!request.headers.authorization) {
-                    const auth = (
-                        request.query as Record<string, string>
-                    ).auth;
-                    if (auth) {
-                        request.headers.authorization = `Bearer ${auth}`;
-                    }
+            const authHeader = request.headers.authorization;
+
+            if (authHeader !== undefined) {
+                // Authenticated connection — validate UCAN, register by userId
+                let deviceStatus;
+                try {
+                    const result = await verifyUcanAndKnownDeviceStatus(
+                        db,
+                        request,
+                        {
+                            expectedKnownDeviceStatus: {
+                                isGuestOrLoggedIn: true,
+                            },
+                        },
+                    );
+                    deviceStatus = result.deviceStatus;
+                } catch (error) {
+                    log.error(error, "Realtime stream authentication failed");
+                    return reply.code(401).send("Authentication failed");
                 }
 
-                const result = await verifyUcanAndKnownDeviceStatus(
-                    db,
-                    request,
-                    {
-                        expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
-                    },
-                );
-                deviceStatus = result.deviceStatus;
-            } catch (error) {
-                log.error(error, "[SSE] Authentication failed");
-                // Send HTTP error response before any SSE operations
-                // Use string response instead of object for SSE-enabled routes
-                return reply.code(401).send("Authentication failed");
-            }
+                try {
+                    reply.sse.keepAlive();
+                    realtimeSSEManager.connect(deviceStatus.userId, reply);
 
-            // Only proceed with SSE initialization after successful authentication
-            try {
-                // Keep connection alive (prevents automatic close after handler returns)
-                reply.sse.keepAlive();
-
-                // Register this connection with the SSE manager
-                // The manager will use reply.sse.send() to broadcast notifications
-                notificationSSEManager.connect(deviceStatus.userId, reply);
-
-                // Keep the handler alive by waiting for socket close event
-                // This is necessary to prevent Fastify from closing the connection
-                await new Promise<void>((resolve) => {
-                    request.raw.on("close", () => {
-                        resolve();
+                    await new Promise<void>((resolve) => {
+                        request.raw.on("close", () => {
+                            resolve();
+                        });
                     });
-                });
-            } catch (error) {
-                log.error(error, "[SSE] Error during SSE connection");
-                // At this point SSE is active, connection will be cleaned up by disconnect handler
+                } catch (error) {
+                    log.error(
+                        error,
+                        "Error during authenticated realtime stream connection",
+                    );
+                }
+            } else {
+                // Anonymous connection — no auth required
+                try {
+                    reply.sse.keepAlive();
+                    realtimeSSEManager.connectAnonymous(reply);
+
+                    await new Promise<void>((resolve) => {
+                        request.raw.on("close", () => {
+                            resolve();
+                        });
+                    });
+                } catch (error) {
+                    log.error(
+                        error,
+                        "Error during anonymous realtime stream connection",
+                    );
+                }
             }
         },
     });
@@ -3253,7 +3914,7 @@ server.after(() => {
                 db: db,
                 conversationSlugId: request.body.conversationSlugId,
                 userId: deviceStatus.userId,
-                exportBuffer: exportBuffer,
+                realtimeSSEManager,
             });
         },
     });
@@ -3269,12 +3930,13 @@ server.after(() => {
         },
         handler: async (request) => {
             checkConversationExportEnabled();
-            await verifyUcanAndKnownDeviceStatus(db, request, {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(db, request, {
                 expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
             });
             return await conversationExportService.getConversationExportStatus({
                 db: db,
                 exportSlugId: request.body.exportSlugId,
+                userId: deviceStatus.userId,
             });
         },
     });
@@ -3290,13 +3952,14 @@ server.after(() => {
         },
         handler: async (request) => {
             checkConversationExportEnabled();
-            await verifyUcanAndKnownDeviceStatus(db, request, {
+            const { deviceStatus } = await verifyUcanAndKnownDeviceStatus(db, request, {
                 expectedKnownDeviceStatus: { isGuestOrLoggedIn: true },
             });
             return await conversationExportService.getConversationExportHistory(
                 {
                     db: db,
                     conversationSlugId: request.body.conversationSlugId,
+                    userId: deviceStatus.userId,
                 },
             );
         },
@@ -3355,7 +4018,9 @@ server.after(() => {
             });
 
             if (!isMod) {
-                throw server.httpErrors.unauthorized("User is not a site moderator");
+                throw server.httpErrors.unauthorized(
+                    "User is not a site moderator",
+                );
             }
 
             await conversationExportService.deleteConversationExport({
@@ -3394,7 +4059,6 @@ server.after(() => {
                     .header("Cache-Control", "public, max-age=300, s-maxage=300")
                     .send(pngBuffer);
             } catch (err) {
-                // Log the error for debugging, then fallback to static image
                 log.error({ err }, "OG image generation failed");
                 const siteUrl = config.CORS_ORIGIN_LIST[0] ?? "https://taraaz.jomhoor.org";
                 return reply.redirect(`${siteUrl}/og-image.png`);
@@ -3402,14 +4066,12 @@ server.after(() => {
         },
     });
 
-    // OG meta tags endpoint for social media crawlers (GET required by protocol)
+    // OG meta tags endpoint for social media crawlers
     server.route({
         method: "GET",
         url: `/og/conversation/:slugId`,
         handler: async (request, reply) => {
             const { slugId } = request.params as { slugId: string };
-
-            // Derive site URL from CORS origin list (first origin)
             const siteUrl = config.CORS_ORIGIN_LIST[0] ?? "https://taraaz.jomhoor.org";
 
             try {
@@ -3421,7 +4083,6 @@ server.after(() => {
 
                 const title = post.payload.title;
                 const rawBody = post.payload.body ?? "";
-                // Strip HTML tags for plain-text description
                 const plainText = rawBody.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
                 const description = plainText.length > 200
                     ? plainText.slice(0, 197) + "..."
@@ -3442,7 +4103,6 @@ server.after(() => {
                 const canonicalUrl = `${siteUrl}/conversation/${encodeURIComponent(slugId)}/`;
                 const ogImageUrl = `${siteUrl}/og/conversation/${encodeURIComponent(slugId)}/image`;
 
-                // Escape HTML entities in dynamic values to prevent injection
                 const esc = (s: string): string =>
                     s.replace(/&/g, "&amp;")
                      .replace(/</g, "&lt;")
@@ -3480,7 +4140,6 @@ server.after(() => {
 
                 return reply.type("text/html; charset=utf-8").send(html);
             } catch {
-                // If conversation not found, redirect to the feed
                 return reply.redirect(`${siteUrl}/feed/`);
             }
         },
@@ -3518,11 +4177,16 @@ const shutdown = async (signal: string) => {
     log.info(`[API] ${signal} received, shutting down gracefully...`);
 
     try {
+        if (queueValkeyReconnectInterval !== undefined) {
+            clearInterval(queueValkeyReconnectInterval);
+            queueValkeyReconnectInterval = undefined;
+        }
+
         // Flush pending votes before shutdown
         await voteBuffer.shutdown();
 
-        // Flush pending exports before shutdown
-        await exportBuffer.shutdown();
+        // Stop export worker before shutdown
+        await exportWorker.shutdown();
 
         // Flush pending imports before shutdown
         await importBuffer.shutdown();
@@ -3530,12 +4194,15 @@ const shutdown = async (signal: string) => {
         // Stop UCAN replay guard cleanup interval
         ucanReplayGuard.shutdown();
 
+        // Stop popular conversation periodic check
+        clearInterval(popularConversationCheckInterval);
+
         // Close SSE connections before shutdown
-        await notificationSSEManager.shutdown();
+        await realtimeSSEManager.shutdown();
 
         // Close Valkey connection
-        if (queueValkey !== undefined) {
-            queueValkey.close();
+        if (queueValkeyRef.current !== undefined) {
+            queueValkeyRef.current.close();
             log.info("[QueueValkey] Connection closed");
         }
 

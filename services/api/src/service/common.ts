@@ -1,6 +1,5 @@
 import {
     conversationContentTable,
-    pollTable,
     conversationTable,
     userTable,
     opinionTable,
@@ -9,25 +8,26 @@ import {
     polisClusterTable,
     polisClusterTranslationTable,
     organizationTable,
+    maxdiffItemTable,
 } from "@/shared-backend/schema.js";
 import { toUnionUndefined } from "@/shared/shared.js";
 import type {
     ConversationMetadata,
     ExtendedConversationPayload,
-    PollOptionWithResult,
     ExtendedConversationPerSlugId,
     ExtendedConversation,
+    ConversationType,
     FeedSortAlgorithm,
     PolisClustersMetadata,
     ClusterMetadata,
     EventSlug,
     ParticipationMode,
 } from "@/shared/types/zod.js";
+import { zodExternalSourceConfig } from "@/shared/types/zod.js";
 import { httpErrors } from "@fastify/sensible";
-import { eq, desc, SQL, and, sql } from "drizzle-orm";
+import { eq, desc, SQL, and, sql, isNotNull, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import sanitizeHtml from "sanitize-html";
-import { getUserPollResponse } from "./poll.js";
 import { createPostModerationPropertyObject } from "./moderation.js";
 import { getUserMutePreferences } from "./muteUser.js";
 import { alias } from "drizzle-orm/pg-core";
@@ -35,7 +35,6 @@ import * as polisService from "@/service/polis.js";
 import { imagePathToUrl } from "@/utils/organizationLogic.js";
 import { getConversationEngagementScore } from "./recommendationSystem.js";
 import { log } from "@/app.js";
-
 
 export function useCommonUser() {
     interface GetUserIdFromUsernameProps {
@@ -65,6 +64,31 @@ export function useCommonUser() {
 }
 
 export function useCommonPost() {
+    interface IsConversationIdLockedProps {
+        db: PostgresJsDatabase;
+        conversationId: number;
+    }
+
+    async function isConversationIdLocked({
+        db,
+        conversationId,
+    }: IsConversationIdLockedProps): Promise<boolean> {
+        const moderationPostsTableResponse = await db
+            .select({
+                moderationAction: conversationModerationTable.moderationAction,
+            })
+            .from(conversationModerationTable)
+            .where(
+                and(
+                    eq(conversationModerationTable.conversationId, conversationId),
+                    eq(conversationModerationTable.moderationAction, "lock"),
+                ),
+            )
+            .limit(1);
+
+        return moderationPostsTableResponse.length > 0;
+    }
+
     interface IsPostSlugIdLockedProps {
         db: PostgresJsDatabase;
         postSlugId: string;
@@ -73,32 +97,15 @@ export function useCommonPost() {
         db,
         postSlugId,
     }: IsPostSlugIdLockedProps) {
-        const { getPostMetadataFromSlugId } = useCommonPost();
         const postDetails = await getPostMetadataFromSlugId({
-            db: db,
+            db,
             conversationSlugId: postSlugId,
         });
 
-        const moderationPostsTableResponse = await db
-            .select({
-                moderationAction: conversationModerationTable.moderationAction,
-            })
-            .from(conversationModerationTable)
-            .where(
-                and(
-                    eq(
-                        conversationModerationTable.conversationId,
-                        postDetails.id,
-                    ),
-                    eq(conversationModerationTable.moderationAction, "lock"),
-                ),
-            );
-
-        if (moderationPostsTableResponse.length == 1) {
-            return true;
-        } else {
-            return false;
-        }
+        return await isConversationIdLocked({
+            db,
+            conversationId: postDetails.id,
+        });
     }
 
     interface FetchPostItemsProps {
@@ -130,19 +137,8 @@ export function useCommonPost() {
             .select({
                 title: conversationContentTable.title,
                 body: conversationContentTable.body,
-                option1: pollTable.option1,
-                option1Response: pollTable.option1Response,
-                option2: pollTable.option2,
-                option2Response: pollTable.option2Response,
-                option3: pollTable.option3,
-                option3Response: pollTable.option3Response,
-                option4: pollTable.option4,
-                option4Response: pollTable.option4Response,
-                option5: pollTable.option5,
-                option5Response: pollTable.option5Response,
-                option6: pollTable.option6,
-                option6Response: pollTable.option6Response,
                 // metadata
+                conversationId: conversationTable.id,
                 slugId: conversationTable.slugId,
                 createdAt: conversationTable.createdAt,
                 updatedAt: conversationTable.updatedAt,
@@ -152,10 +148,8 @@ export function useCommonPost() {
                 participantCount: conversationTable.participantCount,
                 totalOpinionCount: conversationTable.totalOpinionCount,
                 totalVoteCount: conversationTable.totalVoteCount,
-                totalParticipantCount:
-                    conversationTable.totalParticipantCount,
-                moderatedOpinionCount:
-                    conversationTable.moderatedOpinionCount,
+                totalParticipantCount: conversationTable.totalParticipantCount,
+                moderatedOpinionCount: conversationTable.moderatedOpinionCount,
                 hiddenOpinionCount: conversationTable.hiddenOpinionCount,
                 authorName: userTable.username,
                 organizationName: organizationTable.name,
@@ -169,6 +163,14 @@ export function useCommonPost() {
                 isClosed: conversationTable.isClosed,
                 isEdited: conversationTable.isEdited,
                 requiresEventTicket: conversationTable.requiresEventTicket,
+                externalSourceConfig: conversationTable.externalSourceConfig,
+                // import metadata
+                importUrl: conversationTable.importUrl,
+                importConversationUrl: conversationTable.importConversationUrl,
+                importExportUrl: conversationTable.importExportUrl,
+                importCreatedAt: conversationTable.importCreatedAt,
+                importAuthor: conversationTable.importAuthor,
+                importMethod: conversationTable.importMethod,
                 // moderation
                 moderationAction: conversationModerationTable.moderationAction,
                 moderationExplanation:
@@ -194,16 +196,12 @@ export function useCommonPost() {
                 ),
             )
             .leftJoin(
-                pollTable,
-                eq(conversationContentTable.pollId, pollTable.id),
-            )
-            .leftJoin(
                 organizationTable,
                 eq(organizationTable.id, conversationTable.organizationId),
             )
             // whereClause = and(whereClause, lt(postTable.createdAt, lastCreatedAt));
             .where(and(where, eq(userTable.isDeleted, false)))
-            .orderBy(desc(conversationTable.createdAt));
+            .orderBy(desc(conversationTable.createdAt), desc(conversationTable.id));
         if (limit !== undefined) {
             postItems = await postItemsQuery.$dynamic().limit(limit);
         } else {
@@ -289,67 +287,62 @@ export function useCommonPost() {
                               }),
                           }
                         : undefined,
+                externalSourceConfig: (() => {
+                    const parsed = zodExternalSourceConfig.safeParse(
+                        postItem.externalSourceConfig,
+                    );
+                    return parsed.success ? parsed.data : null;
+                })(),
+                importInfo:
+                    postItem.importUrl !== null ||
+                    postItem.importConversationUrl !== null ||
+                    postItem.importExportUrl !== null ||
+                    postItem.importAuthor !== null ||
+                    postItem.importCreatedAt !== null
+                        ? {
+                              method: postItem.importMethod ?? "url",
+                              sourceUrl: toUnionUndefined(postItem.importUrl),
+                              conversationUrl: toUnionUndefined(
+                                  postItem.importConversationUrl,
+                              ),
+                              exportUrl: toUnionUndefined(
+                                  postItem.importExportUrl,
+                              ),
+                              createdAt: toUnionUndefined(
+                                  postItem.importCreatedAt,
+                              ),
+                              author: toUnionUndefined(postItem.importAuthor),
+                          }
+                        : undefined,
             };
 
-            let payload: ExtendedConversationPayload;
-            if (
-                postItem.option1 !== null &&
-                postItem.option2 !== null &&
-                postItem.option1Response !== null &&
-                postItem.option2Response !== null
-            ) {
-                // hasPoll
-                const pollList: PollOptionWithResult[] = [
-                    {
-                        optionNumber: 1,
-                        optionTitle: postItem.option1,
-                        numResponses: postItem.option1Response,
-                    },
-                    {
-                        optionNumber: 2,
-                        optionTitle: postItem.option2,
-                        numResponses: postItem.option2Response,
-                    },
-                ];
-                if (postItem.option3 !== null) {
-                    pollList.push({
-                        optionNumber: 3,
-                        optionTitle: postItem.option3,
-                        numResponses: postItem.option3Response ?? 0,
-                    });
-                }
-                if (postItem.option4 !== null) {
-                    pollList.push({
-                        optionNumber: 4,
-                        optionTitle: postItem.option4,
-                        numResponses: postItem.option4Response ?? 0,
-                    });
-                }
-                if (postItem.option5 !== null) {
-                    pollList.push({
-                        optionNumber: 5,
-                        optionTitle: postItem.option5,
-                        numResponses: postItem.option5Response ?? 0,
-                    });
-                }
-                if (postItem.option6 !== null) {
-                    pollList.push({
-                        optionNumber: 6,
-                        optionTitle: postItem.option6,
-                        numResponses: postItem.option6Response ?? 0,
-                    });
-                }
-                payload = {
-                    title: postItem.title, // Typescript inference limitation
-                    body: toUnionUndefined(postItem.body),
-                    poll: pollList,
-                };
-            } else {
-                payload = {
-                    title: postItem.title,
-                    body: toUnionUndefined(postItem.body),
-                };
+            // For MaxDiff conversations, override opinionCount with active item count
+            if (postItem.conversationType === "maxdiff") {
+                const [itemCountResult] = await db
+                    .select({
+                        count: sql<number>`count(*)::int`,
+                    })
+                    .from(maxdiffItemTable)
+                    .where(
+                        and(
+                            eq(
+                                maxdiffItemTable.conversationId,
+                                postItem.conversationId,
+                            ),
+                            isNotNull(maxdiffItemTable.currentContentId),
+                            inArray(maxdiffItemTable.lifecycleStatus, [
+                                "active",
+                                "in_progress",
+                            ]),
+                        ),
+                    );
+                metadata.opinionCount = itemCountResult.count;
             }
+
+            const payload: ExtendedConversationPayload = {
+                title: postItem.title,
+                body: toUnionUndefined(postItem.body),
+            };
 
             if (excludeLockedPosts && postItem.moderationAction == "lock") {
                 // Skip
@@ -366,39 +359,6 @@ export function useCommonPost() {
         }
 
         if (personalizedUserId) {
-            // Annotate return list with poll response
-            {
-                const pollResponseMap = new Map<string, number>();
-
-                const postSlugIdList: string[] = [];
-                extendedConversationMap.forEach((post) => {
-                    postSlugIdList.push(post.metadata.conversationSlugId);
-                });
-
-                const pollResponses = await getUserPollResponse({
-                    db: db,
-                    authorId: personalizedUserId,
-                    postSlugIdList: postSlugIdList,
-                });
-
-                pollResponses.forEach((response) => {
-                    pollResponseMap.set(
-                        response.conversationSlugId,
-                        response.optionChosen,
-                    );
-                });
-
-                extendedConversationMap.forEach((post) => {
-                    const voteIndex = pollResponseMap.get(
-                        post.metadata.conversationSlugId,
-                    );
-                    post.interaction = {
-                        hasVoted: voteIndex != undefined,
-                        votedIndex: voteIndex ?? 0,
-                    };
-                });
-            }
-
             // Remove muted users from the list
             if (removeMutedAuthors) {
                 const mutedUserItems = await getUserMutePreferences({
@@ -926,6 +886,7 @@ export function useCommonPost() {
         id: number;
         contentId: number | null;
         authorId: string;
+        conversationType: ConversationType;
         participantCount: number;
         opinionCount: number;
         voteCount: number;
@@ -958,15 +919,14 @@ export function useCommonPost() {
                 participantCount: conversationTable.participantCount,
                 voteCount: conversationTable.voteCount,
                 opinionCount: conversationTable.opinionCount,
-                totalParticipantCount:
-                    conversationTable.totalParticipantCount,
+                totalParticipantCount: conversationTable.totalParticipantCount,
                 totalVoteCount: conversationTable.totalVoteCount,
                 totalOpinionCount: conversationTable.totalOpinionCount,
-                moderatedOpinionCount:
-                    conversationTable.moderatedOpinionCount,
+                moderatedOpinionCount: conversationTable.moderatedOpinionCount,
                 hiddenOpinionCount: conversationTable.hiddenOpinionCount,
                 isIndexed: conversationTable.isIndexed,
                 participationMode: conversationTable.participationMode,
+                conversationType: conversationTable.conversationType,
                 isClosed: conversationTable.isClosed,
                 isEdited: conversationTable.isEdited,
                 requiresEventTicket: conversationTable.requiresEventTicket,
@@ -983,15 +943,14 @@ export function useCommonPost() {
             participantCount: postTableResponse[0].participantCount,
             voteCount: postTableResponse[0].voteCount,
             opinionCount: postTableResponse[0].opinionCount,
-            totalParticipantCount:
-                postTableResponse[0].totalParticipantCount,
+            totalParticipantCount: postTableResponse[0].totalParticipantCount,
             totalVoteCount: postTableResponse[0].totalVoteCount,
             totalOpinionCount: postTableResponse[0].totalOpinionCount,
-            moderatedOpinionCount:
-                postTableResponse[0].moderatedOpinionCount,
+            moderatedOpinionCount: postTableResponse[0].moderatedOpinionCount,
             hiddenOpinionCount: postTableResponse[0].hiddenOpinionCount,
             isIndexed: postTableResponse[0].isIndexed,
             participationMode: postTableResponse[0].participationMode,
+            conversationType: postTableResponse[0].conversationType,
             isClosed: postTableResponse[0].isClosed,
             requiresEventTicket: postTableResponse[0].requiresEventTicket,
         };
@@ -1000,6 +959,7 @@ export function useCommonPost() {
     return {
         fetchPostItems,
         getPostMetadataFromSlugId,
+        isConversationIdLocked,
         isPostSlugIdLocked,
         createCompactHtmlBody,
         getPolisMetadata,

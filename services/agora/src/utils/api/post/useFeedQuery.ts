@@ -1,5 +1,4 @@
 import {
-  keepPreviousData,
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
@@ -23,7 +22,7 @@ export function useFeedQuery({
     queryKey: ["feed", computed(() => currentHomeFeedTab.value)],
     queryFn: async () => {
       const response = await fetchRecentPost({
-        loadUserPollData: isGuestOrLoggedIn.value,
+        loadPersonalizedData: isGuestOrLoggedIn.value,
         sortAlgorithm: currentHomeFeedTab.value,
       });
       if (response.status !== "success") {
@@ -32,8 +31,7 @@ export function useFeedQuery({
       return response.data;
     },
     enabled: computed(() => toValue(enabled)),
-    staleTime: 30 * 1000,
-    placeholderData: keepPreviousData,
+    staleTime: Infinity,
   });
 }
 
@@ -43,6 +41,9 @@ export function useInvalidateFeedQuery() {
   return {
     invalidateFeed: () => {
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    },
+    invalidateFeedTab: (tab: string) => {
+      void queryClient.invalidateQueries({ queryKey: ["feed", tab] });
     },
   };
 }

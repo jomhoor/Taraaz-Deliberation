@@ -73,7 +73,6 @@ import { eq, and, sql, isNotNull, inArray, type SQL } from "drizzle-orm";
 import {
     voteTable,
     voteContentTable,
-    voteProofTable,
     opinionTable,
     conversationTable,
     conversationUpdateQueueTable,
@@ -87,7 +86,8 @@ import { nowZeroMs } from "@/shared/util.js";
 import type { Valkey } from "@/shared-backend/valkey.js";
 import { VALKEY_QUEUE_KEYS } from "@/shared-backend/valkeyQueues.js";
 import { Script } from "@valkey/valkey-glide";
-import type { NotificationSSEManager } from "./notificationSSE.js";
+import type { ValkeyRef } from "./valkeyRef.js";
+import type { RealtimeSSEManager } from "./realtimeSSE.js";
 import {
     createVoteNotifications,
     getNotificationRecipients,
@@ -165,8 +165,6 @@ const zodBufferedVote = z.object({
     opinionContentId: z.number(),
     conversationId: z.number(),
     vote: zodVotingAction,
-    didWrite: z.string(),
-    proof: z.string(),
     timestamp: z.coerce.date(),
 });
 type BufferedVote = z.infer<typeof zodBufferedVote>;
@@ -186,10 +184,10 @@ export interface VoteBuffer {
 
 interface CreateVoteBufferParams {
     db: PostgresJsDatabase;
-    valkey?: Valkey;
+    valkeyRef: ValkeyRef;
     flushIntervalMs: number;
     valkeyBatchLimit: number;
-    notificationSSEManager?: NotificationSSEManager;
+    realtimeSSEManager?: RealtimeSSEManager;
 }
 
 // ============================================================================
@@ -216,24 +214,24 @@ interface CreateVoteBufferParams {
  */
 export function createVoteBuffer({
     db,
-    valkey,
+    valkeyRef,
     flushIntervalMs,
     valkeyBatchLimit,
-    notificationSSEManager,
+    realtimeSSEManager,
 }: CreateVoteBufferParams): VoteBuffer {
     // Encapsulated mutable state (private to closure)
     const pendingVotes = new Map<string, BufferedVote>();
     let isShuttingDown = false;
+    let flushInProgress: Promise<void> | null = null;
 
     // Lua script objects (created once, reused for all calls)
     // IMPORTANT: Must call release() on shutdown to prevent memory leaks
-    let addVoteScript: Script | undefined;
-    let cleanupVotesScript: Script | undefined;
+    let addVoteScript: Script | undefined = new Script(ADD_VOTE_SCRIPT);
+    let cleanupVotesScript: Script | undefined = new Script(
+        CLEANUP_VOTES_SCRIPT,
+    );
 
-    if (valkey !== undefined) {
-        addVoteScript = new Script(ADD_VOTE_SCRIPT);
-        cleanupVotesScript = new Script(CLEANUP_VOTES_SCRIPT);
-    }
+    const getValkey = (): Valkey | undefined => valkeyRef.current;
 
     // Helper functions
     const getVoteKey = (userId: string, opinionId: number): string =>
@@ -287,6 +285,7 @@ export function createVoteBuffer({
         pendingVotes.set(key, vote);
 
         // Valkey: Atomic add using Lua script
+        const valkey = getValkey();
         if (valkey !== undefined && addVoteScript !== undefined) {
             const score = vote.timestamp.getTime();
             const data = JSON.stringify(vote);
@@ -350,6 +349,7 @@ export function createVoteBuffer({
         const processedValkeyEntries: { member: string; score: number }[] = [];
 
         // Get votes from Valkey sorted set + hash (if configured)
+        const valkey = getValkey();
         if (valkey !== undefined) {
             try {
                 // Fetch oldest N members from sorted set (ordered by timestamp)
@@ -441,9 +441,8 @@ export function createVoteBuffer({
         log.info(`[VoteBuffer] Flushing ${String(batch.length)} votes`);
 
         // PostgreSQL parameter limit: ~65,535
-        // vote_proof: 5 columns, vote_content: 4 columns, vote_table: 3 columns
-        // Worst case: 5+4+3 = 12 params per vote
-        // Safe batch size: 5000 votes = ~60,000 params
+        // vote_content: 3 columns, vote_table: 3 columns
+        // Worst case: 3+3 = 6 params per vote
         const MAX_VOTES_PER_TRANSACTION = 5000;
         const batches: BufferedVote[][] = [];
 
@@ -813,27 +812,9 @@ export function createVoteBuffer({
                         conversationIds.add(data.vote.conversationId);
                     }
 
-                    // Step 5: Bulk INSERT vote proofs
-                    const voteProofValues = voteProcessingData.map((data) => ({
-                        type:
-                            data.vote.vote === "cancel"
-                                ? ("deletion" as const)
-                                : ("creation" as const),
-                        voteId: data.voteTableId,
-                        authorDid: data.vote.didWrite,
-                        proof: data.vote.proof,
-                        proofVersion: 1,
-                    }));
-
-                    const voteProofResults = await tx
-                        .insert(voteProofTable)
-                        .values(voteProofValues)
-                        .returning({ id: voteProofTable.id });
-
-                    // Step 6: Bulk INSERT vote contents (for non-cancel votes)
+                    // Step 5: Bulk INSERT vote contents (for non-cancel votes)
                     const voteContentValues: {
                         voteId: number;
-                        voteProofId: number;
                         opinionContentId: number;
                         vote: VotingOption;
                     }[] = [];
@@ -849,7 +830,6 @@ export function createVoteBuffer({
                             );
                             voteContentValues.push({
                                 voteId: data.voteTableId,
-                                voteProofId: voteProofResults[i].id,
                                 opinionContentId: data.vote.opinionContentId,
                                 vote: data.vote.vote,
                             });
@@ -864,7 +844,7 @@ export function createVoteBuffer({
                             .returning({ id: voteContentTable.id });
                     }
 
-                    // Step 7: Bulk UPDATE vote_table.current_content_id using CASE WHEN
+                    // Step 6: Bulk UPDATE vote_table.current_content_id using CASE WHEN
                     if (voteProcessingData.length > 0) {
                         // Build CASE WHEN statement for current_content_id
                         const caseStatements: SQL[] = [];
@@ -1178,7 +1158,7 @@ export function createVoteBuffer({
                                     conversationId: voteData.conversationId,
                                     numVotes: voteData.voterIds.size,
                                     isSeed: true,
-                                    notificationSSEManager,
+                                    realtimeSSEManager,
                                 });
                             }
                         } else {
@@ -1196,7 +1176,7 @@ export function createVoteBuffer({
                                     conversationId: voteData.conversationId,
                                     numVotes: externalVoteCount,
                                     isSeed: false,
-                                    notificationSSEManager,
+                                    realtimeSSEManager,
                                 });
                             }
                         }
@@ -1215,8 +1195,9 @@ export function createVoteBuffer({
 
             // At-least-once: Delete from Valkey only after successful processing
             // Use Lua script for conditional delete (only if score matches)
+            const cleanupValkey = getValkey();
             if (
-                valkey !== undefined &&
+                cleanupValkey !== undefined &&
                 cleanupVotesScript !== undefined &&
                 processedValkeyEntries.length > 0
             ) {
@@ -1227,7 +1208,7 @@ export function createVoteBuffer({
                         cleanupArgs.push(entry.member, String(entry.score));
                     }
 
-                    const deletedCount = (await valkey.invokeScript(
+                    const deletedCount = (await cleanupValkey.invokeScript(
                         cleanupVotesScript,
                         {
                             keys: [
@@ -1266,6 +1247,12 @@ export function createVoteBuffer({
 
         clearInterval(flushInterval);
 
+        // Wait for any in-flight flush to complete before the final flush,
+        // so no pending Valkey operations remain when the connection is closed.
+        if (flushInProgress !== null) {
+            await flushInProgress;
+        }
+
         await flush();
 
         // Release Lua script objects to prevent memory leaks
@@ -1290,9 +1277,13 @@ export function createVoteBuffer({
 
     // Start automatic flush interval
     const flushInterval: NodeJS.Timeout = setInterval(() => {
-        flush().catch((error: unknown) => {
-            log.error(error, "[VoteBuffer] Flush interval error");
-        });
+        flushInProgress ??= flush()
+            .catch((error: unknown) => {
+                log.error(error, "[VoteBuffer] Flush interval error");
+            })
+            .finally(() => {
+                flushInProgress = null;
+            });
     }, flushIntervalMs);
 
     // Prevent interval from keeping process alive (Node.js specific)

@@ -1,28 +1,29 @@
 <template>
-  <NewConversationLayout>
-    <TopMenuWrapper>
-      <div>
-        <BackButton />
-      </div>
-
-      <PrimeButton
-        :label="
-          isSubmitButtonLoading
-            ? t('importButton')
-            : conversationDraft.importSettings.importType !== null
-              ? t('importButton')
-              : t('nextButton')
-        "
-        size="0.8rem"
-        :loading="isSubmitButtonLoading"
-        :disabled="isSubmitButtonLoading || hasActiveImport || isTitleOverLimit || isBodyOverLimit || isTitleEmpty"
-        @click="onSubmit()"
-      />
-    </TopMenuWrapper>
+  <NewConversationLayout v-slot="{ isActive }">
+    <Teleport v-if="isActive && !isNavigatingAway" to="#page-header">
+      <DefaultMenuBar :click-to-scroll-top="false">
+        <template #left>
+          <BackButton :fallback-route="{ name: '/' }" />
+        </template>
+        <template #right>
+          <PrimeButton
+            :label="
+              isSubmitButtonLoading
+                ? t('importButton')
+                : conversationDraft.importSettings.importType !== null
+                  ? t('importButton')
+                  : t('nextButton')
+            "
+            :loading="isSubmitButtonLoading"
+            :disabled="isSubmitButtonLoading || hasActiveImport || isTitleOverLimit || isBodyOverLimit || isTitleEmpty"
+            @click="onSubmit()"
+          />
+        </template>
+      </DefaultMenuBar>
+    </Teleport>
 
     <div class="container">
       <NewConversationControlBar
-        v-model:poll-enabled="pollEnabled"
         v-model:is-private="isPrivate"
         v-model:participation-mode="participationMode"
         v-model:requires-event-ticket="requiresEventTicket"
@@ -30,9 +31,9 @@
         v-model:post-as="postAs"
         v-model:conversation-type="conversationType"
         v-model:import-settings="importSettings"
+        v-model:external-source-config="externalSourceConfig"
         v-model:title="title"
         v-model:content="content"
-        v-model:poll-options="pollOptions"
       />
 
       <!-- Active Import Banner -->
@@ -46,6 +47,37 @@
       />
 
       <div class="contentFlexStyle">
+        <!-- GitHub config fields (inline) -->
+        <div
+          v-if="externalSourceConfig !== null"
+          class="github-config-section"
+        >
+          <div class="github-config-header">
+            <q-icon name="mdi-github" size="1.2rem" />
+            <span>{{ t("githubConfig") }}</span>
+          </div>
+          <div class="github-config-fields">
+            <div class="github-field">
+              <label class="github-field-label">{{ t("githubRepository") }}</label>
+              <input
+                v-model="externalSourceConfig.repository"
+                type="text"
+                class="github-field-input"
+                :placeholder="t('githubRepositoryPlaceholder')"
+              />
+            </div>
+            <div class="github-field">
+              <label class="github-field-label">{{ t("githubLabel") }}</label>
+              <input
+                v-model="externalSourceConfig.label"
+                type="text"
+                class="github-field-input"
+                :placeholder="t('githubLabelPlaceholder')"
+              />
+            </div>
+          </div>
+        </div>
+
         <div
           v-if="conversationDraft.importSettings.importType === null"
           ref="titleInputRef"
@@ -103,27 +135,18 @@
               @update:is-over-limit="(v: boolean) => (isBodyOverLimit = v)"
             />
           </div>
-
-          <div v-if="pollEnabled">
-            <PollComponent
-              ref="pollComponentRef"
-              v-model:poll-enabled="pollEnabled"
-              v-model:poll-options="pollOptions"
-              v-model:validation-error="pollValidationError"
-            />
-          </div>
         </div>
       </div>
     </div>
 
     <NewConversationRouteGuard
       ref="routeGuardRef"
-      :allowed-routes="['/conversation/new/review/']"
+      :allowed-routes="['/conversation/new/seed/']"
       :has-unsaved-changes="isDraftModified"
       :reset-draft="resetDraft"
     />
 
-    <PreLoginIntentionDialog
+    <PreParticipationIntentionDialog
       v-model="showLoginDialog"
       :ok-callback="onLoginCallback"
       active-intention="newConversation"
@@ -134,18 +157,16 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import Button from "primevue/button";
-import PreLoginIntentionDialog from "src/components/authentication/intention/PreLoginIntentionDialog.vue";
+import PreParticipationIntentionDialog from "src/components/authentication/intention/PreParticipationIntentionDialog.vue";
 import ActiveImportBanner from "src/components/conversation/import/ActiveImportBanner.vue";
 import BackButton from "src/components/navigation/buttons/BackButton.vue";
-import TopMenuWrapper from "src/components/navigation/header/TopMenuWrapper.vue";
+import DefaultMenuBar from "src/components/navigation/header/DefaultMenuBar.vue";
 import PolisCsvUpload from "src/components/newConversation/import/csv/PolisCsvUpload.vue";
 import PolisUrlInput from "src/components/newConversation/import/url/PolisUrlInput.vue";
 import NewConversationControlBar from "src/components/newConversation/NewConversationControlBar.vue";
 import NewConversationLayout from "src/components/newConversation/NewConversationLayout.vue";
 import NewConversationRouteGuard from "src/components/newConversation/NewConversationRouteGuard.vue";
-import PollComponent from "src/components/newConversation/poll/PollComponent.vue";
 import {
-  createEmptyDraft,
   useConversationDraft,
   type ValidationErrorField,
 } from "src/composables/conversation/draft";
@@ -158,7 +179,15 @@ import { useUserStore } from "src/stores/user";
 import { type AxiosErrorCode, useCommonApi } from "src/utils/api/common";
 import { useActiveImportQuery } from "src/utils/api/conversationImport/useConversationImportQueries";
 import { useBackendPostApi } from "src/utils/api/post/post";
-import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
+import { isHistoryPathEqual } from "src/utils/nav/historyBack";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 
 import {
@@ -179,13 +208,12 @@ const Editor = defineAsyncComponent(
 const { t } = useComponentI18n<CreateConversationTranslations>(
   createConversationTranslations
 );
+const isNavigatingAway = ref(false);
 
 // Use the conversation draft composable with store sync enabled
 const {
   title,
   content,
-  pollEnabled,
-  pollOptions,
   conversationType,
   isPrivate,
   participationMode,
@@ -193,9 +221,9 @@ const {
   privateConversationSettings,
   postAs,
   importSettings,
+  externalSourceConfig,
   validationState,
   validatePolisUrl,
-  validatePoll,
   validateBody: validateBodyField,
   validateForReview,
   updateTitle,
@@ -203,14 +231,6 @@ const {
   isDraftModified,
   resetDraft,
 } = useConversationDraft({ syncToStore: true });
-
-// Extract poll validation error for passing to PollComponent
-const pollValidationError = computed({
-  get: () => validationState.value.poll.error,
-  set: (value) => {
-    validationState.value.poll.error = value;
-  },
-});
 
 const isSubmitButtonLoading = ref(false);
 const isTitleOverLimit = ref(false);
@@ -245,8 +265,6 @@ const routeGuardRef = ref<InstanceType<
 > | null>(null);
 
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-const pollComponentRef = ref<InstanceType<typeof PollComponent> | null>(null);
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 const polisUrlInputRef = ref<InstanceType<typeof PolisUrlInput> | null>(null);
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 const polisCsvUploadRef = ref<InstanceType<typeof PolisCsvUpload> | null>(null);
@@ -274,6 +292,24 @@ const hasActiveImport = computed(() => {
   return activeImportQuery.data.value?.hasActiveImport ?? false;
 });
 
+function hasForwardSeedEntry(): boolean {
+  return isHistoryPathEqual({
+    historyPath: window.history.state?.forward,
+    expectedPath: "/conversation/new/seed/",
+  });
+}
+
+function normalizeCreateHistoryState(): void {
+  if (!hasForwardSeedEntry()) {
+    return;
+  }
+
+  router.options.history.replace(router.options.history.location, {
+    ...router.options.history.state,
+    forward: null,
+  });
+}
+
 function onLoginCallback() {
   // Unlock route to prevent ExitRoutePrompt from showing
   // The user already saw "Your draft will be restored" in the login dialog
@@ -281,32 +317,9 @@ function onLoginCallback() {
   createNewConversationIntention();
 }
 
-function scrollToPollingRef(): void {
-  if (pollEnabled.value) {
-    setTimeout(function () {
-      pollComponentRef.value?.$el?.scrollIntoView({
-        behavior: "smooth",
-        inline: "start",
-      });
-    }, 100);
-  } else {
-    const emptyDraft = createEmptyDraft();
-    pollOptions.value = [...emptyDraft.poll.options];
-  }
-}
-
 function scrollToTitleInput() {
   setTimeout(function () {
     titleInputRef.value?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-  }, 100);
-}
-
-function scrollToPollComponent() {
-  setTimeout(function () {
-    pollComponentRef.value?.$el?.scrollIntoView({
       behavior: "smooth",
       block: "center",
     });
@@ -345,10 +358,6 @@ function handleValidationError(errorField: ValidationErrorField): void {
   switch (errorField) {
     case "title":
       scrollToTitleInput();
-      break;
-    case "poll":
-      validatePoll();
-      scrollToPollComponent();
       break;
     case "body":
       validateBodyField();
@@ -408,6 +417,7 @@ async function handleImportSubmission(): Promise<void> {
 
       resetDraft();
       // CSV import is async - redirect to import status page to poll for completion
+      isNavigatingAway.value = true;
       await router.replace({
         name: "/conversation/import/[importSlugId]",
         params: { importSlugId: response.importSlugId },
@@ -438,6 +448,7 @@ async function handleImportSubmission(): Promise<void> {
     if (response.status === "success") {
       resetDraft();
       // URL import is now async - redirect to import status page to poll for completion
+      isNavigatingAway.value = true;
       await router.replace({
         name: "/conversation/import/[importSlugId]",
         params: { importSlugId: response.data.importSlugId },
@@ -453,7 +464,11 @@ async function handleImportSubmission(): Promise<void> {
 
 async function handleRegularSubmission(): Promise<void> {
   routeGuardRef.value?.unlockRoute();
-  await router.push({ name: "/conversation/new/review/" });
+  isNavigatingAway.value = true;
+  await nextTick();
+  await router.push({
+    name: "/conversation/new/seed/",
+  });
 }
 
 async function onSubmit(): Promise<void> {
@@ -489,14 +504,10 @@ async function onSubmit(): Promise<void> {
 
 // Validate organization on mount
 onMounted(() => {
+  normalizeCreateHistoryState();
+
   const { profileData } = storeToRefs(useUserStore());
   validateSelectedOrganization(profileData.value.organizationList);
-});
-
-watch(pollEnabled, (enablePolling) => {
-  if (enablePolling === true) {
-    scrollToPollingRef();
-  }
 });
 </script>
 
@@ -539,7 +550,7 @@ watch(pollEnabled, (enablePolling) => {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding-top: 2rem;
+  padding-top: 0.5rem;
   padding-bottom: 8rem;
 }
 
@@ -562,5 +573,55 @@ watch(pollEnabled, (enablePolling) => {
 .large-text-input :deep(.q-field__native) {
   font-weight: var(--font-weight-medium);
   line-height: 1.5;
+}
+
+.github-config-section {
+  background: white;
+  border-radius: 20px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.github-config-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: var(--font-weight-medium);
+  font-size: 0.95rem;
+  color: #24292f;
+}
+
+.github-config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.github-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.github-field-label {
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  color: $color-text-weak;
+}
+
+.github-field-input {
+  border: 1px solid #d8d6de;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: $primary;
+  }
 }
 </style>

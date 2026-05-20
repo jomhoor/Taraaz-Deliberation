@@ -1,0 +1,522 @@
+import type { SupportedDisplayLanguageCodes } from "src/shared/languages";
+
+export interface ConversationSurveyStepTranslations {
+  publishButton: string;
+  addQuestionButton: string;
+  pageTitle: string;
+  pageDescription: string;
+  optionalSurveyToggleLabel: string;
+  optionalSurveyToggleHint: string;
+  requiredSurveyToggleHint: string;
+  questionRequirementDisabledHint: string;
+  noQuestionsTitle: string;
+  noQuestionsDescription: string;
+  questionLabel: string;
+  requiredLabel: string;
+  optionalLabel: string;
+  questionTypeLabel: string;
+  questionPromptLabel: string;
+  removeQuestionLabel: string;
+  optionLabel: string;
+  addOptionLabel: string;
+  minSelectionsLabel: string;
+  maxSelectionsLabel: string;
+  minTextLengthLabel: string;
+  maxTextLengthLabel: string;
+  freeTextHelp: string;
+  typeChoice: string;
+  typeFreeText: string;
+  choiceDisplayLabel: string;
+  choiceDisplayAuto: string;
+  choiceDisplayList: string;
+  choiceDisplayDropdown: string;
+  surveyValidationError: string;
+  publishError: string;
+  largeOptionCountWarning: string;
+  confirmRemoveQuestionMessage: string;
+  confirmRemoveOptionMessage: string;
+  confirmRemoveQuestionButtonLabel: string;
+  confirmRemoveOptionButtonLabel: string;
+  cancelLabel: string;
+}
+
+export const conversationSurveyStepTranslations: Record<
+  SupportedDisplayLanguageCodes,
+  ConversationSurveyStepTranslations
+> = {
+  en: {
+    publishButton: "Publish",
+    addQuestionButton: "Add question",
+    pageTitle: "Conversation survey",
+    pageDescription:
+      "Configure the survey step shown before participants can vote on or create statements.",
+    optionalSurveyToggleLabel: "Allow participants to skip the survey",
+    optionalSurveyToggleHint:
+      "The survey step can be skipped. Participants can vote or create statements without answering the survey; their votes are always included in analysis, and required question settings are ignored.",
+    requiredSurveyToggleHint:
+      "When a survey exists, the survey step is required. Participants must pass through it before voting or creating statements, even if some or all questions are optional. Only votes from participants who complete this step are included in analysis.",
+    questionRequirementDisabledHint:
+      "This question is treated as optional because the survey step can be skipped.",
+    noQuestionsTitle: "No survey yet",
+    noQuestionsDescription:
+      "Leave this empty to publish without a survey, or add questions now.",
+    questionLabel: "Question {number}",
+    requiredLabel: "Required",
+    optionalLabel: "Optional",
+    questionTypeLabel: "Question type",
+    questionPromptLabel: "Question prompt",
+    removeQuestionLabel: "Remove",
+    optionLabel: "Option {number}",
+    addOptionLabel: "Add option",
+    minSelectionsLabel: "Minimum selections",
+    maxSelectionsLabel: "Maximum selections",
+    minTextLengthLabel: "Minimum text length",
+    maxTextLengthLabel: "Maximum text length",
+    freeTextHelp: "Rich text is allowed. Completion uses plain-text length.",
+    typeChoice: "Choice",
+    typeFreeText: "Free text",
+    choiceDisplayLabel: "Display",
+    choiceDisplayAuto: "Auto",
+    choiceDisplayList: "List",
+    choiceDisplayDropdown: "Searchable dropdown",
+    surveyValidationError: "Please complete all survey questions before publishing.",
+    publishError: "Error while trying to create a new conversation",
+    largeOptionCountWarning:
+      "This question is set to List and has {count} options. Consider Auto or Searchable dropdown so participants can scan answers faster.",
+    confirmRemoveQuestionMessage: "Remove this question from the survey?",
+    confirmRemoveOptionMessage: "Remove this option from the question?",
+    confirmRemoveQuestionButtonLabel: "Remove question",
+    confirmRemoveOptionButtonLabel: "Remove option",
+    cancelLabel: "Cancel",
+  },
+  ar: {
+    publishButton: "نشر",
+    addQuestionButton: "إضافة سؤال",
+    pageTitle: "استبيان المحادثة",
+    pageDescription: "اضبط خطوة الاستبيان التي تظهر قبل أن يتمكن المشاركون من التصويت على العبارات أو إنشاء عبارات جديدة.",
+    optionalSurveyToggleLabel: "السماح للمشاركين بتخطي الاستبيان",
+    optionalSurveyToggleHint:
+      "يمكن تخطي خطوة الاستبيان. يمكن للمشاركين التصويت أو إنشاء عبارات دون الإجابة على الاستبيان؛ وتُحتسب أصواتهم دائمًا في التحليل، ويتم تجاهل إعدادات إلزامية الأسئلة.",
+    requiredSurveyToggleHint:
+      "عند وجود استبيان، تكون خطوة الاستبيان مطلوبة. يجب على المشاركين المرور بها قبل التصويت أو إنشاء عبارات، حتى لو كانت بعض الأسئلة أو كلها اختيارية. تُدرج في التحليل فقط أصوات المشاركين الذين يكملون هذه الخطوة.",
+    questionRequirementDisabledHint:
+      "يُعامَل هذا السؤال كاختياري لأن خطوة الاستبيان يمكن تخطيها.",
+    noQuestionsTitle: "لا يوجد استبيان بعد",
+    noQuestionsDescription: "اترك هذه الصفحة فارغة للنشر بدون استبيان، أو أضف أسئلة الآن.",
+    questionLabel: "السؤال {number}",
+    requiredLabel: "مطلوب",
+    optionalLabel: "اختياري",
+    questionTypeLabel: "نوع السؤال",
+    questionPromptLabel: "نص السؤال",
+    removeQuestionLabel: "إزالة",
+    optionLabel: "الخيار {number}",
+    addOptionLabel: "إضافة خيار",
+    minSelectionsLabel: "الحد الأدنى للاختيارات",
+    maxSelectionsLabel: "الحد الأقصى للاختيارات",
+    minTextLengthLabel: "الحد الأدنى لطول النص",
+    maxTextLengthLabel: "الحد الأقصى لطول النص",
+    freeTextHelp: "النص المنسق مسموح. الاكتمال يعتمد على طول النص العادي.",
+    typeChoice: "اختيار",
+    typeFreeText: "نص حر",
+    choiceDisplayLabel: "العرض",
+    choiceDisplayAuto: "تلقائي",
+    choiceDisplayList: "قائمة",
+    choiceDisplayDropdown: "قائمة منسدلة قابلة للبحث",
+    surveyValidationError: "يرجى إكمال جميع أسئلة الاستبيان قبل النشر.",
+    publishError: "حدث خطأ أثناء إنشاء محادثة جديدة",
+    largeOptionCountWarning:
+      "تم ضبط هذا السؤال على القائمة ويحتوي على {count} خيارات. فكّر في استخدام تلقائي أو قائمة منسدلة قابلة للبحث ليتمكن المشاركون من تصفح الإجابات بسرعة أكبر.",
+    confirmRemoveQuestionMessage: "إزالة هذا السؤال من الاستبيان؟",
+    confirmRemoveOptionMessage: "إزالة هذا الخيار من السؤال؟",
+    confirmRemoveQuestionButtonLabel: "إزالة السؤال",
+    confirmRemoveOptionButtonLabel: "إزالة الخيار",
+    cancelLabel: "إلغاء",
+  },
+  es: {
+    publishButton: "Publicar",
+    addQuestionButton: "Agregar pregunta",
+    pageTitle: "Encuesta de la conversación",
+    pageDescription: "Configura el paso de encuesta que aparece antes de que los participantes puedan votar sobre propuestas o crear nuevas.",
+    optionalSurveyToggleLabel: "Permitir que los participantes omitan la encuesta",
+    optionalSurveyToggleHint:
+      "El paso de encuesta se puede omitir. Los participantes pueden votar o crear propuestas sin responder la encuesta; sus votos siempre se incluyen en el análisis, y se ignoran los ajustes de preguntas obligatorias.",
+    requiredSurveyToggleHint:
+      "Cuando existe una encuesta, el paso de encuesta es obligatorio. Los participantes deben pasar por él antes de votar o crear propuestas, aunque algunas o todas las preguntas sean opcionales. Solo los votos de participantes que completan este paso se incluyen en el análisis.",
+    questionRequirementDisabledHint:
+      "Esta pregunta se trata como opcional porque el paso de encuesta se puede omitir.",
+    noQuestionsTitle: "Aún no hay encuesta",
+    noQuestionsDescription: "Déjalo vacío para publicar sin encuesta o agrega preguntas ahora.",
+    questionLabel: "Pregunta {number}",
+    requiredLabel: "Obligatoria",
+    optionalLabel: "Opcional",
+    questionTypeLabel: "Tipo de pregunta",
+    questionPromptLabel: "Enunciado de la pregunta",
+    removeQuestionLabel: "Eliminar",
+    optionLabel: "Opción {number}",
+    addOptionLabel: "Agregar opción",
+    minSelectionsLabel: "Selecciones mínimas",
+    maxSelectionsLabel: "Selecciones máximas",
+    minTextLengthLabel: "Longitud mínima del texto",
+    maxTextLengthLabel: "Longitud máxima del texto",
+    freeTextHelp: "Se permite texto enriquecido. La finalización usa la longitud del texto plano.",
+    typeChoice: "Elección",
+    typeFreeText: "Texto libre",
+    choiceDisplayLabel: "Visualización",
+    choiceDisplayAuto: "Automático",
+    choiceDisplayList: "Lista",
+    choiceDisplayDropdown: "Desplegable con búsqueda",
+    surveyValidationError: "Completa todas las preguntas de la encuesta antes de publicar.",
+    publishError: "Error al intentar crear una nueva conversación",
+    largeOptionCountWarning:
+      "Esta pregunta está configurada como Lista y tiene {count} opciones. Considera usar Automático o Desplegable con búsqueda para que los participantes puedan revisar las respuestas más rápido.",
+    confirmRemoveQuestionMessage: "¿Eliminar esta pregunta de la encuesta?",
+    confirmRemoveOptionMessage: "¿Eliminar esta opción de la pregunta?",
+    confirmRemoveQuestionButtonLabel: "Eliminar pregunta",
+    confirmRemoveOptionButtonLabel: "Eliminar opción",
+    cancelLabel: "Cancelar",
+  },
+  fa: {
+    publishButton: "انتشار",
+    addQuestionButton: "افزودن پرسش",
+    pageTitle: "نظرسنجی گفتگو",
+    pageDescription: "مرحله نظرسنجی را که پیش از رأی دادن شرکت‌کنندگان به گزاره‌ها یا ایجاد گزاره‌های جدید نمایش داده می‌شود تنظیم کنید.",
+    optionalSurveyToggleLabel: "اجازه دادن به شرکت‌کنندگان برای رد کردن نظرسنجی",
+    optionalSurveyToggleHint:
+      "مرحله نظرسنجی را می‌توان رد کرد. شرکت‌کنندگان می‌توانند بدون پاسخ دادن به نظرسنجی رأی دهند یا گزاره ایجاد کنند؛ رأی‌های آن‌ها همیشه در تحلیل محاسبه می‌شود و تنظیمات الزامی پرسش‌ها نادیده گرفته می‌شود.",
+    requiredSurveyToggleHint:
+      "وقتی نظرسنجی وجود دارد، مرحله نظرسنجی الزامی است. شرکت‌کنندگان باید پیش از رأی دادن یا ایجاد گزاره از آن عبور کنند، حتی اگر برخی یا همه پرسش‌ها اختیاری باشند. فقط رأی‌های شرکت‌کنندگانی که این مرحله را کامل می‌کنند در تحلیل وارد می‌شود.",
+    questionRequirementDisabledHint:
+      "این پرسش اختیاری در نظر گرفته می‌شود چون مرحله نظرسنجی را می‌توان رد کرد.",
+    noQuestionsTitle: "هنوز نظرسنجی‌ای وجود ندارد",
+    noQuestionsDescription: "برای انتشار بدون نظرسنجی این بخش را خالی بگذارید، یا همین حالا پرسش اضافه کنید.",
+    questionLabel: "پرسش {number}",
+    requiredLabel: "الزامی",
+    optionalLabel: "اختیاری",
+    questionTypeLabel: "نوع پرسش",
+    questionPromptLabel: "متن پرسش",
+    removeQuestionLabel: "حذف",
+    optionLabel: "گزینه {number}",
+    addOptionLabel: "افزودن گزینه",
+    minSelectionsLabel: "حداقل انتخاب‌ها",
+    maxSelectionsLabel: "حداکثر انتخاب‌ها",
+    minTextLengthLabel: "حداقل طول متن",
+    maxTextLengthLabel: "حداکثر طول متن",
+    freeTextHelp: "متن غنی مجاز است. تکمیل بر اساس طول متن ساده سنجیده می‌شود.",
+    typeChoice: "انتخابی",
+    typeFreeText: "متن آزاد",
+    choiceDisplayLabel: "نمایش",
+    choiceDisplayAuto: "خودکار",
+    choiceDisplayList: "فهرست",
+    choiceDisplayDropdown: "فهرست کشویی قابل جست‌وجو",
+    surveyValidationError: "پیش از انتشار، همه پرسش‌های نظرسنجی را کامل کنید.",
+    publishError: "هنگام ایجاد گفتگوی جدید خطایی رخ داد",
+    largeOptionCountWarning:
+      "این پرسش روی فهرست تنظیم شده و {count} گزینه دارد. برای اینکه شرکت‌کنندگان سریع‌تر گزینه‌ها را مرور کنند، حالت خودکار یا فهرست کشویی قابل جست‌وجو را در نظر بگیرید.",
+    confirmRemoveQuestionMessage: "این پرسش از نظرسنجی حذف شود؟",
+    confirmRemoveOptionMessage: "این گزینه از پرسش حذف شود؟",
+    confirmRemoveQuestionButtonLabel: "حذف پرسش",
+    confirmRemoveOptionButtonLabel: "حذف گزینه",
+    cancelLabel: "لغو",
+  },
+  fr: {
+    publishButton: "Publier",
+    addQuestionButton: "Ajouter une question",
+    pageTitle: "Questionnaire de la conversation",
+    pageDescription: "Configurez l'étape de questionnaire affichée avant que les participants puissent voter sur des propositions ou en créer.",
+    optionalSurveyToggleLabel: "Autoriser les participants à ignorer le questionnaire",
+    optionalSurveyToggleHint:
+      "L'étape de questionnaire peut être ignorée. Les participants peuvent voter ou créer des propositions sans répondre au questionnaire ; leurs votes sont toujours pris en compte dans l'analyse, et les réglages obligatoires des questions sont ignorés.",
+    requiredSurveyToggleHint:
+      "Lorsqu'un questionnaire existe, l'étape de questionnaire est requise. Les participants doivent y passer avant de voter ou de créer des propositions, même si certaines questions ou toutes les questions sont facultatives. Seuls les votes des participants qui terminent cette étape sont pris en compte dans l'analyse.",
+    questionRequirementDisabledHint:
+      "Cette question est traitée comme facultative, car l'étape de questionnaire peut être ignorée.",
+    noQuestionsTitle: "Pas encore de questionnaire",
+    noQuestionsDescription: "Laissez cette étape vide pour publier sans questionnaire, ou ajoutez des questions maintenant.",
+    questionLabel: "Question {number}",
+    requiredLabel: "Requis",
+    optionalLabel: "Facultatif",
+    questionTypeLabel: "Type de question",
+    questionPromptLabel: "Intitulé de la question",
+    removeQuestionLabel: "Supprimer",
+    optionLabel: "Option {number}",
+    addOptionLabel: "Ajouter une option",
+    minSelectionsLabel: "Sélections minimales",
+    maxSelectionsLabel: "Sélections maximales",
+    minTextLengthLabel: "Longueur minimale du texte",
+    maxTextLengthLabel: "Longueur maximale du texte",
+    freeTextHelp: "Le texte enrichi est autorisé. La complétion utilise la longueur du texte brut.",
+    typeChoice: "Choix",
+    typeFreeText: "Texte libre",
+    choiceDisplayLabel: "Affichage",
+    choiceDisplayAuto: "Automatique",
+    choiceDisplayList: "Liste",
+    choiceDisplayDropdown: "Liste déroulante avec recherche",
+    surveyValidationError: "Veuillez compléter toutes les questions du questionnaire avant de publier.",
+    publishError: "Erreur lors de la création d'une nouvelle conversation",
+    largeOptionCountWarning:
+      "Cette question est réglée sur Liste et comporte {count} options. Pensez à utiliser Automatique ou Liste déroulante avec recherche pour aider les participants à parcourir les réponses plus vite.",
+    confirmRemoveQuestionMessage: "Supprimer cette question du questionnaire ?",
+    confirmRemoveOptionMessage: "Supprimer cette option de la question ?",
+    confirmRemoveQuestionButtonLabel: "Supprimer la question",
+    confirmRemoveOptionButtonLabel: "Supprimer l'option",
+    cancelLabel: "Annuler",
+  },
+  he: {
+    publishButton: "פרסום",
+    addQuestionButton: "הוספת שאלה",
+    pageTitle: "סקר השיחה",
+    pageDescription: "הגדירו את שלב הסקר שמוצג לפני שמשתתפים יכולים להצביע על הצהרות או ליצור חדשות.",
+    optionalSurveyToggleLabel: "לאפשר למשתתפים לדלג על הסקר",
+    optionalSurveyToggleHint:
+      "אפשר לדלג על שלב הסקר. המשתתפים יכולים להצביע או ליצור הצהרות בלי לענות על הסקר; ההצבעות שלהם תמיד נכללות בניתוח, והגדרות החובה של השאלות יזכו להתעלמות.",
+    requiredSurveyToggleHint:
+      "כאשר קיים סקר, שלב הסקר נדרש. המשתתפים חייבים לעבור דרכו לפני הצבעה או יצירת הצהרות, גם אם חלק מהשאלות או כולן אופציונליות. רק הצבעות של משתתפים שמשלימים את השלב הזה נכללות בניתוח.",
+    questionRequirementDisabledHint:
+      "השאלה הזו נחשבת אופציונלית כי אפשר לדלג על שלב הסקר.",
+    noQuestionsTitle: "עדיין אין סקר",
+    noQuestionsDescription: "השאירו את השלב הזה ריק כדי לפרסם בלי סקר, או הוסיפו שאלות עכשיו.",
+    questionLabel: "שאלה {number}",
+    requiredLabel: "נדרש",
+    optionalLabel: "אופציונלי",
+    questionTypeLabel: "סוג שאלה",
+    questionPromptLabel: "נוסח השאלה",
+    removeQuestionLabel: "הסרה",
+    optionLabel: "אפשרות {number}",
+    addOptionLabel: "הוספת אפשרות",
+    minSelectionsLabel: "מינימום בחירות",
+    maxSelectionsLabel: "מקסימום בחירות",
+    minTextLengthLabel: "אורך טקסט מינימלי",
+    maxTextLengthLabel: "אורך טקסט מקסימלי",
+    freeTextHelp: "מותר טקסט עשיר. ההשלמה מחושבת לפי אורך הטקסט הפשוט.",
+    typeChoice: "בחירה",
+    typeFreeText: "טקסט חופשי",
+    choiceDisplayLabel: "תצוגה",
+    choiceDisplayAuto: "אוטומטי",
+    choiceDisplayList: "רשימה",
+    choiceDisplayDropdown: "תפריט נפתח עם חיפוש",
+    surveyValidationError: "יש להשלים את כל שאלות הסקר לפני הפרסום.",
+    publishError: "שגיאה בניסיון ליצור שיחה חדשה",
+    largeOptionCountWarning:
+      "השאלה הזו מוגדרת כרשימה ויש בה {count} אפשרויות. שקלו להשתמש באוטומטי או בתפריט נפתח עם חיפוש כדי שהמשתתפים יוכלו לסרוק תשובות מהר יותר.",
+    confirmRemoveQuestionMessage: "להסיר את השאלה הזו מהסקר?",
+    confirmRemoveOptionMessage: "להסיר את האפשרות הזו מהשאלה?",
+    confirmRemoveQuestionButtonLabel: "הסרת שאלה",
+    confirmRemoveOptionButtonLabel: "הסרת אפשרות",
+    cancelLabel: "ביטול",
+  },
+  ja: {
+    publishButton: "公開",
+    addQuestionButton: "質問を追加",
+    pageTitle: "会話アンケート",
+    pageDescription: "参加者が意見に投票したり新しい意見を作成したりする前に表示されるアンケート手順を設定します。",
+    optionalSurveyToggleLabel: "参加者がアンケートをスキップできるようにする",
+    optionalSurveyToggleHint:
+      "アンケート手順はスキップできます。参加者はアンケートに回答せずに投票や意見の作成ができ、その投票は常に分析に含まれ、質問の必須設定は無視されます。",
+    requiredSurveyToggleHint:
+      "アンケートがある場合、アンケート手順は必須です。一部またはすべての質問が任意でも、参加者は投票や意見の作成の前にこの手順を通る必要があります。この手順を完了した参加者の投票のみが分析に含まれます。",
+    questionRequirementDisabledHint:
+      "アンケート手順をスキップできるため、この質問は任意として扱われます。",
+    noQuestionsTitle: "アンケートはまだありません",
+    noQuestionsDescription: "アンケートなしで公開する場合はこのままにするか、今すぐ質問を追加してください。",
+    questionLabel: "質問 {number}",
+    requiredLabel: "必須",
+    optionalLabel: "任意",
+    questionTypeLabel: "質問タイプ",
+    questionPromptLabel: "質問文",
+    removeQuestionLabel: "削除",
+    optionLabel: "選択肢 {number}",
+    addOptionLabel: "選択肢を追加",
+    minSelectionsLabel: "最小選択数",
+    maxSelectionsLabel: "最大選択数",
+    minTextLengthLabel: "最小文字数",
+    maxTextLengthLabel: "最大文字数",
+    freeTextHelp: "リッチテキストを使用できます。完了判定はプレーンテキストの長さを使います。",
+    typeChoice: "選択",
+    typeFreeText: "自由記述",
+    choiceDisplayLabel: "表示",
+    choiceDisplayAuto: "自動",
+    choiceDisplayList: "リスト",
+    choiceDisplayDropdown: "検索可能なドロップダウン",
+    surveyValidationError: "公開前にアンケートの質問をすべて完成させてください。",
+    publishError: "新しい会話の作成中にエラーが発生しました",
+    largeOptionCountWarning:
+      "この質問はリスト表示に設定されており、{count} 個の選択肢があります。参加者が回答をすばやく確認できるように、自動または検索可能なドロップダウンの使用を検討してください。",
+    confirmRemoveQuestionMessage: "この質問をアンケートから削除しますか？",
+    confirmRemoveOptionMessage: "この選択肢を質問から削除しますか？",
+    confirmRemoveQuestionButtonLabel: "質問を削除",
+    confirmRemoveOptionButtonLabel: "選択肢を削除",
+    cancelLabel: "キャンセル",
+  },
+  ky: {
+    publishButton: "Жарыялоо",
+    addQuestionButton: "Суроо кошуу",
+    pageTitle: "Сүйлөшүүнүн сурамжылоосу",
+    pageDescription: "Катышуучулар билдирүүлөргө добуш берип же жаңыларын түзө алышынан мурун көрсөтүлүүчү сурамжылоо кадамын жөндөңүз.",
+    optionalSurveyToggleLabel: "Катышуучуларга сурамжылоону өткөрүп жиберүүгө уруксат берүү",
+    optionalSurveyToggleHint:
+      "Сурамжылоо кадамын өткөрүп жиберүүгө болот. Катышуучулар сурамжылоого жооп бербей эле добуш берип же билдирүү түзө алышат; алардын добуштары ар дайым талдоого кирет, ал эми суроолордун милдеттүү жөндөөлөрү эске алынбайт.",
+    requiredSurveyToggleHint:
+      "Сурамжылоо бар болсо, сурамжылоо кадамы милдеттүү. Айрым суроолор же бардык суроолор ыктыярдуу болсо да, катышуучулар добуш берүү же билдирүү түзүүдөн мурун бул кадамдан өтүшү керек. Бул кадамды аяктаган катышуучулардын добуштары гана талдоого кирет.",
+    questionRequirementDisabledHint:
+      "Сурамжылоо кадамын өткөрүп жиберүүгө болгондуктан, бул суроо ыктыярдуу деп эсептелет.",
+    noQuestionsTitle: "Азырынча сурамжылоо жок",
+    noQuestionsDescription: "Сурамжылоосуз жарыялоо үчүн муну бош калтырыңыз же азыр суроолорду кошуңуз.",
+    questionLabel: "Суроо {number}",
+    requiredLabel: "Милдеттүү",
+    optionalLabel: "Ыктыярдуу",
+    questionTypeLabel: "Суроонун түрү",
+    questionPromptLabel: "Суроонун тексти",
+    removeQuestionLabel: "Өчүрүү",
+    optionLabel: "Вариант {number}",
+    addOptionLabel: "Вариант кошуу",
+    minSelectionsLabel: "Минималдуу тандоо",
+    maxSelectionsLabel: "Максималдуу тандоо",
+    minTextLengthLabel: "Тексттин минималдуу узундугу",
+    maxTextLengthLabel: "Тексттин максималдуу узундугу",
+    freeTextHelp: "Rich text колдонууга болот. Аяктоо жөнөкөй тексттин узундугу менен эсептелет.",
+    typeChoice: "Тандоо",
+    typeFreeText: "Эркин текст",
+    choiceDisplayLabel: "Көрсөтүү",
+    choiceDisplayAuto: "Авто",
+    choiceDisplayList: "Тизме",
+    choiceDisplayDropdown: "Издөөгө боло турган ачылма тизме",
+    surveyValidationError: "Жарыялоодон мурун бардык сурамжылоо суроолорун толтуруңуз.",
+    publishError: "Жаңы сүйлөшүүнү түзүүдө ката кетти",
+    largeOptionCountWarning:
+      "Бул суроо Тизме режимине коюлган жана {count} варианты бар. Катышуучулар жоопторду тезирээк карап чыгышы үчүн Авто же издөөчү ачылма тизмени колдонуп көрүңүз.",
+    confirmRemoveQuestionMessage: "Бул суроону сурамжылоодон өчүрөсүзбү?",
+    confirmRemoveOptionMessage: "Бул вариантты суроодон өчүрөсүзбү?",
+    confirmRemoveQuestionButtonLabel: "Суроону өчүрүү",
+    confirmRemoveOptionButtonLabel: "Вариантты өчүрүү",
+    cancelLabel: "Жокко чыгаруу",
+  },
+  ru: {
+    publishButton: "Опубликовать",
+    addQuestionButton: "Добавить вопрос",
+    pageTitle: "Опрос беседы",
+    pageDescription: "Настройте шаг опроса, который показывается перед тем, как участники смогут голосовать за утверждения или создавать новые.",
+    optionalSurveyToggleLabel: "Разрешить участникам пропускать опрос",
+    optionalSurveyToggleHint:
+      "Шаг опроса можно пропустить. Участники могут голосовать или создавать утверждения без ответов на опрос; их голоса всегда включаются в анализ, а настройки обязательности вопросов игнорируются.",
+    requiredSurveyToggleHint:
+      "Если есть опрос, шаг опроса обязателен. Участники должны пройти его перед голосованием или созданием утверждений, даже если некоторые или все вопросы необязательные. В анализ включаются только голоса участников, которые завершили этот шаг.",
+    questionRequirementDisabledHint:
+      "Этот вопрос считается необязательным, потому что шаг опроса можно пропустить.",
+    noQuestionsTitle: "Опроса пока нет",
+    noQuestionsDescription: "Оставьте этот шаг пустым, чтобы опубликовать без опроса, или добавьте вопросы сейчас.",
+    questionLabel: "Вопрос {number}",
+    requiredLabel: "Обязательный",
+    optionalLabel: "Необязательный",
+    questionTypeLabel: "Тип вопроса",
+    questionPromptLabel: "Текст вопроса",
+    removeQuestionLabel: "Удалить",
+    optionLabel: "Вариант {number}",
+    addOptionLabel: "Добавить вариант",
+    minSelectionsLabel: "Минимум выборов",
+    maxSelectionsLabel: "Максимум выборов",
+    minTextLengthLabel: "Минимальная длина текста",
+    maxTextLengthLabel: "Максимальная длина текста",
+    freeTextHelp: "Допускается форматированный текст. Завершение определяется по длине обычного текста.",
+    typeChoice: "Выбор",
+    typeFreeText: "Свободный текст",
+    choiceDisplayLabel: "Отображение",
+    choiceDisplayAuto: "Авто",
+    choiceDisplayList: "Список",
+    choiceDisplayDropdown: "Выпадающий список с поиском",
+    surveyValidationError: "Перед публикацией заполните все вопросы опроса.",
+    publishError: "Ошибка при попытке создать новую беседу",
+    largeOptionCountWarning:
+      "Этот вопрос настроен как список и содержит {count} вариантов. Рассмотрите режим «Авто» или «Выпадающий список с поиском», чтобы участникам было проще быстро просматривать ответы.",
+    confirmRemoveQuestionMessage: "Удалить этот вопрос из опроса?",
+    confirmRemoveOptionMessage: "Удалить этот вариант из вопроса?",
+    confirmRemoveQuestionButtonLabel: "Удалить вопрос",
+    confirmRemoveOptionButtonLabel: "Удалить вариант",
+    cancelLabel: "Отмена",
+  },
+  "zh-Hans": {
+    publishButton: "发布",
+    addQuestionButton: "添加问题",
+    pageTitle: "对话问卷",
+    pageDescription: "配置参与者投票或创建意见前看到的问卷步骤。",
+    optionalSurveyToggleLabel: "允许参与者跳过问卷",
+    optionalSurveyToggleHint:
+      "问卷步骤可以跳过。参与者无需回答问卷即可投票或创建意见；他们的投票始终会计入分析，问题的必答设置会被忽略。",
+    requiredSurveyToggleHint:
+      "如果存在问卷，问卷步骤为必需。即使部分或全部问题都是可选的，参与者也必须先经过它，才能投票或创建意见。只有完成此步骤的参与者投票会计入分析。",
+    questionRequirementDisabledHint:
+      "由于问卷步骤可以跳过，此问题会被视为可选。",
+    noQuestionsTitle: "还没有问卷",
+    noQuestionsDescription: "如要无问卷发布，可保持为空；或者现在添加问题。",
+    questionLabel: "问题 {number}",
+    requiredLabel: "必答",
+    optionalLabel: "可选",
+    questionTypeLabel: "问题类型",
+    questionPromptLabel: "问题内容",
+    removeQuestionLabel: "移除",
+    optionLabel: "选项 {number}",
+    addOptionLabel: "添加选项",
+    minSelectionsLabel: "最少选择数",
+    maxSelectionsLabel: "最多选择数",
+    minTextLengthLabel: "最小文本长度",
+    maxTextLengthLabel: "最大文本长度",
+    freeTextHelp: "允许富文本。完成状态按纯文本长度计算。",
+    typeChoice: "选择",
+    typeFreeText: "自由文本",
+    choiceDisplayLabel: "显示方式",
+    choiceDisplayAuto: "自动",
+    choiceDisplayList: "列表",
+    choiceDisplayDropdown: "可搜索下拉菜单",
+    surveyValidationError: "发布前请完成所有问卷问题。",
+    publishError: "创建新对话时出错",
+    largeOptionCountWarning:
+      "此问题设置为列表，并有 {count} 个选项。建议使用“自动”或“可搜索下拉菜单”，让参与者更快浏览答案。",
+    confirmRemoveQuestionMessage: "要从问卷中移除这个问题吗？",
+    confirmRemoveOptionMessage: "要从问题中移除这个选项吗？",
+    confirmRemoveQuestionButtonLabel: "移除问题",
+    confirmRemoveOptionButtonLabel: "移除选项",
+    cancelLabel: "取消",
+  },
+  "zh-Hant": {
+    publishButton: "發布",
+    addQuestionButton: "新增問題",
+    pageTitle: "對話問卷",
+    pageDescription: "設定參與者投票或創建意見前看到的問卷步驟。",
+    optionalSurveyToggleLabel: "允許參與者跳過問卷",
+    optionalSurveyToggleHint:
+      "問卷步驟可以跳過。參與者無需回答問卷即可投票或創建意見；他們的投票一律會計入分析，問題的必答設定會被忽略。",
+    requiredSurveyToggleHint:
+      "如果存在問卷，問卷步驟為必需。即使部分或全部問題都是可選的，參與者也必須先經過它，才能投票或創建意見。只有完成此步驟的參與者投票會計入分析。",
+    questionRequirementDisabledHint:
+      "由於問卷步驟可以跳過，此問題會被視為可選。",
+    noQuestionsTitle: "還沒有問卷",
+    noQuestionsDescription: "若要不含問卷直接發布，可保持空白；或現在新增問題。",
+    questionLabel: "問題 {number}",
+    requiredLabel: "必答",
+    optionalLabel: "可選",
+    questionTypeLabel: "問題類型",
+    questionPromptLabel: "問題內容",
+    removeQuestionLabel: "移除",
+    optionLabel: "選項 {number}",
+    addOptionLabel: "新增選項",
+    minSelectionsLabel: "最少選擇數",
+    maxSelectionsLabel: "最多選擇數",
+    minTextLengthLabel: "最小文字長度",
+    maxTextLengthLabel: "最大文字長度",
+    freeTextHelp: "允許富文本。完成狀態依純文字長度計算。",
+    typeChoice: "選擇",
+    typeFreeText: "自由文字",
+    choiceDisplayLabel: "顯示方式",
+    choiceDisplayAuto: "自動",
+    choiceDisplayList: "列表",
+    choiceDisplayDropdown: "可搜尋下拉選單",
+    surveyValidationError: "發布前請完成所有問卷問題。",
+    publishError: "建立新對話時發生錯誤",
+    largeOptionCountWarning:
+      "此問題設定為列表，且有 {count} 個選項。建議使用「自動」或「可搜尋下拉選單」，讓參與者更快瀏覽答案。",
+    confirmRemoveQuestionMessage: "要從問卷中移除這個問題嗎？",
+    confirmRemoveOptionMessage: "要從問題中移除這個選項嗎？",
+    confirmRemoveQuestionButtonLabel: "移除問題",
+    confirmRemoveOptionButtonLabel: "移除選項",
+    cancelLabel: "取消",
+  },
+};

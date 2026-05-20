@@ -26,6 +26,7 @@ Agora Citizen Network is a privacy-preserving social platform using zero-knowled
 - **`services/api`** (Fastify) - Backend API
 - **`services/math-updater`** - Background worker for clustering
 - **`services/python-bridge`** - Python clustering service
+- **`services/scoring-worker`** (Python) - Solidago scoring worker for MaxDiff rankings
 
 ### Why SvelteKit for the Landing Page?
 
@@ -39,6 +40,16 @@ Agora Citizen Network is a privacy-preserving social platform using zero-knowled
 - **Agent-friendly**: Simple file-based routing, explicit data flow - easy for AI coding agents
 
 The landing page is embedded in the app (not a separate static site) because features like "Explore Conversations" will need database access via SSR.
+
+### UX Philosophy: Native-Like Experience
+
+The main frontend (`services/agora`) is a web app that should **feel like a native mobile app**. Every interaction should feel instant and responsive:
+
+- **Instant page loads**: Use caching (TanStack Query), optimistic updates, and preloaded data so page transitions feel immediate. Show skeleton loaders or spinners only when data genuinely isn't available yet.
+- **SPA navigation everywhere**: Never cause full page reloads. Use `SpaLink` (not plain `<a>`, `<RouterLink>`, or `<button>`) for all internal navigation links. See the "SpaLink for Internal Navigation" section under Important Patterns.
+- **KeepAlive for scroll preservation**: Pages wrapped in `<KeepAlive>` preserve scroll position and component state when navigating back. Don't reset state unnecessarily on re-activation.
+- **Background data refresh**: Refresh stale data silently in the background. Don't show loading states when cached data is available — show the cache immediately, refresh behind the scenes.
+- **No jank**: Avoid layout shifts, flash of empty content, or unnecessary re-renders. Use skeleton placeholders or `PageLoadingSpinner` to hold space while content loads.
 
 ### Terminology: Comment / Opinion / Statement
 
@@ -99,6 +110,9 @@ make dev-math-updater
 
 # Python bridge (clustering service)
 make dev-polis
+
+# Scoring worker (Solidago MaxDiff rankings)
+cd services/scoring-worker && make dev
 ```
 
 ### Code Generation & Syncing
@@ -134,7 +148,12 @@ cd services/api && pnpm lint && pnpm test
 
 # Math updater
 cd services/math-updater && pnpm lint && pnpm test
+
+# Scoring worker
+cd services/scoring-worker && make test && make lint && make typecheck
 ```
+
+When the user explicitly asks for `lint:fix`, run only that service's `lint:fix` command unless they also ask for `lint`, typechecking, tests, or broader verification.
 
 ### Git Commits
 
@@ -197,7 +216,7 @@ Deploy: math-updater"
 - Reference issue numbers, design decisions, or related PRs in the body or footer
 - **ALWAYS include a deployment footer** listing which services need to be redeployed:
   - Format: `Deploy: <service1>, <service2>, ...`
-  - Services: `app` (landing page), `agora` (main frontend), `api` (backend), `math-updater` (worker), `python-bridge` (clustering)
+  - Services: `app` (landing page), `agora` (main frontend), `api` (backend), `math-updater` (worker), `python-bridge` (clustering), `scoring-worker` (Solidago rankings)
   - Example: `Deploy: agora, api` or `Deploy: none` (for docs-only changes)
 - Do NOT mention AI assistants or tools in commit messages (e.g., "Claude", "AI-generated", "with assistance from")
   - This restriction applies ONLY to commit messages - code comments can mention tools/AI if helpful for context
@@ -245,10 +264,12 @@ cd services/math-updater && pnpm image:build
 Frontend (Vue/Quasar) → OpenAPI Client → API (Fastify)
                                            ↓
                                     PostgreSQL (primary + read replica)
-                                           ↑
-Math-updater (pg-boss jobs) ←──────────────┘
-       ↓
-Python-bridge (Flask/reddwarf clustering)
+                                           ↑              ↑
+Math-updater (pg-boss jobs) ←──────────────┘              │
+       ↓                                                  │
+Python-bridge (Flask/reddwarf clustering)                  │
+                                                          │
+API → Valkey dirty set → Scoring-worker (Solidago) ───────┘
 ```
 
 ### Services
@@ -258,6 +279,7 @@ Python-bridge (Flask/reddwarf clustering)
 - **api** (`services/api/`): Fastify backend with Drizzle ORM, handles auth/conversations/voting
 - **math-updater** (`services/math-updater/`): Background worker using pg-boss for clustering updates and AI label generation
 - **python-bridge** (`services/python-bridge/`): Flask service wrapping reddwarf clustering algorithms
+- **scoring-worker** (`services/scoring-worker/`): Python worker running Solidago algorithm for MaxDiff community rankings via Valkey dirty set
 - **shared**, **shared-app-api**, **shared-backend**: Shared TypeScript code synced via rsync
 
 ### Shared Code Strategy
@@ -447,6 +469,26 @@ if (probabilities.length !== types.length) {
 - Data from untyped sources (raw SQL, environment variables)
 - Legacy code integration where types cannot be guaranteed
 
+### Prefer `async`/`await` Over `.then()` Chains
+
+Always use `async`/`await` for asynchronous code. Do not use `.then()` or `.catch()` chains. This makes control flow easier to follow, error handling more consistent, and avoids nesting.
+
+```typescript
+// ✅ GOOD: async/await
+async function loadData(): Promise<void> {
+    const response = await fetchData();
+    const parsed = processResponse(response);
+    await saveResult(parsed);
+}
+
+// ❌ BAD: .then() chains
+function loadData(): void {
+    fetchData()
+        .then((response) => processResponse(response))
+        .then((parsed) => saveResult(parsed));
+}
+```
+
 ### Parse, Don't Validate
 
 Follow the ["Parse, Don't Validate"](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) principle: use parsing to transform untyped data into typed data, rather than validating and then casting.
@@ -594,6 +636,29 @@ export function getUserById(userId: string): User {
 
 Do not use `!important` in CSS or SCSS. It makes styles hard to override and debug. Instead, use more specific selectors or restructure the CSS to achieve the desired specificity.
 
+### RTL (Right-to-Left) Language Support
+
+The frontend supports RTL languages (Arabic, Persian, Hebrew). `postcss-rtlcss` automatically flips most directional CSS properties, but some things require manual attention.
+
+**Rules for new code:**
+- **Use CSS logical properties** instead of physical directional properties:
+  - `padding-inline-start` / `padding-inline-end` instead of `padding-left` / `padding-right`
+  - `margin-inline-start` / `margin-inline-end` instead of `margin-left` / `margin-right`
+  - `inset-inline-start` / `inset-inline-end` instead of `left` / `right`
+  - `text-align: start` / `text-align: end` instead of `text-align: left` / `text-align: right`
+  - `border-inline-start` / `border-inline-end` instead of `border-left` / `border-right`
+- **Use `flex-start` / `flex-end`** instead of `left` / `right` for `justify-content` (the latter are not valid flexbox values)
+- **Never hardcode directional icons** (e.g., `mdi-chevron-right`). Use a computed property that checks `$q.lang.rtl` to flip the icon direction
+- **Inline `:style` bindings** with `left`/`right` positioning must be made RTL-aware manually — `postcss-rtlcss` cannot process inline styles
+- **Quasar's `$q.lang.rtl`** is the source of truth for RTL state in components. Quasar language packs are loaded in `src/boot/i18n.ts` to enable this
+
+**What `postcss-rtlcss` handles automatically (no manual fix needed):**
+- `text-align: left` → `text-align: right` under `[dir="rtl"]`
+- `padding-left` / `margin-left` / `border-left` → flipped equivalents
+- `left` / `right` in positioned elements (including `transform: translateX`)
+
+**Test RTL** by switching display language to Persian/Arabic/Hebrew in Settings > Language.
+
 ### Props Drilling Over Inject/Provide (Vue)
 
 In Vue components, prefer **explicit props drilling** over `inject`/`provide` for passing data through the component tree. All drilled props must be **required** (not optional) and **typesafe**.
@@ -629,6 +694,27 @@ log.debug(`Processing started`); // ❌ Don't use this
 ```
 
 ## Important Patterns
+
+### SpaLink for Internal Navigation
+
+**Always use `SpaLink`** for internal navigation links in `services/agora`. Never use plain `<a>`, `<RouterLink>`, or `<button>` for navigation.
+
+**Why `SpaLink` and not `<button>` or `<RouterLink>`:**
+- Renders a real `<a href>` for accessibility, SEO, right-click "Open in new tab", and middle-click/Ctrl+click support
+- Fixes a Vue 3.5 event delegation bug (`vuejs/core#11765`) that races with the browser's native `<a href>` link following, causing intermittent full page reloads. `SpaLink` + a global capture-phase interceptor (`boot/spaLinkInterceptor.ts`) eliminate the race.
+
+**Two modes** (controlled by the `deferred` prop):
+
+- **Default** (`deferred=false`): The interceptor handles `e.preventDefault()` + `router.push()`. Use for: feed cards, profile statements, notifications, banners — any link where the interceptor can handle navigation.
+- **Deferred** (`deferred=true`): The interceptor only does `e.preventDefault()`. The component handles navigation itself. Use for: analysis/comment tabs that need custom history management (`canGoBackToComment`, `router.back()`) which would conflict with the interceptor's `router.push()`.
+
+**Files:**
+- `services/agora/src/components/ui-library/SpaLink.vue` — the component
+- `services/agora/src/boot/spaLinkInterceptor.ts` — the global interceptor
+
+**References:**
+- Vue 3.5 event delegation: https://github.com/vuejs/core/pull/11765
+- RouterLink reload bug: https://github.com/vuejs/router/issues/846
 
 ### Testing Frontend Components
 
@@ -668,6 +754,15 @@ The frontend has a dedicated component testing page at `/dev/component-testing` 
 2. Run `make sync` (or `make dev-sync` for auto-watch)
 3. Generated files include `/** WARNING: GENERATED FROM ... **/` comments
 4. Never directly edit synced files - changes will be overwritten
+
+### Scoring Worker Schema Codegen
+
+The scoring worker's SQLAlchemy models (`services/scoring-worker/src/scoring_worker/generated_models.py`) are auto-generated from `services/shared-backend/src/schema.ts`. **Never hand-write table definitions in the Python code.**
+
+To add a table to the scoring worker:
+1. Add `/** @service scoring-worker */` JSDoc comment above the table definition in `schema.ts`
+2. Run `make sync` to regenerate `generated_models.py`
+3. Import the model from `scoring_worker.generated_models`
 
 ### Running Tests for a Specific Module
 
@@ -747,7 +842,9 @@ cd services/app && pnpm test:e2e    # Playwright
 
 - Node.js 20+ (frontend uses 22/24)
 - pnpm (all services)
-- Python 3.11+ (python-bridge)
+- Python 3.11+ (python-bridge), Python 3.13+ (scoring-worker)
+- [uv](https://docs.astral.sh/uv/) (scoring-worker package manager)
 - Docker (for Flyway migrations and production builds)
+- Valkey or Redis-compatible server (scoring-worker)
 - watchman (for file watching during development)
 - rsync, make, jq, sed (build tools)

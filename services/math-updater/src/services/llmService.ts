@@ -5,17 +5,18 @@ import {
     polisContentTable,
 } from "@/shared-backend/schema.js";
 import {
-    zodGenLabelSummaryOutputLoose,
-    zodGenLabelSummaryOutputStrict,
     type GenLabelSummaryOutputClusterLoose,
     type GenLabelSummaryOutputClusterStrict,
     type GenLabelSummaryOutputLoose,
     type GenLabelSummaryOutputStrict,
 } from "@/shared-backend/llmSchemas.js";
 import { parseLlmOutputJson } from "@/utils/llmParse.js";
+import { extractTextContentFromMessage } from "@/utils/bedrockMessage.js";
+import { parseGenLabelSummaryOutput } from "@/utils/llmSchemaParse.js";
 import {
     BedrockRuntimeClient,
     ConverseCommand,
+    type ConverseCommandOutput,
     type Message,
 } from "@aws-sdk/client-bedrock-runtime";
 import { sql } from "drizzle-orm";
@@ -103,7 +104,7 @@ async function getConversationInsightsFrom({
 
 /**
  * Phase 2: Generate AI labels and summaries by calling LLM (no DB writes)
- * Returns the AI-generated labels and summaries for each cluster
+ * Returns undefined when AI labels are unavailable so math data can still be activated.
  */
 export async function generateAiLabelsAndSummaries({
     db,
@@ -117,35 +118,47 @@ export async function generateAiLabelsAndSummaries({
     awsAiLabelSummaryMaxTokens,
     awsAiLabelSummaryPrompt,
 }: UpdateAiLabelsAndSummariesProps): Promise<
-    GenLabelSummaryOutputClusterStrict | GenLabelSummaryOutputClusterLoose
+    | GenLabelSummaryOutputClusterStrict
+    | GenLabelSummaryOutputClusterLoose
+    | undefined
 > {
-    const conversationInsights = await getConversationInsightsFrom({
-        db,
-        conversationInsightsWithOpinionIds,
-    });
-    log.info(
-        `[Repness] conversationInsights for conversationId='${String(
-            conversationId,
-        )}' and for polisContentId='${String(polisContentId)}', conversationInsights=${JSON.stringify(conversationInsights)}}`,
-    );
+    try {
+        const conversationInsights = await getConversationInsightsFrom({
+            db,
+            conversationInsightsWithOpinionIds,
+        });
+        log.info(
+            `[Repness] conversationInsights for conversationId='${String(
+                conversationId,
+            )}' and for polisContentId='${String(polisContentId)}', conversationInsights=${JSON.stringify(conversationInsights)}}`,
+        );
 
-    const genLabelSummaryOutput = await invokeRemoteModel({
-        conversationId,
-        polisContentId,
-        conversationInsights,
-        awsAiLabelSummaryRegion,
-        awsAiLabelSummaryModelId,
-        awsAiLabelSummaryTemperature,
-        awsAiLabelSummaryTopP,
-        awsAiLabelSummaryMaxTokens,
-        awsAiLabelSummaryPrompt,
-    });
-    log.info(
-        `[LLM] Received Label and Summary Prompt results for conversationId='${String(
+        const genLabelSummaryOutput = await invokeRemoteModel({
             conversationId,
-        )}' and polisContentId='${String(polisContentId)}': ${JSON.stringify(genLabelSummaryOutput)}`,
-    );
-    return genLabelSummaryOutput.clusters;
+            polisContentId,
+            conversationInsights,
+            awsAiLabelSummaryRegion,
+            awsAiLabelSummaryModelId,
+            awsAiLabelSummaryTemperature,
+            awsAiLabelSummaryTopP,
+            awsAiLabelSummaryMaxTokens,
+            awsAiLabelSummaryPrompt,
+        });
+        log.info(
+            `[LLM] Received Label and Summary Prompt results for conversationId='${String(
+                conversationId,
+            )}' and polisContentId='${String(polisContentId)}': ${JSON.stringify(genLabelSummaryOutput)}`,
+        );
+        return genLabelSummaryOutput.clusters;
+    } catch (error: unknown) {
+        log.warn(
+            error,
+            `[LLM] Failed to generate labels and summaries for conversationId='${String(
+                conversationId,
+            )}' and polisContentId='${String(polisContentId)}'; continuing without AI labels`,
+        );
+        return undefined;
+    }
 }
 
 interface UpdateClustersLabelsAndSummariesProps {
@@ -203,6 +216,41 @@ interface InvokeRemoteModelProps {
     awsAiLabelSummaryPrompt: string;
 }
 
+function parseBedrockLabelSummaryResponse({
+    response,
+    conversationId,
+    polisContentId,
+}: {
+    response: ConverseCommandOutput;
+    conversationId: number;
+    polisContentId: number;
+}): GenLabelSummaryOutputStrict | GenLabelSummaryOutputLoose {
+    const message = response.output?.message;
+    const modelResponseStr = extractTextContentFromMessage(message);
+    if (modelResponseStr === undefined) {
+        throw new Error(
+            `[LLM]: Unable to parse AWS Bedrock response for conversationId='${String(
+                conversationId,
+            )}' and polisContentId='${String(polisContentId)}': '${JSON.stringify(
+                response,
+            )}'`,
+        );
+    }
+    const modelResponse: JSONObject = parseLlmOutputJson(modelResponseStr);
+    const parsedLabelSummaryOutput = parseGenLabelSummaryOutput(modelResponse);
+    if (parsedLabelSummaryOutput.mode === "loose") {
+        log.warn(
+            parsedLabelSummaryOutput.strictError,
+            `[LLM]: Unable to parse AI Label and Summary output object using strict mode for conversationId='${String(
+                conversationId,
+            )}' and polisContentId='${String(polisContentId)}:\n'${JSON.stringify(
+                modelResponse,
+            )}'`,
+        );
+    }
+    return parsedLabelSummaryOutput.data;
+}
+
 async function invokeRemoteModel({
     conversationId,
     polisContentId,
@@ -241,50 +289,34 @@ async function invokeRemoteModel({
             conversationId,
         )}' and polisContentId='${String(polisContentId)}':\n${userPrompt}`,
     );
-    const response = await client.send(command);
-    const message = response.output?.message;
-    const modelResponseStr =
-        message !== undefined
-            ? message.content !== undefined
-                ? message.content[0].text
-                : undefined
-            : undefined;
-    if (modelResponseStr === undefined) {
-        throw new Error(
-            `[LLM]: Unable to parse AWS Bedrock response for conversationId='${String(
-                conversationId,
-            )}' and polisContentId='${String(polisContentId)}': '${JSON.stringify(
+
+    let lastParseError: unknown;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        if (attempt > 1) {
+            log.warn(
+                lastParseError,
+                `[LLM] Retrying Generate Label and Summary Prompt after parse failure for conversationId='${String(
+                    conversationId,
+                )}' and polisContentId='${String(polisContentId)}'`,
+            );
+        }
+
+        const response = await client.send(command);
+        try {
+            return parseBedrockLabelSummaryResponse({
                 response,
-            )}'`,
-        );
-    }
-    const modelResponse: JSONObject = parseLlmOutputJson(modelResponseStr);
-    // try strict first
-    const resultStrict =
-        zodGenLabelSummaryOutputStrict.safeParse(modelResponse);
-    if (resultStrict.success) {
-        return resultStrict.data;
-    } else {
-        log.warn(
-            resultStrict.error,
-            `[LLM]: Unable to parse AI Label and Summary output object using strict mode for conversationId='${String(
                 conversationId,
-            )}' and polisContentId='${String(polisContentId)}:\n'${JSON.stringify(
-                modelResponse,
-            )}'`,
-        );
+                polisContentId,
+            });
+        } catch (error: unknown) {
+            lastParseError = error;
+        }
     }
-    // will throw and be caught by the generic fastify handler eventually
-    const resultLoose = zodGenLabelSummaryOutputLoose.safeParse(modelResponse);
-    if (!resultLoose.success) {
-        throw new Error(
-            `[LLM]: Unable to parse AI Label and Summary output object using loose mode for conversationId='${String(
-                conversationId,
-            )}' and polisContentId='${String(polisContentId)}:\n'${JSON.stringify(
-                modelResponse,
-            )}'`,
-            { cause: resultLoose.error },
-        );
-    }
-    return resultLoose.data;
+
+    throw new Error(
+        `[LLM] Unable to parse Bedrock response after retry for conversationId='${String(
+            conversationId,
+        )}' and polisContentId='${String(polisContentId)}'`,
+        { cause: lastParseError },
+    );
 }

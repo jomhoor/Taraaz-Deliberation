@@ -38,6 +38,15 @@ export const clusterInformationDialogTranslations: Record<
     description3:
       "Los participantes deben votar en al menos {minVotes} proposiciones para ser asignados a un grupo. Quienes no hayan alcanzado este umbral aparecen como sin grupo.",
   },
+  fa: {
+    title: "گروه‌های اجماع",
+    description1:
+      "گروه‌های اجماع بر اساس نحوه موافقت و مخالفت افراد با گزاره‌ها ایجاد می‌شوند.",
+    description2:
+      "ما از یادگیری ماشین برای شناسایی مکاتب فکری مختلف استفاده می‌کنیم. این همان الگوریتمی است که pol.is را اجرا می‌کند، ابزار نظرسنجی ویکی منبع باز توسعه یافته توسط Computational Democracy.",
+    description3:
+      "شرکت‌کنندگان باید حداقل به {minVotes} گزاره رأی دهند تا به یک گروه اختصاص یابند. کسانی که هنوز به این آستانه نرسیده‌اند به عنوان بدون گروه نمایش داده می‌شوند.",
+  },
   fr: {
     title: "Groupes de Consensus",
     description1:
@@ -49,24 +58,33 @@ export const clusterInformationDialogTranslations: Record<
   },
   "zh-Hans": {
     title: "共识群组",
-    description1: "共识群组是根据人们对观点的同意和不同意程度创建的。",
+    description1: "共识群组是根据人们对意见的同意和不同意程度创建的。",
     description2:
       "我们使用机器学习来识别不同的思想流派。这是与 pol.is 相同的算法，pol.is 是 Computational Democracy 开发的开放源码的 wiki 调查工具。",
     description3:
-      "参与者必须对至少 {minVotes} 条观点进行投票才能被分配到群组。尚未达到此门槛的参与者显示为未分组。",
+      "参与者必须对至少 {minVotes} 条意见进行投票才能被分配到群组。尚未达到此门槛的参与者显示为未分组。",
   },
   "zh-Hant": {
     title: "共識群組",
-    description1: "共識群組是根據人們對觀點的同意和不同意程度創建的。",
+    description1: "共識群組是根據人們對意見的同意和不同意程度創建的。",
     description2:
       "我們使用機器學習來識別不同的思想流派。這是與 pol.is 相同的算法，pol.is 是 Computational Democracy 開發的開放源碼的 wiki 調查工具。",
     description3:
-      "參與者必須對至少 {minVotes} 條觀點進行投票才能被分配到群組。尚未達到此門檻的參與者顯示為未分組。",
+      "參與者必須對至少 {minVotes} 條意見進行投票才能被分配到群組。尚未達到此門檻的參與者顯示為未分組。",
+  },
+  he: {
+    title: "קבוצות קונצנזוס",
+    description1:
+      "קבוצות קונצנזוס נוצרות על בסיס האופן שבו אנשים מסכימים ולא מסכימים עם הצהרות.",
+    description2:
+      "אנו משתמשים בלמידת מכונה לזיהוי אסכולות מחשבה שונות. זהו אותו אלגוריתם שמפעיל את pol.is, כלי הסקרים בקוד פתוח שפותח על ידי Computational Democracy.",
+    description3:
+      "משתתפים חייבים להצביע על לפחות {minVotes} הצהרות כדי להיות משויכים לקבוצה. מי שטרם הגיע לסף זה מופיע כלא משויך.",
   },
   ja: {
     title: "合意形成グループ",
     description1:
-      "合意形成グループは、人々が主張に対して同意しているか、同意していないかに基づいて作成されます。",
+      "合意形成グループは、人々が意見に対して同意しているか、同意していないかに基づいて作成されます。",
     description2:
       "我々は機械学習を使用して、異なる思想流派を識別します。これは、 Computational Democracy によって開発されたオープンソースの wiki 調査ツール pol.is によって使用されるのと同じアルゴリズムです。",
     description3:

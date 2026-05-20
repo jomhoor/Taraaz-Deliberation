@@ -1,20 +1,12 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: true,
-      addBottomPadding: true,
-      enableHeader: true,
-      enableFooter: false,
-      reducedWidth: false,
-    }"
-  >
-    <template #header>
+  <div>
+    <Teleport v-if="isActive" to="#page-header">
       <StandardMenuBar
         :title="t('pageTitle')"
         :center-content="true"
         :fallback-route="`/conversation/${conversationSlugId}/`"
       />
-    </template>
+    </Teleport>
 
     <q-pull-to-refresh @refresh="handleRefresh">
       <WidthWrapper :enable="true">
@@ -85,7 +77,7 @@
         </div>
       </WidthWrapper>
     </q-pull-to-refresh>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -99,8 +91,9 @@ import { StandardMenuBar } from "src/components/navigation/header/variants";
 import WidthWrapper from "src/components/navigation/WidthWrapper.vue";
 import PostDetails from "src/components/post/PostDetails.vue";
 import AsyncStateHandler from "src/components/ui/AsyncStateHandler.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
+import { isNetworkOffline } from "src/composables/useNetworkStatus";
 import { useAuthenticationStore } from "src/stores/authentication";
 import {
   useExportHistoryQuery,
@@ -109,6 +102,7 @@ import {
 } from "src/utils/api/conversationExport/useConversationExportQueries";
 import { useConversationQuery } from "src/utils/api/post/useConversationQuery";
 import { processEnv } from "src/utils/processEnv";
+import { getSingleRouteParam } from "src/utils/router/params";
 import { useNotify } from "src/utils/ui/notify";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -118,6 +112,8 @@ import {
   exportPageTranslations,
 } from "./export.i18n";
 
+const { isActive } = usePageLayout({ enableFooter: false, addBottomPadding: true });
+
 const { t } = useComponentI18n<ExportPageTranslations>(exportPageTranslations);
 const router = useRouter();
 const { showNotifyMessage } = useNotify();
@@ -125,13 +121,9 @@ const { showNotifyMessage } = useNotify();
 const authStore = useAuthenticationStore();
 const { isAuthInitialized, isGuestOrLoggedIn } = storeToRefs(authStore);
 
-const route = useRoute("/conversation/[conversationSlugId]/export");
+const route = useRoute();
 const conversationSlugId = computed(() => {
-  const value = route.params.conversationSlugId;
-  if (Array.isArray(value)) {
-    return value[0] || "";
-  }
-  return value || "";
+  return getSingleRouteParam(route.params.conversationSlugId);
 });
 
 // Redirect if export feature is disabled
@@ -168,6 +160,11 @@ async function navigateToConversation(): Promise<void> {
 }
 
 function handleRefresh(done: () => void): void {
+  if (isNetworkOffline.value) {
+    done();
+    return;
+  }
+
   const minDelay = new Promise((resolve) => setTimeout(resolve, 500));
 
   void Promise.all([

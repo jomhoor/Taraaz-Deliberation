@@ -33,6 +33,16 @@ export const homeTranslations: Record<
     popular: "Popular",
     new: "Novedades",
   },
+  fa: {
+    following: "دنبال‌شده‌ها",
+    popular: "محبوب",
+    new: "جدید",
+  },
+  he: {
+    following: "עוקבים",
+    popular: "פופולרי",
+    new: "חדש",
+  },
   fr: {
     home: "Accueil",
     explore: "Explorer",

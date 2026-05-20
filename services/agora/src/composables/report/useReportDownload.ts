@@ -14,6 +14,39 @@ interface ImageCapture {
 // html-to-image uses SVG foreignObject rendering, which runs the browser's
 // actual text shaping engine. This correctly handles Arabic/Persian ligatures
 // and RTL text — unlike html2canvas which draws text glyph-by-glyph.
+
+function waitForImage(image: HTMLImageElement): Promise<void> {
+  if (image.complete) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const cleanup = (): void => {
+      image.removeEventListener("load", handleDone);
+      image.removeEventListener("error", handleDone);
+    };
+
+    const handleDone = (): void => {
+      cleanup();
+      resolve();
+    };
+
+    image.addEventListener("load", handleDone, { once: true });
+    image.addEventListener("error", handleDone, { once: true });
+  });
+}
+
+async function waitForElementImages({
+  element,
+}: {
+  element: HTMLElement;
+}): Promise<void> {
+  const images = Array.from(element.querySelectorAll("img"));
+
+  for (const image of images) {
+    await waitForImage(image);
+  }
+}
 async function captureElement({
   element,
   showCaptureHeaders = false,
@@ -37,6 +70,9 @@ async function captureElement({
       shownEls.push(el);
     });
   }
+
+  // Wait for all images to load before capturing
+  await waitForElementImages({ element });
 
   try {
     return await toCanvas(element, {
@@ -67,14 +103,12 @@ function canvasToBlob({
         }
       },
       type,
-      quality,
+      quality
     );
   });
 }
 
-export function useReportDownload({
-  fileName,
-}: UseReportDownloadParams) {
+export function useReportDownload({ fileName }: UseReportDownloadParams) {
   const isGeneratingZip = ref(false);
   const isGeneratingPdf = ref(false);
 
@@ -107,7 +141,9 @@ export function useReportDownload({
       // link.click() triggers the download asynchronously — the browser needs
       // time to process the blob and show the save dialog. Without this delay,
       // the loading state clears before the dialog appears.
-      await new Promise((resolve) => { setTimeout(resolve, 500); });
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500);
+      });
     } finally {
       isGeneratingZip.value = false;
     }
@@ -122,7 +158,11 @@ export function useReportDownload({
   }): Promise<void> {
     isGeneratingPdf.value = true;
     try {
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
@@ -135,7 +175,7 @@ export function useReportDownload({
         });
 
         if (!isFirstPage) pdf.addPage();
-        const imgData = canvas.toDataURL("image/jpeg", 0.80);
+        const imgData = canvas.toDataURL("image/jpeg", 0.8);
         const aspectRatio = canvas.width / canvas.height;
         pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageWidth / aspectRatio);
         isFirstPage = false;
@@ -144,7 +184,7 @@ export function useReportDownload({
       // Place footer at the absolute bottom of the last page
       if (footerElement) {
         const footerCanvas = await captureElement({ element: footerElement });
-        const footerImgData = footerCanvas.toDataURL("image/jpeg", 0.80);
+        const footerImgData = footerCanvas.toDataURL("image/jpeg", 0.8);
         const footerAspectRatio = footerCanvas.width / footerCanvas.height;
         const footerWidth = pageWidth;
         const footerHeight = pageWidth / footerAspectRatio;
@@ -157,7 +197,7 @@ export function useReportDownload({
           0,
           footerY,
           footerWidth,
-          footerHeight,
+          footerHeight
         );
       }
 
@@ -165,7 +205,9 @@ export function useReportDownload({
       // pdf.save() triggers the download asynchronously — the browser needs
       // time to process the blob and show the save dialog. Without this delay,
       // the loading state clears before the dialog appears.
-      await new Promise((resolve) => { setTimeout(resolve, 500); });
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500);
+      });
     } finally {
       isGeneratingPdf.value = false;
     }

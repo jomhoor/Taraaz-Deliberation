@@ -38,20 +38,22 @@
             <ZKHoverEffect enable-hover border-radius="15px">
               <div
                 class="settingItemStyle"
-                :class="{
-                  activeRoute: menuItem.matchRouteList.includes(route.name),
-                }"
+                  :class="{
+                    activeRoute: matchesCurrentRoute(menuItem.matchRouteList),
+                  }"
               >
                 <div class="iconItem">
                   <ZKStyledIcon
                     :svg-string="
-                      menuItem.matchRouteList.includes(route.name)
+                      matchesCurrentRoute(menuItem.matchRouteList)
                         ? menuItem.svgStringFilled
                         : menuItem.svgStringStandard
                     "
                   />
-
-                  <NewNotificationIndicator v-if="menuItem.name == 'Dings'" />
+                  <ZKBadge
+                    v-if="menuItem.name === 'Dings'"
+                    :count="numNewNotifications"
+                  />
                 </div>
 
                 <div class="itemName">
@@ -63,15 +65,11 @@
         </div>
       </div>
 
-      <div>
-        <div
-          v-if="drawerBehavior == 'desktop'"
-          class="bottomSection StartConversationButtonLong"
-        >
-          <RouterLink :to="{ name: '/conversation/new/create/' }">
-            <StartConversationButtonLong />
-          </RouterLink>
-        </div>
+      <div v-if="drawerBehavior == 'desktop'" class="bottomSection">
+        <RouterLink :to="{ name: '/conversation/new/create/' }">
+          <StartConversationButtonLong v-if="$q.screen.gt.sm" />
+          <StartConversationButtonCompact v-else />
+        </RouterLink>
       </div>
     </div>
   </div>
@@ -83,6 +81,7 @@ import { useAuthenticatedNavigation } from "src/composables/navigation/useAuthen
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useNavigationStore } from "src/stores/navigation";
+import { useNotificationStore } from "src/stores/notification";
 import { useUserStore } from "src/stores/user";
 import { navigationIcons } from "src/utils/ui/navigationIcons";
 import { ref, watch } from "vue";
@@ -91,8 +90,9 @@ import type { RouteNamedMap } from "vue-router/auto-routes";
 
 import UserAvatar from "../account/UserAvatar.vue";
 import DisplayUsername from "../features/user/DisplayUsername.vue";
+import StartConversationButtonCompact from "../newConversation/StartConversationButtonCompact.vue";
 import StartConversationButtonLong from "../newConversation/StartConversationButtonLong.vue";
-import NewNotificationIndicator from "../notification/NewNotificationIndicator.vue";
+import ZKBadge from "../ui-library/ZKBadge.vue";
 import ZKHoverEffect from "../ui-library/ZKHoverEffect.vue";
 import ZKIconButton from "../ui-library/ZKIconButton.vue";
 import ZKStyledIcon from "../ui-library/ZKStyledIcon.vue";
@@ -103,6 +103,7 @@ import {
 
 const { isRouteVisible } = useAuthenticatedNavigation();
 const { isGuest, isGuestOrLoggedIn } = storeToRefs(useAuthenticationStore());
+const { numNewNotifications } = storeToRefs(useNotificationStore());
 const { profileData } = storeToRefs(useUserStore());
 const { drawerBehavior, showMobileDrawer } = storeToRefs(useNavigationStore());
 
@@ -122,6 +123,13 @@ interface NavigationMenuItem {
 
 const navigationMenuItems = ref<NavigationMenuItem[]>([]);
 initializeMenu();
+
+function matchesCurrentRoute(routeList: readonly (keyof RouteNamedMap)[]): boolean {
+  return (
+    typeof route.name === "string" &&
+    routeList.some((routeName) => routeName === route.name)
+  );
+}
 
 watch(drawerBehavior, () => {
   initializeMenu();
@@ -174,7 +182,7 @@ function initializeMenu(): void {
     {
       name: t("profile"),
       route: "/user-profile/conversations/",
-      matchRouteList: ["/user-profile/conversations/"],
+      matchRouteList: ["/user-profile/conversations/", "/user-profile/opinions/"],
       svgStringStandard: navigationIcons.profile.standard,
       svgStringFilled: navigationIcons.profile.filled,
     },
@@ -209,7 +217,7 @@ function closeDrawer(): void {
 <style lang="scss" scoped>
 .container {
   height: 100dvh;
-  padding: 1rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -235,7 +243,8 @@ function closeDrawer(): void {
 
 .usernameBar {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   align-items: center;
   font-weight: var(--font-weight-semibold);
   padding-top: 2rem;
@@ -269,12 +278,8 @@ function closeDrawer(): void {
 
 .bottomSection {
   display: flex;
-  justify-content: center;
   padding-top: 1rem;
   padding-bottom: 1rem;
-}
-
-.StartConversationButtonLong:hover {
   cursor: pointer;
 }
 
@@ -297,7 +302,7 @@ function closeDrawer(): void {
 .navigation-link {
   display: block;
   text-decoration: none;
-  color: inherit;
+  color: $ink-darkest;
   cursor: pointer;
 }
 </style>

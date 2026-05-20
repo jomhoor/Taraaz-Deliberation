@@ -1,32 +1,35 @@
-import { useWindowSize } from "@vueuse/core";
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { useQuasar } from "quasar";
+import { computed, ref } from "vue";
 
-const DRAWER_BREAKPOINT = 1000;
+import { usePageLayoutStore } from "./layout/pageLayout";
 
 export const useNavigationStore = defineStore("navigation", () => {
-  const { width } = useWindowSize();
+  const $q = useQuasar();
+  const pageLayoutStore = usePageLayoutStore();
 
-  // Initialize based on current window width instead of using onMounted
-  // (onMounted doesn't work reliably in Pinia stores)
-  const isDesktop = width.value > DRAWER_BREAKPOINT;
-  const showMobileDrawer = ref(isDesktop);
-  const drawerBehavior = ref<"desktop" | "mobile">(isDesktop ? "desktop" : "mobile");
+  // Derived from SCSS $breakpoint-xs via Quasar's runtime screen sizes.
+  // $q.screen.sizes.sm = $breakpoint-xs + 1 (555), so sm - 1 = 554.
+  const drawerBreakpoint = $q.screen.sizes.sm - 1;
+
+  // $q.screen.gt.xs = true when width > $breakpoint-xs (554px)
+  // This matches Figma: sidebar appears at 555px+
+  const showMobileDrawer = ref($q.screen.gt.xs);
+  const drawerBehavior = computed<"desktop" | "mobile">(() =>
+    $q.screen.gt.xs ? "desktop" : "mobile"
+  );
   const cameFromConversationCreation = ref(false);
 
-  watch(width, () => {
-    updateDrawers();
-  }, { immediate: true });
+  const hasFooterBar = computed(() =>
+    drawerBehavior.value === "mobile" && pageLayoutStore.config.enableFooter
+  );
 
-  function updateDrawers() {
-    if (width.value > DRAWER_BREAKPOINT) {
-      drawerBehavior.value = "desktop";
-      showMobileDrawer.value = true;
-    } else {
-      drawerBehavior.value = "mobile";
-      showMobileDrawer.value = false;
-    }
-  }
+  // Small sidebar at 555–960px, large sidebar at >960px
+  // Mobile overlay (≤554px): 300px — doesn't compete with feed
+  const drawerWidth = computed(() => {
+    if (drawerBehavior.value === "mobile") return 280;
+    return $q.screen.gt.sm ? 340 : 200;
+  });
 
   function setConversationCreationContext(value: boolean) {
     cameFromConversationCreation.value = value;
@@ -39,6 +42,9 @@ export const useNavigationStore = defineStore("navigation", () => {
   return {
     showMobileDrawer,
     drawerBehavior,
+    drawerBreakpoint,
+    drawerWidth,
+    hasFooterBar,
     cameFromConversationCreation,
     setConversationCreationContext,
     clearConversationCreationContext,

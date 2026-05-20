@@ -12,11 +12,12 @@ import type {
     GetActiveImportResponse,
 } from "@/shared/types/dto.js";
 import type { EventSlug, ParticipationMode } from "@/shared/types/zod.js";
-import type { NotificationSSEManager } from "../notificationSSE.js";
+import type { RealtimeSSEManager } from "../realtimeSSE.js";
 import * as database from "./database.js";
-import { generateRandomSlugId } from "@/crypto.js";
 import { CSV_UPLOAD_FIELD_NAMES } from "@/shared-app-api/csvUpload.js";
 import type { CsvFiles } from "@/service/csvImport.js";
+import { httpErrors } from "@fastify/sensible";
+import { log } from "@/app.js";
 
 interface RequestConversationImportParams {
     db: PostgresDatabase;
@@ -29,10 +30,9 @@ interface RequestConversationImportParams {
         isIndexed: boolean;
         requiresEventTicket?: EventSlug;
     };
-    proof: string;
     didWrite: string;
     importBuffer: ImportBuffer;
-    notificationSSEManager: NotificationSSEManager;
+    realtimeSSEManager: RealtimeSSEManager;
 }
 
 interface RequestConversationImportResult {
@@ -50,10 +50,9 @@ export async function requestConversationImport(
         userId,
         files,
         formData,
-        proof,
         didWrite,
         importBuffer,
-        notificationSSEManager,
+        realtimeSSEManager,
     } = params;
 
     // Files are already parsed and validated by caller via zodCsvFiles
@@ -93,50 +92,61 @@ export async function requestConversationImport(
         );
     }
 
-    // Check if user already has an active import
-    const activeImport = await database.getActiveImportForUser({
+    const createImportResult = await database.createImportRecord({
         db,
         userId,
     });
 
-    if (activeImport !== null) {
-        throw new Error(
+    if (createImportResult.status === "active_import_exists") {
+        throw httpErrors.conflict(
             "You already have an import in progress. Please wait for it to complete before starting a new one.",
         );
     }
 
-    // Create import record in database
-    const importSlugId = generateRandomSlugId();
-    const importId = await database.createImportRecord({
-        db,
-        importSlugId,
-        userId,
-    });
+    try {
+        await importBuffer.addImport({
+            type: "csv",
+            importSlugId: createImportResult.importSlugId,
+            userId,
+            files,
+            formData,
+            didWrite,
+            authorId: userId,
+        });
+    } catch (error) {
+        try {
+            await database.markImportFailed({
+                db,
+                importSlugId: createImportResult.importSlugId,
+                failureReason: "processing_error",
+            });
+        } catch (markFailedError) {
+            log.error(
+                markFailedError,
+                `[Import] Failed to mark ${createImportResult.importSlugId} as failed after queue error`,
+            );
+        }
+        throw error;
+    }
 
-    // Create notification for import start
     const { createImportNotification } = await import("./notifications.js");
-    await createImportNotification({
-        db,
-        userId,
-        importId,
-        conversationId: null,
-        type: "import_started",
-        notificationSSEManager,
-    });
+    try {
+        await createImportNotification({
+            db,
+            userId,
+            importId: createImportResult.importId,
+            conversationId: null,
+            type: "import_started",
+            realtimeSSEManager,
+        });
+    } catch (error) {
+        log.error(
+            error,
+            `[Import] Failed to send start notification for ${createImportResult.importSlugId}`,
+        );
+    }
 
-    // Queue CSV import for async processing
-    await importBuffer.addImport({
-        type: "csv",
-        importSlugId,
-        userId,
-        files,
-        formData,
-        proof,
-        didWrite,
-        authorId: userId,
-    });
-
-    return { importSlugId };
+    return { importSlugId: createImportResult.importSlugId };
 }
 
 interface RequestUrlImportParams {
@@ -150,10 +160,9 @@ interface RequestUrlImportParams {
         isIndexed: boolean;
         requiresEventTicket?: EventSlug;
     };
-    proof: string;
     didWrite: string;
     importBuffer: ImportBuffer;
-    notificationSSEManager: NotificationSSEManager;
+    realtimeSSEManager: RealtimeSSEManager;
 }
 
 /**
@@ -167,56 +176,66 @@ export async function requestUrlImport(
         userId,
         polisUrl,
         formData,
-        proof,
         didWrite,
         importBuffer,
-        notificationSSEManager,
+        realtimeSSEManager,
     } = params;
 
-    // Check if user already has an active import
-    const activeImport = await database.getActiveImportForUser({
+    const createImportResult = await database.createImportRecord({
         db,
         userId,
     });
 
-    if (activeImport !== null) {
-        throw new Error(
+    if (createImportResult.status === "active_import_exists") {
+        throw httpErrors.conflict(
             "You already have an import in progress. Please wait for it to complete before starting a new one.",
         );
     }
 
-    // Create import record in database
-    const importSlugId = generateRandomSlugId();
-    const importId = await database.createImportRecord({
-        db,
-        importSlugId,
-        userId,
-    });
+    try {
+        await importBuffer.addImport({
+            type: "url",
+            importSlugId: createImportResult.importSlugId,
+            userId,
+            polisUrl,
+            formData,
+            didWrite,
+            authorId: userId,
+        });
+    } catch (error) {
+        try {
+            await database.markImportFailed({
+                db,
+                importSlugId: createImportResult.importSlugId,
+                failureReason: "processing_error",
+            });
+        } catch (markFailedError) {
+            log.error(
+                markFailedError,
+                `[Import] Failed to mark ${createImportResult.importSlugId} as failed after queue error`,
+            );
+        }
+        throw error;
+    }
 
-    // Create notification for import start
     const { createImportNotification } = await import("./notifications.js");
-    await createImportNotification({
-        db,
-        userId,
-        importId,
-        conversationId: null,
-        type: "import_started",
-        notificationSSEManager,
-    });
+    try {
+        await createImportNotification({
+            db,
+            userId,
+            importId: createImportResult.importId,
+            conversationId: null,
+            type: "import_started",
+            realtimeSSEManager,
+        });
+    } catch (error) {
+        log.error(
+            error,
+            `[Import] Failed to send start notification for ${createImportResult.importSlugId}`,
+        );
+    }
 
-    // Queue URL import for async processing
-    await importBuffer.addImport({
-        type: "url",
-        importSlugId,
-        userId,
-        polisUrl,
-        formData,
-        proof,
-        didWrite,
-        authorId: userId,
-    });
-
-    return { importSlugId };
+    return { importSlugId: createImportResult.importSlugId };
 }
 
 interface GetConversationImportStatusParams {

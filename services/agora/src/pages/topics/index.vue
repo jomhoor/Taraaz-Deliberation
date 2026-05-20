@@ -1,22 +1,12 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: true,
-      enableFooter: true,
-      enableHeader: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
-      <HomeMenuBar>
-        <template #center>{{ t("exploreTopics") }}</template>
-      </HomeMenuBar>
-    </template>
+  <Teleport v-if="isActive" to="#page-header">
+    <HomeMenuBar>
+      <template #center>{{ t("exploreTopics") }}</template>
+    </HomeMenuBar>
+  </Teleport>
 
-    <div v-if="isLoading" class="loadingContainer">
-      <q-spinner color="primary" size="3em" />
-    </div>
+  <div>
+    <PageLoadingSpinner v-if="isLoading" />
 
     <div v-else class="topicContainer">
       <div v-for="topic in fullTopicList" :key="topic.code" class="topicItem">
@@ -43,22 +33,23 @@
       </div>
     </div>
 
-    <PreLoginIntentionDialog
+    <PreParticipationIntentionDialog
       v-model="showLoginDialog"
       :ok-callback="() => {}"
       active-intention="none"
     />
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import Chip from "primevue/chip";
-import PreLoginIntentionDialog from "src/components/authentication/intention/PreLoginIntentionDialog.vue";
+import PreParticipationIntentionDialog from "src/components/authentication/intention/PreParticipationIntentionDialog.vue";
 import FollowButton from "src/components/features/topics/FollowButton.vue";
 import { HomeMenuBar } from "src/components/navigation/header/variants";
+import PageLoadingSpinner from "src/components/ui/PageLoadingSpinner.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useTopicStore } from "src/stores/topic";
 import { onMounted, ref } from "vue";
@@ -70,6 +61,8 @@ defineOptions({
     PrimeChip: Chip,
   },
 });
+
+const { isActive } = usePageLayout({ reducedWidth: true, addBottomPadding: true });
 
 const { t } = useComponentI18n<TopicsTranslations>(topicsTranslations);
 
@@ -124,7 +117,7 @@ async function clickedFollowButton(
 
 .topicChipStyle {
   background-color: white;
-  border-color: #e2e1e7;
+  border-color: $sky-light;
   border-width: 1px;
   border-style: solid;
   color: black;
@@ -145,11 +138,4 @@ async function clickedFollowButton(
   justify-content: space-between;
 }
 
-.loadingContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 50vh;
-  padding: 2rem;
-}
 </style>

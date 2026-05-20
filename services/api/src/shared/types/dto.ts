@@ -35,6 +35,7 @@ import {
     zodOpinionModerationProperties,
     zodOrganization,
     zodParticipationMode,
+    zodParticipationBlockedReason,
     zodPolisClusters,
     zodPolisKey,
     zodPolisUrl,
@@ -49,6 +50,17 @@ import {
     zodUserReportExplanation,
     zodUserReportItem,
     zodUserReportReason,
+    zodExportBundleInfo,
+    zodExternalSourceConfig,
+    zodMaxdiffLifecycleStatus,
+    zodSurveyAggregateRow,
+    zodSurveyCompletionCounts,
+    zodSurveyConfig,
+    zodSurveyGateSummary,
+    zodSurveyQuestionFormItem,
+    zodSurveyResultsAccessLevel,
+    zodSurveyRouteResolution,
+    zodSurveyAnswerSubmission,
     zodVotingAction,
     zodVotingOption,
 } from "./zod.js";
@@ -95,6 +107,7 @@ export class Dto {
             consensusDisagree: z.array(zodAnalysisOpinionItem),
             controversial: z.array(zodAnalysisOpinionItem),
             clusters: zodPolisClusters,
+            hasVotedOnAllAvailableOpinions: z.boolean().optional(),
         })
         .strict();
     static fetchHiddenOpinionsRequest = z
@@ -113,9 +126,10 @@ export class Dto {
             isIndexed: z.boolean(),
             participationMode: zodParticipationMode,
             conversationType: zodConversationType,
-            pollingOptionList: zodPollOptionTitle.array().optional(),
-            seedOpinionList: z.array(zodOpinionContentInput),
+            seedOpinionList: z.array(zodOpinionContentInput).max(50),
             requiresEventTicket: zodEventSlug.optional(),
+            externalSourceConfig: zodExternalSourceConfig.nullable().optional(),
+            surveyConfig: zodSurveyConfig.nullable().optional(),
         })
         .strict();
     static createNewConversationResponse = z
@@ -158,15 +172,13 @@ export class Dto {
                 (val) => val === "true" || val === true,
                 z.boolean(),
             ),
-            participationMode: z.preprocess(
-                (val) => {
-                    // Handle form submission where value comes as string
-                    if (val === "true" || val === true) return "strong_verification";
-                    if (val === "false" || val === false) return "guest";
-                    return val; // Already a valid participation mode string
-                },
-                zodParticipationMode,
-            ),
+            participationMode: z.preprocess((val) => {
+                // Handle form submission where value comes as string
+                if (val === "true" || val === true)
+                    return "strong_verification";
+                if (val === "false" || val === false) return "guest";
+                return val; // Already a valid participation mode string
+            }, zodParticipationMode),
             requiresEventTicket: z.preprocess(
                 (val) => (val === "" || val === undefined ? undefined : val),
                 zodEventSlug.optional(),
@@ -300,14 +312,14 @@ export class Dto {
                 conversationSlugId: zodSlugId,
                 conversationTitle: zodConversationTitle,
                 conversationBody: zodConversationBodyOutput,
-                pollingOptionList: z.array(zodPollOptionTitle).optional(),
                 isIndexed: z.boolean(),
                 participationMode: zodParticipationMode,
                 requiresEventTicket: zodEventSlug.optional(),
+                postAsOrganizationName: z.string().optional(),
+                surveyConfig: zodSurveyConfig.nullable().optional(),
                 indexConversationAt: zodDateTimeFlexible.optional(),
                 createdAt: zodDateTimeFlexible,
                 updatedAt: zodDateTimeFlexible,
-                hasPoll: z.boolean(),
                 isLocked: z.boolean(),
             })
             .strict(),
@@ -323,10 +335,10 @@ export class Dto {
             conversationSlugId: zodSlugId,
             conversationTitle: zodConversationTitle,
             conversationBody: zodConversationBodyInput,
-            pollAction: zodPollAction,
             isIndexed: z.boolean(),
             participationMode: zodParticipationMode,
             requiresEventTicket: zodEventSlug.optional(),
+            surveyConfig: zodSurveyConfig.nullable().optional(),
             indexConversationAt: z.iso.datetime().optional(),
         })
         .strict();
@@ -344,15 +356,121 @@ export class Dto {
                     "not_author",
                     "conversation_locked",
                     "invalid_access_settings",
-                    "poll_already_exists",
-                    "poll_exists_use_keep_or_remove",
-                    "no_poll_to_remove",
-                    "no_poll_to_keep",
-                    "no_poll_to_replace",
                 ]),
             })
             .strict(),
     ]);
+    static surveyFormFetchRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+        })
+        .strict();
+    static surveyFormFetchResponse = z
+        .object({
+            currentRevision: z.number().int().positive(),
+            questions: z.array(zodSurveyQuestionFormItem),
+            surveyGate: zodSurveyGateSummary,
+        })
+        .strict();
+    static surveyStatusCheckRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+        })
+        .strict();
+    static surveyStatusCheckResponse = z
+        .object({
+            surveyGate: zodSurveyGateSummary,
+            routeResolution: zodSurveyRouteResolution,
+        })
+        .strict();
+    static surveyAnswerSaveRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+            questionSlugId: zodSlugId,
+            answer: zodSurveyAnswerSubmission.nullable(),
+        })
+        .strict();
+    static surveyAnswerSaveResponse = z.discriminatedUnion("success", [
+        z
+            .object({
+                success: z.literal(true),
+                surveyGate: zodSurveyGateSummary,
+                justCompleted: z.boolean(),
+            })
+            .strict(),
+        z
+            .object({
+                success: z.literal(false),
+                reason: zodParticipationBlockedReason,
+            })
+            .strict(),
+    ]);
+    static surveyResponseWithdrawRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+        })
+        .strict();
+    static surveyResponseWithdrawResponse = z.discriminatedUnion("success", [
+        z
+            .object({
+                success: z.literal(true),
+                surveyGate: zodSurveyGateSummary,
+            })
+            .strict(),
+        z
+            .object({
+                success: z.literal(false),
+                reason: zodParticipationBlockedReason,
+            })
+            .strict(),
+    ]);
+    static surveyResultsAggregatedRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+        })
+        .strict();
+    static surveyResultsAggregatedResponse = z
+        .object({
+            hasSurvey: z.boolean(),
+            accessLevel: zodSurveyResultsAccessLevel,
+            suppressionThreshold: z.number().int().positive(),
+            suppressedRows: z.array(zodSurveyAggregateRow),
+            fullRows: z.array(zodSurveyAggregateRow).optional(),
+        })
+        .strict();
+    static surveyCompletionCountsRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+        })
+        .strict();
+    static surveyCompletionCountsResponse = z
+        .object({
+            hasSurvey: z.boolean(),
+            counts: zodSurveyCompletionCounts,
+        })
+        .strict();
+    static surveyConfigUpdateRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+            surveyConfig: zodSurveyConfig,
+        })
+        .strict();
+    static surveyConfigUpdateResponse = z
+        .object({
+            currentRevision: z.number().int().positive(),
+            surveyGate: zodSurveyGateSummary.optional(),
+        })
+        .strict();
+    static surveyConfigDeleteRequest = z
+        .object({
+            conversationSlugId: zodSlugId,
+        })
+        .strict();
+    static surveyConfigDeleteResponse = z
+        .object({
+            success: z.literal(true),
+        })
+        .strict();
     static createOpinionRequest = z
         .object({
             conversationSlugId: z.string(),
@@ -369,37 +487,10 @@ export class Dto {
         z
             .object({
                 success: z.literal(false),
-                reason: z.enum([
-                    "conversation_locked",
-                    "conversation_closed",
-                    "event_ticket_required",
-                    "strong_verification_required",
-                    "email_verification_required",
-                ]),
+                reason: zodParticipationBlockedReason,
             })
             .strict(),
     ]);
-    static pollRespondRequest = z
-        .object({
-            voteOptionChoice: z.number(),
-            conversationSlugId: z.string(),
-        })
-        .strict();
-    static pollRespondResponse = z.discriminatedUnion("success", [
-        z.object({ success: z.literal(true) }).strict(),
-        z
-            .object({
-                success: z.literal(false),
-                reason: z.enum([
-                    "strong_verification_required",
-                    "email_verification_required",
-                ]),
-            })
-            .strict(),
-    ]);
-    static getUserPollResponseByConversationsRequest = z.array(z.string());
-    static getUserPollResponseByConversationsResponse =
-        z.array(zodPollResponse);
     static getUserVotesByConversationsRequest = z
         .object({
             conversationSlugIdList: z.array(z.string()),
@@ -430,13 +521,7 @@ export class Dto {
         z
             .object({
                 success: z.literal(false),
-                reason: z.enum([
-                    "conversation_locked",
-                    "conversation_closed",
-                    "event_ticket_required",
-                    "strong_verification_required",
-                    "email_verification_required",
-                ]),
+                reason: zodParticipationBlockedReason,
             })
             .strict(),
     ]);
@@ -992,6 +1077,7 @@ export class Dto {
                     exportSlugId: zodSlugId,
                     conversationSlugId: zodSlugId,
                     files: z.array(zodExportFileInfo),
+                    bundle: zodExportBundleInfo.optional(),
                     createdAt: zodDateTimeFlexible,
                     expiresAt: zodDateTimeFlexible,
                 })
@@ -1063,6 +1149,20 @@ export class Dto {
             isComplete: z.boolean(),
         })
         .strict();
+    static maxdiffSaveResponse = z.discriminatedUnion("success", [
+        z
+            .object({
+                success: z.literal(true),
+                candidateSets: z.array(z.array(z.string())),
+            })
+            .strict(),
+        z
+            .object({
+                success: z.literal(false),
+                reason: zodParticipationBlockedReason,
+            })
+            .strict(),
+    ]);
     static maxdiffLoadRequest = z
         .object({
             conversationSlugId: z.string(),
@@ -1072,22 +1172,99 @@ export class Dto {
         ranking: z.array(z.string()).nullable(),
         comparisons: z.array(zodMaxdiffComparison).nullable(),
         isComplete: z.boolean(),
+        candidateSets: z.array(z.array(z.string())),
+        perUserScores: z
+            .array(
+                z.object({
+                    entitySlugId: z.string(),
+                    score: z.number(),
+                }),
+            )
+            .nullable(),
     });
     static maxdiffResultsRequest = z
         .object({
             conversationSlugId: z.string(),
+            lifecycleFilter: zodMaxdiffLifecycleStatus
+                .or(z.literal("all"))
+                .optional()
+                .default("active"),
         })
         .strict();
     static maxdiffResultItem = z.object({
-        opinionSlugId: z.string(),
-        opinionContent: z.string(),
-        avgRank: z.number(),
-        score: z.number(),
+        itemSlugId: z.string(),
+        title: z.string(),
+        body: z.string().nullable(),
+        avgRank: z.number().nullable(),
+        score: z.number().nullable(),
         participantCount: z.number(),
+        lifecycleStatus: zodMaxdiffLifecycleStatus,
+        externalUrl: z.string().nullable(),
     });
     static maxdiffResultsResponse = z.object({
         rankings: z.array(Dto.maxdiffResultItem),
-        totalParticipants: z.number(),
+    });
+    // MaxDiff item CRUD
+    static maxdiffItemsFetchRequest = z
+        .object({
+            conversationSlugId: z.string(),
+            lifecycleFilter: zodMaxdiffLifecycleStatus
+                .or(z.literal("all"))
+                .optional()
+                .default("active"),
+        })
+        .strict();
+    static maxdiffItem = z.object({
+        slugId: z.string(),
+        title: z.string(),
+        body: z.string().nullable(),
+        lifecycleStatus: zodMaxdiffLifecycleStatus,
+        externalUrl: z.string().nullable(),
+        snapshotScore: z.number().nullable(),
+        snapshotRank: z.number().nullable(),
+        snapshotParticipantCount: z.number().nullable(),
+        createdAt: z.string(),
+    });
+    static maxdiffItemsFetchResponse = z.object({
+        items: z.array(Dto.maxdiffItem),
+    });
+
+    // MaxDiff item lifecycle update
+    static maxdiffItemLifecycleUpdateRequest = z
+        .object({
+            conversationSlugId: z.string(),
+            itemSlugId: z.string(),
+            newStatus: zodMaxdiffLifecycleStatus,
+        })
+        .strict();
+
+    // MaxDiff external source sync
+    static maxdiffSyncRequest = z
+        .object({
+            conversationSlugId: z.string(),
+        })
+        .strict();
+    static maxdiffSyncResponse = z.object({
+        created: z.number(),
+        updated: z.number(),
+    });
+
+    // MaxDiff GitHub preview (before conversation creation)
+    static maxdiffGitHubPreviewRequest = z
+        .object({
+            repository: z.string(), // "owner/repo"
+            label: z.string(),
+        })
+        .strict();
+    static maxdiffGitHubPreviewItem = z.object({
+        number: z.number(),
+        title: z.string(),
+        body: z.string().nullable(),
+        state: z.enum(["open", "closed"]),
+        htmlUrl: z.string(),
+    });
+    static maxdiffGitHubPreviewResponse = z.object({
+        issues: z.array(Dto.maxdiffGitHubPreviewItem),
     });
 }
 
@@ -1126,9 +1303,6 @@ export type UpdateConversationResponse = z.infer<
     typeof Dto.updateConversationResponse
 >;
 export type CreateCommentResponse = z.infer<typeof Dto.createOpinionResponse>;
-export type GetUserPollResponseByConversations200 = z.infer<
-    typeof Dto.getUserPollResponseByConversationsResponse
->;
 export type FetchUserVotesForPostSlugIdsResponse = z.infer<
     typeof Dto.getUserVotesByConversationsResponse
 >;
@@ -1242,6 +1416,52 @@ export type GetConversationExportStatusRequest = z.infer<
 export type GetConversationExportStatusResponse = z.infer<
     typeof Dto.getConversationExportStatusResponse
 >;
+export type SurveyFormFetchRequest = z.infer<typeof Dto.surveyFormFetchRequest>;
+export type SurveyFormFetchResponse = z.infer<
+    typeof Dto.surveyFormFetchResponse
+>;
+export type SurveyStatusCheckRequest = z.infer<
+    typeof Dto.surveyStatusCheckRequest
+>;
+export type SurveyStatusCheckResponse = z.infer<
+    typeof Dto.surveyStatusCheckResponse
+>;
+export type SurveyAnswerSaveRequest = z.infer<
+    typeof Dto.surveyAnswerSaveRequest
+>;
+export type SurveyAnswerSaveResponse = z.infer<
+    typeof Dto.surveyAnswerSaveResponse
+>;
+export type SurveyResponseWithdrawRequest = z.infer<
+    typeof Dto.surveyResponseWithdrawRequest
+>;
+export type SurveyResponseWithdrawResponse = z.infer<
+    typeof Dto.surveyResponseWithdrawResponse
+>;
+export type SurveyResultsAggregatedRequest = z.infer<
+    typeof Dto.surveyResultsAggregatedRequest
+>;
+export type SurveyResultsAggregatedResponse = z.infer<
+    typeof Dto.surveyResultsAggregatedResponse
+>;
+export type SurveyCompletionCountsRequest = z.infer<
+    typeof Dto.surveyCompletionCountsRequest
+>;
+export type SurveyCompletionCountsResponse = z.infer<
+    typeof Dto.surveyCompletionCountsResponse
+>;
+export type SurveyConfigUpdateRequest = z.infer<
+    typeof Dto.surveyConfigUpdateRequest
+>;
+export type SurveyConfigUpdateResponse = z.infer<
+    typeof Dto.surveyConfigUpdateResponse
+>;
+export type SurveyConfigDeleteRequest = z.infer<
+    typeof Dto.surveyConfigDeleteRequest
+>;
+export type SurveyConfigDeleteResponse = z.infer<
+    typeof Dto.surveyConfigDeleteResponse
+>;
 export type GetConversationExportHistoryRequest = z.infer<
     typeof Dto.getConversationExportHistoryRequest
 >;
@@ -1257,9 +1477,13 @@ export type ConversationExportHistoryItem = z.infer<
 export type MaxDiffSaveRequest = z.infer<typeof Dto.maxdiffSaveRequest>;
 export type MaxDiffLoadResponse = z.infer<typeof Dto.maxdiffLoadResponse>;
 export type MaxDiffResultItem = z.infer<typeof Dto.maxdiffResultItem>;
-export type MaxDiffResultsResponse = z.infer<
-    typeof Dto.maxdiffResultsResponse
+export type MaxDiffResultsResponse = z.infer<typeof Dto.maxdiffResultsResponse>;
+export type MaxDiffSaveResponse = z.infer<typeof Dto.maxdiffSaveResponse>;
+export type MaxDiffItem = z.infer<typeof Dto.maxdiffItem>;
+export type MaxDiffItemsFetchResponse = z.infer<
+    typeof Dto.maxdiffItemsFetchResponse
 >;
+export type MaxDiffSyncResponse = z.infer<typeof Dto.maxdiffSyncResponse>;
 
 // Export SSE types
 export * from "./sse.js";

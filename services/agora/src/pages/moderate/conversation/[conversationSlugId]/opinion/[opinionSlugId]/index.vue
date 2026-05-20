@@ -1,18 +1,9 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: false,
-      enableHeader: true,
-      enableFooter: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
-      <StandardMenuBar title="" :center-content="false" />
-    </template>
+  <Teleport v-if="isActive" to="#page-header">
+    <StandardMenuBar title="" :center-content="false" />
+  </Teleport>
 
-    <div class="container">
+  <div class="container">
       <div class="title">{{ t("title") }}</div>
 
       <div class="userOpinion">
@@ -56,7 +47,6 @@
         @click="clickedWithdraw()"
       />
     </div>
-  </DrawerLayout>
 </template>
 
 <script setup lang="ts">
@@ -64,8 +54,8 @@ import { storeToRefs } from "pinia";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
 import ZKGradientButton from "src/components/ui-library/ZKGradientButton.vue";
 import ZKHtmlContent from "src/components/ui-library/ZKHtmlContent.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import type {
   ModerationReason,
   OpinionItem,
@@ -78,6 +68,7 @@ import {
   moderationReasonMapping,
   opinionModerationActionMapping,
 } from "src/utils/component/moderations";
+import { getSingleRouteParam } from "src/utils/router/params";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -85,6 +76,8 @@ import {
   type OpinionModerationTranslations,
   opinionModerationTranslations,
 } from "./index.i18n";
+
+const { isActive } = usePageLayout({ reducedWidth: true });
 
 const {
   moderateComment,
@@ -94,9 +87,7 @@ const {
 
 const { fetchOpinionsBySlugIdList } = useBackendCommentApi();
 
-const route = useRoute(
-  "/moderate/conversation/[conversationSlugId]/opinion/[opinionSlugId]/"
-);
+const route = useRoute();
 const router = useRouter();
 
 const { t } = useComponentI18n<OpinionModerationTranslations>(
@@ -151,12 +142,8 @@ function loadRouteParams() {
     route.name ==
     "/moderate/conversation/[conversationSlugId]/opinion/[opinionSlugId]/"
   ) {
-    postSlugId = Array.isArray(route.params.conversationSlugId)
-      ? route.params.conversationSlugId[0]
-      : route.params.conversationSlugId;
-    commentSlugId = Array.isArray(route.params.opinionSlugId)
-      ? route.params.opinionSlugId[0]
-      : route.params.opinionSlugId;
+    postSlugId = getSingleRouteParam(route.params.conversationSlugId) || null;
+    commentSlugId = getSingleRouteParam(route.params.opinionSlugId) || null;
   }
 }
 

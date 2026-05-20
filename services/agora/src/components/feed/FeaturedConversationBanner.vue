@@ -1,13 +1,13 @@
 <template>
-  <div v-if="isVisible" class="featured-banner">
+  <div v-if="shouldShowBanner" class="featured-banner">
     <ZKIcon
       name="mdi:star-outline"
       size="1.25rem"
       color="#6b4eff"
     />
-    <router-link :to="conversationUrl" class="banner-link">
+    <SpaLink :to="conversationUrl" class="banner-link">
       {{ t("message") }}
-    </router-link>
+    </SpaLink>
     <button class="dismiss-button" @click="dismiss">
       <ZKIcon name="mdi:close" size="1rem" color="#836bff" />
     </button>
@@ -16,9 +16,10 @@
 
 <script setup lang="ts">
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
+import { useFeaturedBannerVisibility } from "src/composables/useFeaturedBannerVisibility";
 import { processEnv } from "src/utils/processEnv";
-import { computed, ref } from "vue";
 
+import SpaLink from "../ui-library/SpaLink.vue";
 import ZKIcon from "../ui-library/ZKIcon.vue";
 import {
   type FeaturedConversationBannerTranslations,
@@ -30,24 +31,9 @@ const { t } = useComponentI18n<FeaturedConversationBannerTranslations>(
 );
 
 const slug = processEnv.VITE_FEATURED_CONVERSATION_SLUG;
-const storageKey = `featuredConvBanner:${slug}:dismissed`;
+const conversationUrl = `/conversation/${slug}`;
 
-const dismissed = ref(
-  slug ? sessionStorage.getItem(storageKey) === "true" : true
-);
-
-const isVisible = computed(() => {
-  return Boolean(slug) && !dismissed.value;
-});
-
-const conversationUrl = computed(() => `/conversation/${slug}`);
-
-function dismiss() {
-  dismissed.value = true;
-  if (slug) {
-    sessionStorage.setItem(storageKey, "true");
-  }
-}
+const { shouldShowBanner, dismiss } = useFeaturedBannerVisibility();
 </script>
 
 <style scoped lang="scss">
@@ -59,7 +45,7 @@ function dismiss() {
   background-color: rgba($primary, 0.06);
   border: 1px solid rgba($primary, 0.2);
   border-radius: 8px;
-  margin: 0.5rem 1rem;
+  margin: 0 1rem;
 }
 
 .banner-link {

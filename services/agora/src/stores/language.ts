@@ -1,6 +1,7 @@
 import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
 import { loadLocaleMessages, setI18nLanguage } from "src/boot/i18n";
+import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import type {
   SupportedDisplayLanguageCodes,
   SupportedSpokenLanguageCodes,
@@ -8,11 +9,17 @@ import type {
 import type { LanguagePreferences } from "src/shared/types/zod";
 import { zodLanguagePreferences } from "src/shared/types/zod";
 import { useAuthenticationStore } from "src/stores/authentication";
+import { isNetworkError } from "src/utils/api/common";
 import { useBackendLanguageApi } from "src/utils/api/language";
 import { parseBrowserLanguage } from "src/utils/language";
 import { useNotify } from "src/utils/ui/notify";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+
+import {
+  type LanguageStoreTranslations,
+  languageStoreTranslations,
+} from "./language.i18n";
 
 function getDefaultDisplayLanguage(): SupportedDisplayLanguageCodes {
   return "fa";
@@ -33,6 +40,9 @@ export const useLanguageStore = defineStore("language", () => {
 
   const authStore = useAuthenticationStore();
   const { showNotifyMessage } = useNotify();
+  const { t } = useComponentI18n<LanguageStoreTranslations>(
+    languageStoreTranslations
+  );
 
   // Single source of truth: localStorage-backed reactive refs with smart defaults
   const displayLanguage = useLocalStorage<SupportedDisplayLanguageCodes>(
@@ -75,9 +85,9 @@ export const useLanguageStore = defineStore("language", () => {
         );
 
         if (!validationResult.success) {
-          throw new Error(
-            `Invalid language preferences data: ${validationResult.error.message}`
-          );
+          showNotifyMessage(t("failedToFetchLanguagePreferences"));
+          console.error("Invalid language preferences data:", validationResult.error);
+          return null;
         }
 
         const validated = validationResult.data;
@@ -90,10 +100,15 @@ export const useLanguageStore = defineStore("language", () => {
 
         return validated;
       } else {
-        throw new Error("Failed to fetch language preferences from backend");
+        // Network errors are covered by the "Connection lost" notification
+        if (!isNetworkError(response.code)) {
+          showNotifyMessage(t("failedToFetchLanguagePreferences"));
+          console.error("Failed to fetch language preferences from backend:", response.code, response.message);
+        }
+        return null;
       }
     } catch (err) {
-      showNotifyMessage("Failed to fetch language preferences from backend");
+      showNotifyMessage(t("failedToFetchLanguagePreferences"));
       console.error("Error fetching language preferences from backend:", err);
       return null;
     }
@@ -116,7 +131,7 @@ export const useLanguageStore = defineStore("language", () => {
         throw new Error("Failed to save language preferences");
       }
     } catch (err) {
-      showNotifyMessage("Failed to save language preferences");
+      showNotifyMessage(t("failedToSaveLanguagePreferences"));
       console.error("Error saving language preferences:", err);
       throw err;
     }
@@ -137,7 +152,7 @@ export const useLanguageStore = defineStore("language", () => {
         throw new Error("Failed to save display language preference");
       }
     } catch (err) {
-      showNotifyMessage("Failed to save display language preference");
+      showNotifyMessage(t("failedToSaveDisplayLanguagePreference"));
       console.error("Error saving display language preference:", err);
       throw err;
     }
@@ -162,7 +177,7 @@ export const useLanguageStore = defineStore("language", () => {
       return true;
     } catch (err) {
       spokenLanguages.value = previousSpokenLanguages;
-      showNotifyMessage("Failed to update spoken languages");
+      showNotifyMessage(t("failedToUpdateSpokenLanguages"));
       console.error("Error updating spoken languages:", err);
       return false;
     }
@@ -190,7 +205,7 @@ export const useLanguageStore = defineStore("language", () => {
 
       return true;
     } catch (err) {
-      showNotifyMessage("Failed to change display language");
+      showNotifyMessage(t("failedToChangeDisplayLanguage"));
       console.error("Error changing display language:", err);
       // Revert on failure
       await updateLocale(originalLanguage);
@@ -230,7 +245,7 @@ export const useLanguageStore = defineStore("language", () => {
       await updateLocale(originalDisplayLanguage);
       spokenLanguages.value = originalSpokenLanguages;
 
-      showNotifyMessage("Failed to clear language preferences");
+      showNotifyMessage(t("failedToClearLanguagePreferences"));
       console.error("Error clearing language preferences:", err);
       return false;
     }

@@ -1,58 +1,30 @@
 // Edit conversation functionality
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
 import {
-    pollTable,
     conversationContentTable,
-    conversationProofTable,
     conversationTable,
     conversationModerationTable,
+    organizationTable,
 } from "@/shared-backend/schema.js";
 import { eq } from "drizzle-orm";
 import { log } from "@/app.js";
 import { httpErrors } from "@fastify/sensible";
 import { toUnionUndefined } from "@/shared/shared.js";
 import { processUserGeneratedHtml } from "@/shared-app-api/html.js";
+import type { GoogleCloudCredentials } from "@/shared-backend/googleCloudAuth.js";
+import {
+    assertSurveyFeatureAllowedForConversation,
+    getActiveSurveyConfigRecord,
+    getSurveyConfigForConversation,
+    setSurveyConfigForConversation,
+    warmSurveyTranslationsForConversation,
+} from "@/service/survey.js";
 import type {
     GetConversationForEditResponse,
     UpdateConversationRequest,
     UpdateConversationResponse,
 } from "@/shared/types/dto.js";
-
-interface CreatePollAndLinkToContentProps {
-    tx: PostgresDatabase;
-    contentId: number;
-    options: string[];
-}
-
-async function createPollAndLinkToContent({
-    tx,
-    contentId,
-    options,
-}: CreatePollAndLinkToContentProps): Promise<void> {
-    const newPollResult = await tx
-        .insert(pollTable)
-        .values({
-            conversationContentId: contentId,
-            option1: options[0],
-            option2: options[1],
-            option3: options[2] ?? null,
-            option4: options[3] ?? null,
-            option5: options[4] ?? null,
-            option6: options[5] ?? null,
-            option1Response: 0,
-            option2Response: 0,
-            option3Response: options[2] ? 0 : null,
-            option4Response: options[3] ? 0 : null,
-            option5Response: options[4] ? 0 : null,
-            option6Response: options[5] ? 0 : null,
-        })
-        .returning({ pollId: pollTable.id });
-
-    await tx
-        .update(conversationContentTable)
-        .set({ pollId: newPollResult[0].pollId })
-        .where(eq(conversationContentTable.id, contentId));
-}
+import { isConversationOwner } from "@/service/conversationAccess.js";
 
 interface GetConversationForEditProps {
     db: PostgresDatabase;
@@ -67,23 +39,19 @@ export async function getConversationForEdit({
 }: GetConversationForEditProps): Promise<GetConversationForEditResponse> {
     const results = await db
         .select({
+            conversationId: conversationTable.id,
             conversationSlugId: conversationTable.slugId,
             authorId: conversationTable.authorId,
+            organizationId: conversationTable.organizationId,
             conversationTitle: conversationContentTable.title,
             conversationBody: conversationContentTable.body,
             isIndexed: conversationTable.isIndexed,
             participationMode: conversationTable.participationMode,
             requiresEventTicket: conversationTable.requiresEventTicket,
+            postAsOrganizationName: organizationTable.name,
             indexConversationAt: conversationTable.indexConversationAt,
             createdAt: conversationTable.createdAt,
             updatedAt: conversationTable.updatedAt,
-            pollId: conversationContentTable.pollId,
-            option1: pollTable.option1,
-            option2: pollTable.option2,
-            option3: pollTable.option3,
-            option4: pollTable.option4,
-            option5: pollTable.option5,
-            option6: pollTable.option6,
             moderationAction: conversationModerationTable.moderationAction,
         })
         .from(conversationTable)
@@ -91,7 +59,10 @@ export async function getConversationForEdit({
             conversationContentTable,
             eq(conversationContentTable.id, conversationTable.currentContentId),
         )
-        .leftJoin(pollTable, eq(conversationContentTable.pollId, pollTable.id))
+        .leftJoin(
+            organizationTable,
+            eq(conversationTable.organizationId, organizationTable.id),
+        )
         .leftJoin(
             conversationModerationTable,
             eq(
@@ -107,48 +78,37 @@ export async function getConversationForEdit({
 
     const conversation = results[0];
 
-    // Check if user is the author
-    if (conversation.authorId !== userId) {
+    const isOwner = await isConversationOwner({
+        db,
+        userId,
+        authorId: conversation.authorId,
+        organizationId: conversation.organizationId,
+    });
+    if (!isOwner) {
         return { success: false, reason: "not_author" };
     }
 
     // Check if conversation is locked
     const isLocked = conversation.moderationAction === "lock";
 
-    // Build poll options list
-    let pollingOptionList: string[] | undefined = undefined;
-    const hasPoll = conversation.pollId !== null;
-
-    if (hasPoll) {
-        if (conversation.option1 === null || conversation.option2 === null) {
-            throw httpErrors.internalServerError(
-                "Poll data is inconsistent for this conversation",
-            );
-        }
-
-        pollingOptionList = [
-            conversation.option1,
-            conversation.option2,
-            conversation.option3,
-            conversation.option4,
-            conversation.option5,
-            conversation.option6,
-        ].filter((opt): opt is string => opt !== null);
-    }
-
     return {
         success: true,
         conversationSlugId: conversation.conversationSlugId,
         conversationTitle: conversation.conversationTitle,
         conversationBody: toUnionUndefined(conversation.conversationBody),
-        pollingOptionList,
         isIndexed: conversation.isIndexed,
         participationMode: conversation.participationMode,
         requiresEventTicket: toUnionUndefined(conversation.requiresEventTicket),
+        postAsOrganizationName: toUnionUndefined(
+            conversation.postAsOrganizationName,
+        ),
+        surveyConfig: await getSurveyConfigForConversation({
+            db,
+            conversationId: conversation.conversationId,
+        }),
         indexConversationAt: conversation.indexConversationAt ?? undefined,
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
-        hasPoll,
         isLocked,
     };
 }
@@ -156,8 +116,7 @@ export async function getConversationForEdit({
 interface UpdateConversationProps {
     db: PostgresDatabase;
     userId: string;
-    didWrite: string;
-    proof: string;
+    googleCloudCredentials?: GoogleCloudCredentials;
     data: Omit<UpdateConversationRequest, "conversationSlugId"> & {
         conversationSlugId: string;
     };
@@ -166,18 +125,17 @@ interface UpdateConversationProps {
 export async function updateConversation({
     db,
     userId,
-    didWrite,
-    proof,
+    googleCloudCredentials,
     data,
 }: UpdateConversationProps): Promise<UpdateConversationResponse> {
     const {
         conversationSlugId,
         conversationTitle,
         conversationBody,
-        pollAction,
         isIndexed,
         participationMode,
         requiresEventTicket,
+        surveyConfig,
         indexConversationAt,
     } = data;
 
@@ -201,191 +159,136 @@ export async function updateConversation({
         }
     }
 
-    const result = await db
-        .transaction(async (tx) => {
-            // Get conversation and check authorization
-            const conversationResults = await tx
-                .select({
-                    conversationId: conversationTable.id,
-                    authorId: conversationTable.authorId,
-                    currentContentId: conversationTable.currentContentId,
-                    moderationAction:
-                        conversationModerationTable.moderationAction,
-                })
-                .from(conversationTable)
-                .leftJoin(
-                    conversationModerationTable,
-                    eq(
-                        conversationModerationTable.conversationId,
-                        conversationTable.id,
-                    ),
-                )
-                .where(eq(conversationTable.slugId, conversationSlugId));
+    let updatedConversationId: number | undefined;
 
-            if (conversationResults.length === 0) {
-                return { success: false, reason: "not_found" } as const;
-            }
+    const result = await db.transaction(async (tx) => {
+        const now = new Date();
+        // Get conversation and check authorization
+        const conversationResults = await tx
+            .select({
+                conversationId: conversationTable.id,
+                authorId: conversationTable.authorId,
+                organizationId: conversationTable.organizationId,
+                organizationName: organizationTable.name,
+                currentContentId: conversationTable.currentContentId,
+                moderationAction: conversationModerationTable.moderationAction,
+            })
+            .from(conversationTable)
+            .leftJoin(
+                organizationTable,
+                eq(conversationTable.organizationId, organizationTable.id),
+            )
+            .leftJoin(
+                conversationModerationTable,
+                eq(
+                    conversationModerationTable.conversationId,
+                    conversationTable.id,
+                ),
+            )
+            .where(eq(conversationTable.slugId, conversationSlugId));
 
-            const conversation = conversationResults[0];
+        if (conversationResults.length === 0) {
+            return { success: false, reason: "not_found" } as const;
+        }
 
-            // Check if user is the author
-            if (conversation.authorId !== userId) {
-                return { success: false, reason: "not_author" } as const;
-            }
+        const conversation = conversationResults[0];
 
-            // Check if conversation is locked
-            if (conversation.moderationAction === "lock") {
-                return {
-                    success: false,
-                    reason: "conversation_locked",
-                } as const;
-            }
+        const isOwner = await isConversationOwner({
+            db: tx,
+            userId,
+            authorId: conversation.authorId,
+            organizationId: conversation.organizationId,
+        });
+        if (!isOwner) {
+            return { success: false, reason: "not_author" } as const;
+        }
 
-            // Check if conversation was deleted
-            if (conversation.currentContentId === null) {
-                return { success: false, reason: "not_found" } as const;
-            }
+        // Check if conversation is locked
+        if (conversation.moderationAction === "lock") {
+            return {
+                success: false,
+                reason: "conversation_locked",
+            } as const;
+        }
 
-            const conversationId = conversation.conversationId;
+        // Check if conversation was deleted
+        if (conversation.currentContentId === null) {
+            return { success: false, reason: "not_found" } as const;
+        }
 
-            // Get current poll status
-            const currentContentResults = await tx
-                .select({
-                    pollId: conversationContentTable.pollId,
-                })
-                .from(conversationContentTable)
-                .where(
-                    eq(
-                        conversationContentTable.id,
-                        conversation.currentContentId,
-                    ),
-                );
+        const conversationId = conversation.conversationId;
+        updatedConversationId = conversationId;
 
-            const hasPoll = currentContentResults[0]?.pollId !== null;
+        // Create new conversation content
+        const newContentResult = await tx
+            .insert(conversationContentTable)
+            .values({
+                conversationId: conversationId,
+                title: conversationTitle,
+                body: sanitizedBody,
+            })
+            .returning({
+                conversationContentId: conversationContentTable.id,
+            });
 
-            // Validate poll action against current state
-            if (pollAction.action === "none" && hasPoll) {
-                return {
-                    success: false,
-                    reason: "poll_exists_use_keep_or_remove",
-                } as const;
-            }
-            if (pollAction.action === "create" && hasPoll) {
-                return {
-                    success: false,
-                    reason: "poll_already_exists",
-                } as const;
-            }
-            if (pollAction.action === "remove" && !hasPoll) {
-                return {
-                    success: false,
-                    reason: "no_poll_to_remove",
-                } as const;
-            }
-            if (pollAction.action === "keep" && !hasPoll) {
-                return { success: false, reason: "no_poll_to_keep" } as const;
-            }
-            if (pollAction.action === "replace" && !hasPoll) {
-                return {
-                    success: false,
-                    reason: "no_poll_to_replace",
-                } as const;
-            }
+        const newContentId = newContentResult[0].conversationContentId;
 
-            // Create edit proof
-            const editProofResult = await tx
-                .insert(conversationProofTable)
-                .values({
-                    type: "edit",
-                    conversationId: conversationId,
-                    authorDid: didWrite,
-                    proof: proof,
-                    proofVersion: 1,
-                })
-                .returning({ proofId: conversationProofTable.id });
+        // Update conversation with new content and settings
+        await tx
+            .update(conversationTable)
+            .set({
+                currentContentId: newContentId,
+                isIndexed: isIndexed,
+                participationMode: participationMode,
+                requiresEventTicket: requiresEventTicket ?? null,
+                indexConversationAt:
+                    indexConversationAt !== undefined
+                        ? new Date(indexConversationAt)
+                        : null,
+                updatedAt: new Date(),
+                isEdited: true,
+            })
+            .where(eq(conversationTable.id, conversationId));
 
-            const editProofId = editProofResult[0].proofId;
+        if (surveyConfig !== undefined) {
+            const existingSurveyConfig = await getActiveSurveyConfigRecord({
+                db: tx,
+                conversationId,
+            });
+            assertSurveyFeatureAllowedForConversation({
+                organizationName: conversation.organizationName,
+                hasExistingSurvey: existingSurveyConfig !== undefined,
+                userId,
+            });
 
-            // Create new conversation content
-            const newContentResult = await tx
-                .insert(conversationContentTable)
-                .values({
-                    conversationProofId: editProofId,
-                    conversationId: conversationId,
-                    title: conversationTitle,
-                    body: sanitizedBody,
-                    pollId: null, // Will be updated if poll is created
-                })
-                .returning({
-                    conversationContentId: conversationContentTable.id,
-                });
+            await setSurveyConfigForConversation({
+                db: tx,
+                conversationId,
+                surveyConfig: surveyConfig ?? null,
+                now,
+            });
+        }
 
-            const newContentId = newContentResult[0].conversationContentId;
+        return { success: true } as const;
+    });
 
-            // Handle poll action
-            switch (pollAction.action) {
-                case "none": {
-                    // No poll exists and don't create one - no action needed
-                    // pollId is already null in new content
-                    break;
-                }
-                case "create": {
-                    await createPollAndLinkToContent({
-                        tx,
-                        contentId: newContentId,
-                        options: pollAction.options,
-                    });
-                    break;
-                }
-                case "keep": {
-                    // Copy the existing poll ID to the new content
-                    const existingPollId = currentContentResults[0].pollId;
-                    await tx
-                        .update(conversationContentTable)
-                        .set({ pollId: existingPollId })
-                        .where(eq(conversationContentTable.id, newContentId));
-                    break;
-                }
-                case "replace": {
-                    // Create a brand new poll (orphaning the old one with its responses)
-                    await createPollAndLinkToContent({
-                        tx,
-                        contentId: newContentId,
-                        options: pollAction.options,
-                    });
-                    break;
-                }
-                case "remove": {
-                    // pollId is already null in new content, no action needed
-                    break;
-                }
-            }
-
-            // Update conversation with new content and settings
-            await tx
-                .update(conversationTable)
-                .set({
-                    currentContentId: newContentId,
-                    isIndexed: isIndexed,
-                    participationMode: participationMode,
-                    requiresEventTicket: requiresEventTicket ?? null,
-                    indexConversationAt:
-                        indexConversationAt !== undefined
-                            ? new Date(indexConversationAt)
-                            : null,
-                    updatedAt: new Date(),
-                    isEdited: true,
-                })
-                .where(eq(conversationTable.id, conversationId));
-
-            return { success: true } as const;
-        })
-        .catch((error: unknown) => {
-            log.error(error, "Unexpected error updating conversation");
-            throw httpErrors.internalServerError(
-                "Failed to update conversation",
+    if (
+        result.success &&
+        surveyConfig !== undefined &&
+        surveyConfig !== null &&
+        updatedConversationId !== undefined
+    ) {
+        void warmSurveyTranslationsForConversation({
+            db,
+            conversationId: updatedConversationId,
+            googleCloudCredentials,
+        }).catch((error: unknown) => {
+            log.warn(
+                error,
+                `[Survey Translation] Async warm-up failed after updating conversation ${conversationSlugId}`,
             );
         });
+    }
 
     return result;
 }

@@ -52,10 +52,11 @@
       </div>
     </div>
 
-    <PreLoginIntentionDialog
+    <PreParticipationIntentionDialog
       v-model="showLoginDialog"
       :ok-callback="onLoginCallback"
       active-intention="agreement"
+      :conversation-slug-id="props.postSlugId"
       :requires-zupass-event-slug="props.requiresEventTicket"
       :needs-auth="needsLogin"
       :participation-mode="props.participationMode"
@@ -65,25 +66,25 @@
 
 <script setup lang="ts">
 import { useQueryClient } from "@tanstack/vue-query";
-import { storeToRefs } from "pinia";
-import PreLoginIntentionDialog from "src/components/authentication/intention/PreLoginIntentionDialog.vue";
+import PreParticipationIntentionDialog from "src/components/authentication/intention/PreParticipationIntentionDialog.vue";
 import VotingButton from "src/components/features/opinion/VotingButton.vue";
 import { useConversationLoginIntentions } from "src/composables/auth/useConversationLoginIntentions";
+import { useParticipationGate } from "src/composables/conversation/useParticipationGate";
 import type { OpinionVotingUtilities } from "src/composables/opinion/types";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import { useTicketVerificationFlow } from "src/composables/zupass/useTicketVerificationFlow";
-import { useZupassVerification } from "src/composables/zupass/useZupassVerification";
-import type { EventSlug, ParticipationMode } from "src/shared/types/zod";
 import {
+  type EventSlug,
   type OpinionItem,
+  type ParticipationMode,
+  type SurveyGateSummary,
   type VotingAction,
 } from "src/shared/types/zod";
 import { calculatePercentage } from "src/shared/util";
-import { useAuthenticationStore } from "src/stores/authentication";
-import { useUserStore } from "src/stores/user";
 import { useBackendAuthApi } from "src/utils/api/auth";
 import { useInvalidateConversationQuery } from "src/utils/api/post/useConversationQuery";
+import { useUserClusteringSession } from "src/utils/api/vote/useVoteQueries";
 import { formatPercentage } from "src/utils/common";
+import { computeBannerState } from "src/utils/component/bannerState";
 import { MIN_VOTES_FOR_CLUSTER } from "src/utils/component/opinion";
 import { useNotify } from "src/utils/ui/notify";
 import { computed, ref } from "vue";
@@ -99,27 +100,27 @@ const props = defineProps<{
   votingUtilities: OpinionVotingUtilities;
   participationMode: ParticipationMode;
   requiresEventTicket?: EventSlug;
+  surveyGate: SurveyGateSummary | undefined;
   onViewAnalysis: () => void;
   isVotingDisabled: boolean;
-}>();
-
-const emit = defineEmits<{
-  ticketVerified: [
-    payload: { userIdChanged: boolean; needsCacheRefresh: boolean },
-  ];
 }>();
 
 const showLoginDialog = ref(false);
 const hasVotedThisSession = ref(false);
 const { setOpinionAgreementIntention } = useConversationLoginIntentions();
+const {
+  needsAuth: isAuthBlocked,
+  shouldOpenParticipationModal,
+} = useParticipationGate({
+  conversationSlugId: computed(() => props.postSlugId),
+  participationMode: computed(() => props.participationMode),
+  requiresEventTicket: computed(() => props.requiresEventTicket),
+  surveyGate: computed(() => props.surveyGate),
+});
 
 const { showNotifyMessage } = useNotify();
 const { updateAuthState } = useBackendAuthApi();
 const { invalidateConversation } = useInvalidateConversationQuery();
-const authStore = useAuthenticationStore();
-const { hasStrongVerification, hasEmailVerification } = storeToRefs(authStore);
-const userStore = useUserStore();
-const { verifiedEventTickets } = storeToRefs(userStore);
 
 // Query client for reading analysis cache
 const queryClient = useQueryClient();
@@ -128,9 +129,8 @@ const { t } = useComponentI18n<CommentActionBarTranslations>(
   commentActionBarTranslations
 );
 
-// Zupass verification
-const { verifyTicket } = useTicketVerificationFlow();
-const { isVerifying: isVerifyingZupass } = useZupassVerification();
+// Session-level clustering state (reactive, shared across all CommentActionBar instances)
+const { isUserClusteredInSession } = useUserClusteringSession();
 
 // Track if user is clustered (from vote response during this mount)
 const userClusteredThisMount = ref(false);
@@ -152,18 +152,7 @@ const userIsClusteredFromCache = computed(() => {
 
 // Check if user needs login/verification based on participation mode
 const needsLogin = computed(() => {
-  if (props.participationMode === "strong_verification") return !hasStrongVerification.value;
-  if (props.participationMode === "email_verification") return !hasEmailVerification.value;
-  return false; // guest
-});
-
-// Check if opinion is locked due to missing event ticket
-const isOpinionLocked = computed(() => {
-  if (props.requiresEventTicket === undefined) {
-    return false;
-  }
-  const verifiedTicketsArray = Array.from(verifiedEventTickets.value);
-  return !verifiedTicketsArray.includes(props.requiresEventTicket);
+  return isAuthBlocked.value;
 });
 
 // Computed properties from TanStack Query cache (no local state)
@@ -199,58 +188,19 @@ const relativeTotalPercentagePasses = computed(() => {
   return calculatePercentage(localNumPasses.value, totalVotes.value);
 });
 
-async function onLoginCallback() {
+function onLoginCallback() {
   // Store the intention with eventSlug
   setOpinionAgreementIntention(
     props.commentItem.opinionSlugId,
     props.requiresEventTicket
   );
-
-  const hasZupassRequirement = props.requiresEventTicket !== undefined;
-
-  // If user just needs Zupass verification (no login required), trigger it inline
-  if (!needsLogin.value && hasZupassRequirement) {
-    await handleZupassVerification();
-  }
-  // Otherwise, dialog will route user to login via PreLoginIntentionDialog
-}
-
-async function handleZupassVerification() {
-  if (props.requiresEventTicket === undefined) {
-    return;
-  }
-
-  // Dialog will close when Zupass iframe is ready (via callback)
-  const result = await verifyTicket({
-    eventSlug: props.requiresEventTicket,
-    onIframeReady: () => {
-      // Close dialog as soon as Zupass iframe becomes visible
-      showLoginDialog.value = false;
-    },
-  });
-
-  if (result.success) {
-    // Emit to parent so banner gets refreshed
-    emit("ticketVerified", {
-      userIdChanged: result.userIdChanged,
-      needsCacheRefresh: result.needsCacheRefresh,
-    });
-  }
 }
 
 async function castPersonalVote(
   opinionSlugId: string,
   voteAction: VotingAction
 ): Promise<void> {
-  // Prevent multiple clicks while Zupass is verifying
-  if (isVerifyingZupass.value) {
-    return;
-  }
-
-  // Check if user needs login/verification or Zupass verification
-  const needsZupass = isOpinionLocked.value;
-
-  if (needsLogin.value || needsZupass) {
+  if (await shouldOpenParticipationModal()) {
     showLoginDialog.value = true;
     return;
   }
@@ -288,9 +238,12 @@ async function castPersonalVote(
         showNotifyMessage(t("conversationClosed"));
       } else if (result.reason === "conversation_locked") {
         showNotifyMessage(t("voteFailed"));
-      } else if (result.reason === "event_ticket_required" || result.reason === "strong_verification_required" || result.reason === "email_verification_required") {
-        // User lacks required verification for this conversation
-        await userStore.loadUserProfile();
+      } else if (result.reason === "event_ticket_required" || result.reason === "account_required" || result.reason === "strong_verification_required" || result.reason === "email_verification_required") {
+        showLoginDialog.value = true;
+      } else if (
+        result.reason === "survey_required" ||
+        result.reason === "survey_outdated"
+      ) {
         showLoginDialog.value = true;
       } else {
         showNotifyMessage(t("voteFailed"));
@@ -305,26 +258,27 @@ async function castPersonalVote(
   }
 }
 
-// Vote banner logic (3 states)
+// Vote banner logic (3 states): uses pure function for testability
+const bannerState = computed(() =>
+  computeBannerState({
+    clusteredThisMount: userClusteredThisMount.value,
+    clusteredFromCache: !!userIsClusteredFromCache.value,
+    clusteredInSession: isUserClusteredInSession(props.postSlugId),
+  })
+);
+
 const bannerMessage = computed(() => {
-  // Just got clustered THIS mount (show celebration once)
-  if (userClusteredThisMount.value && !userIsClusteredFromCache.value) {
-    return t("assignedGroup"); // "You have been assigned a group!"
+  const state = bannerState.value;
+  if (state === "celebration") {
+    return t("assignedGroup");
   }
-
-  // User was clustered before OR just got clustered (show refinement)
-  if (userClusteredThisMount.value || userIsClusteredFromCache.value) {
-    return t("keepVotingToRefineAnalysis"); // "Keep voting to refine the analysis"
+  if (state === "refine") {
+    return t("keepVotingToRefineAnalysis");
   }
-
-  // Not clustered yet
   return t("keepVotingToDiscoverGroup", { minVotes: String(MIN_VOTES_FOR_CLUSTER) });
 });
 
-const showViewAnalysisLink = computed(() => {
-  // Only show link for "You have been assigned a group!" celebration message
-  return userClusteredThisMount.value && !userIsClusteredFromCache.value;
-});
+const showViewAnalysisLink = computed(() => bannerState.value === "celebration");
 
 const shouldShowBanner = computed(() => {
   // Show banner whenever user has voted this session

@@ -27,14 +27,20 @@
     v-model:import-settings="importSettings"
     v-model:conversation-type="conversationType"
     :is-max-diff-allowed="isMaxDiffAllowed"
+    :is-import-allowed="isImportAllowed"
     @mode-change-requested="handleModeChangeRequest"
+  />
+
+  <MaxDiffSourceDialog
+    v-model="showMaxDiffSourceDialog"
+    :current-config="externalSourceConfig"
+    :on-source-selected="handleSourceSelected"
   />
 
   <ModeChangeConfirmationDialog
     v-model="showImportModeChangeConfirmation"
     :has-title="hasTitle"
     :has-body="hasBody"
-    :has-poll="hasPoll"
     @confirm="handleModeChangeConfirm"
     @cancel="handleModeChangeCancel"
   />
@@ -77,12 +83,30 @@ import {
   type PrivateConversationSettings,
 } from "src/composables/conversation/draft";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import type { ConversationType, EventSlug, ParticipationMode } from "src/shared/types/zod";
+import {
+  localizedDateTimeFormatOptions,
+  useLocalizedDateTimeFormatter,
+} from "src/composables/ui/useLocalizedDateTime";
+import type { ConversationType, EventSlug, ExternalSourceConfig, ParticipationMode } from "src/shared/types/zod";
+import {
+  checkFeatureAccess,
+  DEFAULT_FEATURE_ALLOWED_ORGS,
+  DEFAULT_FEATURE_ALLOWED_USERS,
+} from "src/shared-app-api/featureAccess";
+import {
+  checkMaxDiffAllowed,
+  checkMaxDiffGitHubAllowed,
+  DEFAULT_MAXDIFF_ALLOWED_ORGS,
+  DEFAULT_MAXDIFF_ALLOWED_USERS,
+  DEFAULT_MAXDIFF_GITHUB_ALLOWED_ORGS,
+  DEFAULT_MAXDIFF_GITHUB_ALLOWED_USERS,
+} from "src/shared-app-api/maxdiffLogic";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useUserStore } from "src/stores/user";
 import { processEnv } from "src/utils/processEnv";
 import { computed, ref } from "vue";
 
+import MaxDiffSourceDialog from "./dialog/MaxDiffSourceDialog.vue";
 import PostTypeDialog from "./dialog/PostTypeDialog.vue";
 import {
   type NewConversationControlBarTranslations,
@@ -108,11 +132,10 @@ const { t } = useComponentI18n<NewConversationControlBarTranslations>(
   newConversationControlBarTranslations
 );
 
-const { isLoggedIn } = storeToRefs(useAuthenticationStore());
+const { isLoggedIn, userId } = storeToRefs(useAuthenticationStore());
 const { profileData } = storeToRefs(useUserStore());
 
 // Define models for two-way binding
-const pollEnabled = defineModel<boolean>("pollEnabled", { required: true });
 const isPrivate = defineModel<boolean>("isPrivate", { required: true });
 const participationMode = defineModel<ParticipationMode>("participationMode", {
   required: true,
@@ -133,13 +156,16 @@ const conversationType = defineModel<ConversationType>("conversationType", {
 });
 const importSettings = defineModel<ConversationImportSettings>(
   "importSettings",
-  { required: true }
+  { required: true },
+);
+const externalSourceConfig = defineModel<ExternalSourceConfig | null>(
+  "externalSourceConfig",
+  { required: true },
 );
 
 // For checking if there's content that would be cleared (parent needs to provide these)
 const title = defineModel<string>("title", { required: true });
 const content = defineModel<string>("content", { required: true });
-const pollOptions = defineModel<string[]>("pollOptions", { required: true });
 
 const postAsDisplayName = computed(() => {
   if (postAs.value.postAsOrganization) {
@@ -175,21 +201,13 @@ const showAsDialog = (): void => {
 // Computed properties to determine what content would be cleared
 const hasTitle = computed(() => title.value.trim() !== "");
 const hasBody = computed(() => content.value.trim() !== "");
-const hasPoll = computed(
-  () => pollEnabled.value && pollOptions.value.some((opt) => opt.trim() !== "")
-);
 
 /**
  * Checks if switching import type would clear content
  * Uses shared utility function with current form values
  */
 function checkHasContentThatWouldBeCleared(): boolean {
-  return hasContentThatWouldBeCleared(
-    title.value,
-    content.value,
-    pollEnabled.value,
-    pollOptions.value
-  );
+  return hasContentThatWouldBeCleared(title.value, content.value);
 }
 
 interface ModeChangeConfig {
@@ -203,9 +221,14 @@ const handleModeChangeRequest = (config: ModeChangeConfig): void => {
   // Set conversation type immediately
   conversationType.value = config.conversationType;
 
-  // MaxDiff doesn't use polls — disable if switching to MaxDiff
   if (config.conversationType === "maxdiff") {
-    pollEnabled.value = false;
+    // Auto-open source dialog if GitHub is allowed
+    if (isMaxDiffGitHubAllowed.value) {
+      showMaxDiffSourceDialog.value = true;
+    }
+  } else {
+    // Clear external source config when switching away from maxdiff
+    externalSourceConfig.value = null;
   }
 
   const currentType = importSettings.value.importType;
@@ -262,10 +285,6 @@ const togglePostTypeDialog = (): void => {
   showPostTypeDialog.value = !showPostTypeDialog.value;
 };
 
-const togglePolling = (): void => {
-  pollEnabled.value = !pollEnabled.value;
-};
-
 const toggleVisibility = (): void => {
   showVisibilityDialog.value = true;
 };
@@ -283,23 +302,69 @@ const toggleEventTicketRequirement = (): void => {
 };
 
 const isMaxDiffAllowed = computed(() => {
-  if (processEnv.VITE_MAXDIFF_ENABLED !== "true") return false;
-
-  // Default to "Agora" if not set (must match backend MAXDIFF_ALLOWED_ORGS default)
-  const allowedOrgs = processEnv.VITE_MAXDIFF_ALLOWED_ORGS ?? "Agora";
-  if (allowedOrgs.trim() !== "") {
-    if (!postAs.value.postAsOrganization) return false;
-    const orgList = allowedOrgs.split(",").map((s) => s.trim());
-    return orgList.includes(postAs.value.organizationName);
-  }
-
-  // If org-only mode, any org can create MaxDiff
-  if (processEnv.VITE_IS_MAXDIFF_ORG_ONLY === "true") {
-    return postAs.value.postAsOrganization;
-  }
-
-  return true;
+  const result = checkMaxDiffAllowed({
+    maxdiffEnabled: processEnv.VITE_MAXDIFF_ENABLED === "true",
+    isMaxdiffOrgOnly: processEnv.VITE_IS_MAXDIFF_ORG_ONLY === "true",
+    maxdiffAllowedOrgs:
+      processEnv.VITE_MAXDIFF_ALLOWED_ORGS ?? DEFAULT_MAXDIFF_ALLOWED_ORGS,
+    maxdiffAllowedUsers:
+      processEnv.VITE_MAXDIFF_ALLOWED_USERS ?? DEFAULT_MAXDIFF_ALLOWED_USERS,
+    postAsOrganization: postAs.value.postAsOrganization,
+    organizationName: postAs.value.organizationName,
+    userId: userId.value ?? "",
+  });
+  return result.allowed;
 });
+
+const isImportAllowed = computed(() => {
+  const result = checkFeatureAccess({
+    featureEnabled: true,
+    isOrgOnly: processEnv.VITE_IS_ORG_IMPORT_ONLY === "true",
+    allowedOrgs:
+      processEnv.VITE_IMPORT_ALLOWED_ORGS ?? DEFAULT_FEATURE_ALLOWED_ORGS,
+    allowedUsers:
+      processEnv.VITE_IMPORT_ALLOWED_USERS ?? DEFAULT_FEATURE_ALLOWED_USERS,
+    postAsOrganization: postAs.value.postAsOrganization,
+    organizationName: postAs.value.organizationName,
+    userId: userId.value ?? "",
+  });
+  return result.allowed;
+});
+
+const isMaxDiffGitHubAllowed = computed(() => {
+  const result = checkMaxDiffGitHubAllowed({
+    maxdiffEnabled: processEnv.VITE_MAXDIFF_ENABLED === "true",
+    isMaxdiffOrgOnly: processEnv.VITE_IS_MAXDIFF_ORG_ONLY === "true",
+    maxdiffAllowedOrgs:
+      processEnv.VITE_MAXDIFF_ALLOWED_ORGS ?? DEFAULT_MAXDIFF_ALLOWED_ORGS,
+    maxdiffAllowedUsers:
+      processEnv.VITE_MAXDIFF_ALLOWED_USERS ?? DEFAULT_MAXDIFF_ALLOWED_USERS,
+    maxdiffGitHubEnabled:
+      processEnv.VITE_MAXDIFF_GITHUB_ENABLED === "true",
+    isMaxdiffGitHubOrgOnly:
+      processEnv.VITE_IS_MAXDIFF_GITHUB_ORG_ONLY === "true",
+    maxdiffGitHubAllowedOrgs:
+      processEnv.VITE_MAXDIFF_GITHUB_ALLOWED_ORGS ??
+      DEFAULT_MAXDIFF_GITHUB_ALLOWED_ORGS,
+    maxdiffGitHubAllowedUsers:
+      processEnv.VITE_MAXDIFF_GITHUB_ALLOWED_USERS ??
+      DEFAULT_MAXDIFF_GITHUB_ALLOWED_USERS,
+    postAsOrganization: postAs.value.postAsOrganization,
+    organizationName: postAs.value.organizationName,
+    userId: userId.value ?? "",
+  });
+  return result.allowed;
+});
+
+const showMaxDiffSourceDialog = ref(false);
+
+const formatMakePublicDate = useLocalizedDateTimeFormatter({
+  options: localizedDateTimeFormatOptions.dateTime,
+});
+
+function handleSourceSelected(config: ExternalSourceConfig | null): void {
+  externalSourceConfig.value = config;
+}
 
 const getMakePublicLabel = (): string => {
   if (!privateConversationSettings.value.hasScheduledConversion) {
@@ -308,18 +373,7 @@ const getMakePublicLabel = (): string => {
 
   const targetDate = privateConversationSettings.value.conversionDate;
 
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-
-  const formattedDate = formatter.format(targetDate);
-
-  return t("makePublic").replace("{date}", formattedDate);
+  return t("makePublic").replace("{date}", formatMakePublicDate(targetDate));
 };
 
 const getEventTicketLabel = (): string => {
@@ -357,11 +411,7 @@ const controlButtons = computed((): ControlButton[] => [
             ? t("importFromCsv")
             : t("newConversation"),
     icon: showPostTypeDialog.value ? "pi pi-chevron-up" : "pi pi-chevron-down",
-    isVisible:
-      !props.isEditMode &&
-      (processEnv.VITE_IS_ORG_IMPORT_ONLY === "true"
-        ? postAs.value.postAsOrganization
-        : true),
+    isVisible: !props.isEditMode,
     clickHandler: togglePostTypeDialog,
     clickable: true,
   },
@@ -378,11 +428,13 @@ const controlButtons = computed((): ControlButton[] => [
   {
     id: "login-requirement",
     label:
-      participationMode.value === "strong_verification"
-        ? t("requiresLogin")
-        : participationMode.value === "email_verification"
-          ? t("requiresEmailVerification")
-          : t("guestParticipation"),
+      participationMode.value === "account_required"
+        ? t("requiresAccount")
+        : participationMode.value === "strong_verification"
+          ? t("requiresLogin")
+          : participationMode.value === "email_verification"
+            ? t("requiresEmailVerification")
+            : t("guestParticipation"),
     icon: showLoginRequirementDialog.value
       ? "pi pi-chevron-up"
       : "pi pi-chevron-down",
@@ -408,16 +460,6 @@ const controlButtons = computed((): ControlButton[] => [
       : "pi pi-chevron-down",
     isVisible: true,
     clickHandler: toggleEventTicketRequirement,
-    clickable: true,
-  },
-  {
-    id: "polling",
-    label: pollEnabled.value ? t("removePoll") : t("addPoll"),
-    icon: pollEnabled.value ? "pi pi-minus" : "pi pi-plus",
-    isVisible:
-      importSettings.value.importType === null &&
-      conversationType.value === "polis",
-    clickHandler: togglePolling,
     clickable: true,
   },
 ]);

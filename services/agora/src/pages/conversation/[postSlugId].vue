@@ -1,33 +1,34 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: false,
-      enableHeader: true,
-      enableFooter: false,
-      reducedWidth: false,
-    }"
-  >
-    <template #header>
-      <DefaultMenuBar :center-content="false">
-        <template #left>
-          <ZKIconButton icon="ci:chevron-left" aria-label="Go back" @click="handleBack" />
-          <span v-if="isSticky && hasConversationData" class="navbar-title">
-            {{ loadedConversationData.payload.title }}
-          </span>
-        </template>
-      </DefaultMenuBar>
-    </template>
+  <Teleport v-if="isActive" to="#page-header">
+    <DefaultMenuBar :center-content="false">
+      <template #left>
+        <BackButton @click="handleBack" />
+        <span v-if="isSticky && hasConversationData" class="navbar-title">
+          {{ loadedConversationData.payload.title }}
+        </span>
+      </template>
+    </DefaultMenuBar>
+  </Teleport>
 
-    <q-pull-to-refresh @refresh="handleRefresh">
+  <q-pull-to-refresh @refresh="handleRefresh">
       <WidthWrapper :enable="true">
-        <div v-if="hasConversationData">
+        <PageLoadingSpinner v-if="conversationQuery.isPending.value && !hasConversationData" />
+
+        <ErrorRetryBlock
+          v-else-if="conversationQuery.isError.value && !conversationQuery.isPending.value && !hasConversationData"
+          :title="t('errorTitle')"
+          :retry-label="t('retryButton')"
+          @retry="conversationQuery.refetch()"
+        />
+
+        <div v-else-if="hasConversationData">
           <ZKHoverEffect :enable-hover="false">
             <div class="container standardStyle">
               <PostContent
                 :extended-post-data="loadedConversationData"
                 :compact-mode="false"
                 @open-moderation-history="openModerationHistory()"
+                @conversation-deleted="handleConversationDeleted"
                 @verified="(payload) => handleTicketVerified(payload)"
               />
 
@@ -53,6 +54,7 @@
                 :author-username="loadedConversationData.metadata.authorUsername"
                 :on-same-tab-click="() => scrollToActionBar({ behavior: 'smooth' })"
                 :conversation-type="loadedConversationData.metadata.conversationType"
+                :has-survey="loadedConversationData.interaction.surveyGate?.hasSurvey === true"
               />
               </div>
 
@@ -87,41 +89,73 @@
                   </KeepAlive>
                 </router-view>
               </div>
+
+              <FloatingBottomContainer
+                v-if="loadedConversationData.metadata.conversationType !== 'maxdiff'"
+              >
+                <CommentComposer
+                  ref="commentComposerRef"
+                  :post-slug-id="loadedConversationData.metadata.conversationSlugId"
+                  :participation-mode="loadedConversationData.metadata.participationMode"
+                  :requires-event-ticket="loadedConversationData.metadata.requiresEventTicket"
+                  :survey-gate="loadedConversationData.interaction.surveyGate"
+                  :is-composer-disabled="isVotingDisabled"
+                  @submitted-comment="handleSubmittedComment"
+                />
+              </FloatingBottomContainer>
             </div>
           </ZKHoverEffect>
         </div>
       </WidthWrapper>
     </q-pull-to-refresh>
-  </DrawerLayout>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import BackButton from "src/components/navigation/buttons/BackButton.vue";
+import FloatingBottomContainer from "src/components/navigation/FloatingBottomContainer.vue";
 import DefaultMenuBar from "src/components/navigation/header/DefaultMenuBar.vue";
 import WidthWrapper from "src/components/navigation/WidthWrapper.vue";
+import CommentComposer from "src/components/post/comments/CommentComposer.vue";
 import CommentSortingSelector from "src/components/post/comments/group/CommentSortingSelector.vue";
 import PostContent from "src/components/post/display/PostContent.vue";
 import PostActionBar from "src/components/post/interactionBar/PostActionBar.vue";
+import ErrorRetryBlock from "src/components/ui/ErrorRetryBlock.vue";
+import PageLoadingSpinner from "src/components/ui/PageLoadingSpinner.vue";
 import ZKHoverEffect from "src/components/ui-library/ZKHoverEffect.vue";
-import ZKIconButton from "src/components/ui-library/ZKIconButton.vue";
 import {
   type ConversationParentConfig,
   useConversationParentState,
 } from "src/composables/conversation/useConversationParentState";
 import { useTabScrollRestoration } from "src/composables/conversation/useTabScrollRestoration";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
+import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import { useStickyObserver } from "src/composables/ui/useStickyObserver";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useLayoutHeaderStore } from "src/stores/layout/header";
 import { useNavigationStore } from "src/stores/navigation";
 import { useNewPostDraftsStore } from "src/stores/newConversationDrafts";
 import type { CommentFilterOptions } from "src/utils/component/opinion";
 import { useGoBackButtonHandler } from "src/utils/nav/goBackButton";
-import { onBeforeUnmount, onMounted, watch } from "vue";
+import {
+  isBackToConversationCommentTab,
+  navigateBackOrReplace,
+} from "src/utils/nav/historyBack";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
+import {
+  type ConversationPageTranslations,
+  conversationPageTranslations,
+} from "./[postSlugId].i18n";
+
+const { isActive } = usePageLayout({ enableFooter: false });
+
 const router = useRouter();
-const { sentinelElement, isSticky, headerHeight } = useStickyObserver();
+const { t } = useComponentI18n<ConversationPageTranslations>(
+  conversationPageTranslations
+);
+const { sentinelElement, isSticky, headerHeight, refresh: refreshStickyState } = useStickyObserver();
 const navigationStore = useNavigationStore();
 const { resetDraft } = useNewPostDraftsStore();
 const { safeNavigateBack } = useGoBackButtonHandler();
@@ -129,6 +163,7 @@ const { safeNavigateBack } = useGoBackButtonHandler();
 const authStore = useAuthenticationStore();
 const { userId } = storeToRefs(authStore);
 const { reveal: headerRevealed } = storeToRefs(useLayoutHeaderStore());
+const commentComposerRef = ref<InstanceType<typeof CommentComposer>>();
 
 const conversationConfig: ConversationParentConfig = {
   analysisRouteName: "/conversation/[postSlugId]/analysis",
@@ -156,40 +191,55 @@ const {
   navigateToDiscoverTab,
   openModerationHistory,
   handleTicketVerified,
+  handleSubmittedComment,
   handleRefresh,
   invalidateUserVotes,
   scrollToActionBar,
   pendingScrollOverride,
 } = useConversationParentState(conversationConfig);
 
+const isVotingDisabled = computed(() => {
+  const data = conversationData.value;
+  if (data === undefined) {
+    return true;
+  }
+
+  const isModeratedAndLocked =
+    data.metadata.moderation.status === "moderated" &&
+    data.metadata.moderation.action === "lock";
+  return isModeratedAndLocked || data.metadata.isClosed;
+});
+
 const { tabContentStyle } = useTabScrollRestoration({
   analysisRouteName: conversationConfig.analysisRouteName,
   pendingScrollOverride,
-  sentinelElement,
   actionBarElement,
+  onScrollComplete: refreshStickyState,
 });
 
-function handleBack(): void {
+function handleBack(event: MouseEvent): void {
+  event.preventDefault();
   if (currentTab.value === "analysis") {
-    const back = window.history.state?.back;
     const slugId = conversationData.value?.metadata.conversationSlugId;
-    // If previous history entry is the comment tab of this conversation, pop it
-    if (
-      typeof back === "string" &&
-      slugId !== undefined &&
-      back.startsWith(`/conversation/${slugId}`) &&
-      !back.includes("/analysis")
-    ) {
-      router.back();
-    } else if (slugId !== undefined) {
-      void router.replace({
-        name: "/conversation/[postSlugId]/",
-        params: { postSlugId: slugId },
-      });
-    }
+    if (slugId === undefined) return;
+
+    const fallbackRoute = `/conversation/${slugId}/`;
+    const conversationPathPrefix = conversationConfig.routePrefix.replace("{id}", slugId);
+    void navigateBackOrReplace({
+      router,
+      fallbackRoute,
+      shouldNavigateBack: isBackToConversationCommentTab({
+        historyBack: window.history.state?.back,
+        conversationPathPrefix,
+      }),
+    });
   } else {
     void safeNavigateBack({ name: "/" });
   }
+}
+
+function handleConversationDeleted(): void {
+  commentComposerRef.value?.discardDraft();
 }
 
 // Handle conversation creation navigation
@@ -220,7 +270,7 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .container {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   flex-direction: column;
 }
 

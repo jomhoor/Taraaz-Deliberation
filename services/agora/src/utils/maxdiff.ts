@@ -10,6 +10,8 @@
  * each round of best/worst voting.
  */
 
+import type { MaxDiffComparison } from "src/shared/types/zod";
+
 // --- Bron-Kerbosch algorithm (inline, from SeregPie/BronKerbosch) ---
 
 function setDifference<T>(a: Set<T>, b: Set<T>): Set<T> {
@@ -118,11 +120,7 @@ function minBy<T>(items: T[], fn: (item: T) => number): T {
 
 // --- MaxDiff Engine ---
 
-export interface MaxDiffComparison {
-    best: string;
-    worst: string;
-    set: string[];
-}
+export type { MaxDiffComparison };
 
 export interface MaxDiffState {
     items: string[];
@@ -334,6 +332,46 @@ export function createMaxDiff(items: Iterable<string>): MaxDiffInstance {
 }
 
 /**
+ * Estimate remaining votes needed to complete a full ranking.
+ *
+ * Uses a blend of heuristic (for early votes) and actual resolution rate
+ * (once enough data is available) to produce a stable estimate.
+ */
+export function estimateRemainingVotes({
+    votesDone,
+    orderedPairs,
+    unorderedPairs,
+    itemCount,
+}: {
+    votesDone: number;
+    orderedPairs: number;
+    unorderedPairs: number;
+    itemCount: number;
+}): number {
+    if (unorderedPairs === 0) return 0;
+
+    // Heuristic: ~N*log2(N)/5 votes for N items with 4-item sets + transitive closure
+    const heuristic = Math.ceil((itemCount * Math.log2(Math.max(itemCount, 2))) / 5);
+
+    const avgPairsPerVote = votesDone > 0 ? orderedPairs / votesDone : 0;
+
+    // Use pure heuristic when we have no data or unreliable rate
+    if (votesDone === 0 || avgPairsPerVote < 1) {
+        return heuristic;
+    }
+
+    const rateEstimate = Math.ceil(unorderedPairs / avgPairsPerVote);
+
+    // Blend heuristic with actual rate for the first few votes
+    if (votesDone < 3) {
+        const weight = votesDone / 3;
+        return Math.ceil(heuristic * (1 - weight) + rateEstimate * weight);
+    }
+
+    return rateEstimate;
+}
+
+/**
  * Restore a MaxDiff instance from saved state.
  * Replays all comparisons to rebuild the comparison matrix.
  */
@@ -370,42 +408,4 @@ export function recordMaxDiffVote({
     instance.orderBefore(best, otherItems);
     const otherItemsForWorst = candidates.filter((id) => id !== worst);
     instance.orderAfter(worst, otherItemsForWorst);
-}
-
-/**
- * Aggregate MaxDiff results across multiple users.
- * Each user's ranking is a list of opinionSlugIds from best to worst.
- */
-export function aggregateMaxDiffResults({
-    rankings,
-    allItems,
-}: {
-    rankings: string[][];
-    allItems: string[];
-}): Array<{ item: string; avgRank: number; score: number; participantCount: number }> {
-    const rankSums = new Map<string, { total: number; count: number }>();
-    for (const item of allItems) {
-        rankSums.set(item, { total: 0, count: 0 });
-    }
-
-    for (const ranking of rankings) {
-        for (let i = 0; i < ranking.length; i++) {
-            const entry = rankSums.get(ranking[i]);
-            if (entry) {
-                entry.total += i + 1; // 1-based rank
-                entry.count += 1;
-            }
-        }
-    }
-
-    const n = allItems.length;
-    return allItems
-        .map((item) => {
-            const entry = rankSums.get(item);
-            const avgRank = entry !== undefined && entry.count > 0 ? entry.total / entry.count : n;
-            // Normalized score: 1.0 = best, 0.0 = worst
-            const score = n > 1 ? (n - avgRank) / (n - 1) : 1;
-            return { item, avgRank, score, participantCount: entry?.count ?? 0 };
-        })
-        .sort((a, b) => a.avgRank - b.avgRank);
 }

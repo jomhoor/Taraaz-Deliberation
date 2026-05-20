@@ -1,27 +1,19 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: false,
-      enableFooter: false,
-      enableHeader: false,
-      reducedWidth: true,
-    }"
-  >
-    <div class="container">
-      <slot />
-    </div>
-  </DrawerLayout>
+  <div class="container">
+    <slot :is-active="isActive" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
+
+const { isActive } = usePageLayout({ enableHeader: true, enableFooter: false, reducedWidth: true });
 </script>
 
 <style scoped lang="scss">
 .container {
   padding-bottom: 0.5rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 </style>

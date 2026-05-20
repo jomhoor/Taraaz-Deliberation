@@ -1,12 +1,19 @@
+import { wasNavigationTriggeredByHistory } from "src/utils/nav/historyBack";
 import type { Ref } from "vue";
 import { onUnmounted, ref } from "vue";
-import type { RouteLocationNormalized } from "vue-router";
+import type { RouteParamsGeneric, RouteRecordNameGeneric } from "vue-router";
 import { onBeforeRouteLeave, useRouter } from "vue-router";
 
 /**
  * Callback function to execute before actually leaving the route
  */
 type BeforeLeaveCallback = () => void | Promise<void>;
+
+export interface RouteGuardDestination {
+  fullPath: string;
+  name: RouteRecordNameGeneric | null | undefined;
+  params: RouteParamsGeneric;
+}
 
 export interface RouteGuardState {
   /** Whether to show an exit confirmation dialog */
@@ -22,20 +29,35 @@ export interface RouteGuardActions {
   ) => Promise<void>;
 }
 
+interface PendingNavigation {
+  targetRoute: string;
+  navigationMethod: "push" | "replace";
+}
+
 export interface RouteGuardComposable
   extends RouteGuardState,
     RouteGuardActions {}
 
 export function useRouteGuard(
   beforeUnloadShouldBlockCallback: () => boolean,
-  beforeRouteLeaveCallback: (to: RouteLocationNormalized) => boolean
+  beforeRouteLeaveCallback: (to: RouteGuardDestination) => boolean,
 ): RouteGuardComposable {
   const router = useRouter();
 
   // State
   const isRouteLocked = ref(false);
   const showExitDialog = ref(false);
-  const pendingRoute = ref<RouteLocationNormalized | null>(null);
+  const pendingNavigation = ref<PendingNavigation | null>(null);
+
+  // Shared helper: block navigation and show the exit dialog
+  function blockAndShowDialog({
+    pending,
+  }: {
+    pending: PendingNavigation;
+  }): void {
+    pendingNavigation.value = pending;
+    showExitDialog.value = true;
+  }
 
   // Store original beforeunload handler to restore on cleanup
   const originalBeforeUnload = window.onbeforeunload;
@@ -51,31 +73,43 @@ export function useRouteGuard(
 
   window.addEventListener("beforeunload", handleBeforeUnload);
 
+  // Set up Vue Router guard (handles router.push / router.replace navigations)
+  onBeforeRouteLeave((to, from) => {
+    const destination = {
+      fullPath: to.fullPath,
+      name: to.name,
+      params: to.params,
+    };
+
+    if (!isRouteLocked.value) {
+      return true;
+    }
+
+    if (beforeRouteLeaveCallback(destination)) {
+      return true;
+    }
+
+    const navigationMethod = wasNavigationTriggeredByHistory({
+      currentPath: from.fullPath,
+      historyBack: window.history.state?.back,
+      historyForward: window.history.state?.forward,
+    })
+      ? "replace"
+      : "push";
+
+    blockAndShowDialog({
+      pending: {
+        targetRoute: destination.fullPath,
+        navigationMethod,
+      },
+    });
+    return false;
+  });
+
   // Clean up on component unmount
   onUnmounted(() => {
     window.removeEventListener("beforeunload", handleBeforeUnload);
     window.onbeforeunload = originalBeforeUnload;
-  });
-
-  // Set up Vue Router guard
-  onBeforeRouteLeave((to, from, next) => {
-    // If route is not locked, allow navigation
-    if (!isRouteLocked.value) {
-      next();
-      return;
-    }
-
-    // Check if custom callback allows navigation
-    const shouldAllowNavigation = beforeRouteLeaveCallback(to);
-
-    if (shouldAllowNavigation) {
-      next();
-    } else {
-      // Block navigation and store the pending route
-      pendingRoute.value = to;
-      showExitDialog.value = true;
-      next(false);
-    }
   });
 
   const lockRoute = (): void => {
@@ -84,7 +118,7 @@ export function useRouteGuard(
 
   const unlockRoute = (): void => {
     isRouteLocked.value = false;
-    pendingRoute.value = null;
+    pendingNavigation.value = null;
     showExitDialog.value = false;
   };
 
@@ -95,7 +129,7 @@ export function useRouteGuard(
   const proceedWithNavigation = async (
     beforeLeaveCallback?: BeforeLeaveCallback
   ): Promise<void> => {
-    if (!pendingRoute.value) {
+    if (pendingNavigation.value === null) {
       console.warn("No pending route to navigate to");
       return;
     }
@@ -107,10 +141,10 @@ export function useRouteGuard(
       }
 
       // Unlock the route and navigate
-      const targetRoute = pendingRoute.value;
+      const pending = pendingNavigation.value;
       unlockRoute();
 
-      await router.push(targetRoute);
+      await router[pending.navigationMethod](pending.targetRoute);
     } catch (error) {
       console.error("Failed to navigate to pending route:", error);
       // Re-lock the route if navigation failed

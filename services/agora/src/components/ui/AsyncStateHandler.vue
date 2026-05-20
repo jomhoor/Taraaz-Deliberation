@@ -43,14 +43,11 @@
     <!-- Retry loading state (with delay to prevent flashing) -->
     <div v-else-if="isRetryPending" class="asyncStateMessage">
       <slot name="loading">
-        <q-spinner
-          v-if="config.loading?.showSpinner !== false"
-          size="50px"
-          color="primary"
-        />
-        <q-icon v-else name="hourglass_empty" size="50px" color="primary" />
-        <div class="stateText">
-          {{ config.retrying?.text || config.loading?.text || t("loading") }}
+        <div class="loadingContent">
+          <PageLoadingSpinner v-if="shouldShowLoadingSpinner" />
+          <div v-if="retryingText" class="stateText">
+            {{ retryingText }}
+          </div>
         </div>
       </slot>
     </div>
@@ -61,14 +58,11 @@
       class="asyncStateMessage"
     >
       <slot name="loading">
-        <q-spinner
-          v-if="config.loading?.showSpinner !== false"
-          size="50px"
-          color="primary"
-        />
-        <q-icon v-else name="hourglass_empty" size="50px" color="primary" />
-        <div class="stateText">
-          {{ config.loading?.text || t("loading") }}
+        <div class="loadingContent">
+          <PageLoadingSpinner v-if="shouldShowLoadingSpinner" />
+          <div v-if="loadingText" class="stateText">
+            {{ loadingText }}
+          </div>
         </div>
       </slot>
     </div>
@@ -94,7 +88,6 @@
     <div
       v-else
       class="contentWrapper"
-      :class="{ 'is-loading': isPending || isRefetching }"
     >
       <slot />
     </div>
@@ -102,15 +95,15 @@
 </template>
 
 <script setup lang="ts">
-import type { UseQueryReturnType } from "@tanstack/vue-query";
 import Button from "primevue/button";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import { computed, ref } from "vue";
+import { computed, type Ref,ref } from "vue";
 
 import {
   type AsyncStateHandlerTranslations,
   asyncStateHandlerTranslations,
 } from "./AsyncStateHandler.i18n";
+import PageLoadingSpinner from "./PageLoadingSpinner.vue";
 
 defineOptions({
   components: {
@@ -132,10 +125,14 @@ const { t } = useComponentI18n<AsyncStateHandlerTranslations>(
   asyncStateHandlerTranslations
 );
 
-type ConstrainedQueryType = Pick<
-  UseQueryReturnType<unknown, Error>,
-  "isPending" | "isError" | "error" | "isRefetching" | "data" | "refetch"
->;
+interface AsyncStateQuery {
+  readonly isPending: Ref<boolean>;
+  readonly isError: Ref<boolean>;
+  readonly error: Ref<unknown>;
+  readonly isRefetching: Ref<boolean>;
+  readonly data: Ref<unknown>;
+  readonly refetch: () => Promise<unknown>;
+}
 
 interface LoadingConfig {
   readonly text?: string;
@@ -169,7 +166,7 @@ interface AsyncStateConfig {
 }
 
 interface Props {
-  query: ConstrainedQueryType;
+  query: AsyncStateQuery;
   config?: AsyncStateConfig;
   isEmpty?: boolean | (() => boolean);
   onRetry?: () => void | Promise<void>;
@@ -181,6 +178,18 @@ const isRetryPending = ref(false);
 const isPending = computed((): boolean => props.query.isPending.value);
 const isError = computed((): boolean => props.query.isError.value);
 const isRefetching = computed((): boolean => props.query.isRefetching.value);
+
+const shouldShowLoadingSpinner = computed(
+  (): boolean => props.config.loading?.showSpinner !== false
+);
+
+const loadingText = computed(
+  (): string => props.config.loading?.text || t("loading")
+);
+
+const retryingText = computed(
+  (): string => props.config.retrying?.text || t("retrying")
+);
 
 const errorMessage = computed((): string | null => {
   if (!props.query.error.value) return null;
@@ -282,10 +291,16 @@ async function handleRetry(): Promise<void> {
   text-align: center;
 }
 
+.loadingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
 .contentWrapper {
   position: relative;
   width: 100%;
-  transition: opacity 0.3s ease-in-out;
 }
 
 .stateText {

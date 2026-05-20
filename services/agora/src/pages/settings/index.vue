@@ -1,17 +1,9 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: true,
-      enableFooter: false,
-      enableHeader: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
-      <StandardMenuBar :title="t('pageTitle')" :center-content="true" />
-    </template>
+  <Teleport v-if="isActive" to="#page-header">
+    <StandardMenuBar :title="t('pageTitle')" :center-content="true" />
+  </Teleport>
 
+  <div>
     <div class="container">
       <div v-if="isGuestOrLoggedIn">
         <ListSection :settings-item-list="credentialSettings" />
@@ -22,6 +14,10 @@
       </div>
 
       <ListSection :settings-item-list="aboutSettings" />
+
+      <div v-if="roadmapSettings.length > 0">
+        <ListSection :settings-item-list="roadmapSettings" />
+      </div>
 
       <div v-if="isGuestOrLoggedIn">
         <ListSection :settings-item-list="deleteAccountSettings" />
@@ -39,15 +35,16 @@
         <ListSection :settings-item-list="developmentSettings" />
       </div>
     </div>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
 import ListSection from "src/components/ui-library/ListSection.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
+import { useFeaturedBannerVisibility } from "src/composables/useFeaturedBannerVisibility";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useLoginIntentionStore } from "src/stores/loginIntention";
 import { onboardingFlowStore } from "src/stores/onboarding/flow";
@@ -56,12 +53,15 @@ import { useBackendAccountApi } from "src/utils/api/account";
 import { useBackendAuthApi } from "src/utils/api/auth";
 import { useAuthSetup } from "src/utils/auth/setup";
 import type { SettingsInterface } from "src/utils/component/settings/settings";
+import { processEnv } from "src/utils/processEnv";
 import { useDialog } from "src/utils/ui/dialog";
 import { useNotify } from "src/utils/ui/notify";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 
 import { type SettingsTranslations,settingsTranslations } from "./index.i18n";
+
+const { isActive } = usePageLayout({ enableFooter: false, reducedWidth: true, addBottomPadding: true });
 
 const authStore = useAuthenticationStore();
 const { isGuestOrLoggedIn, isLoggedIn, credentials } = storeToRefs(authStore);
@@ -150,6 +150,33 @@ const accountSettings: SettingsInterface[] = [
   },
 ];
 
+const featuredSlug = processEnv.VITE_FEATURED_CONVERSATION_SLUG;
+const { hasCompletedRanking } = useFeaturedBannerVisibility();
+
+const roadmapSettings = computed<SettingsInterface[]>(() => {
+  if (!featuredSlug) return [];
+  return [
+    {
+      type: "action",
+      label: t("roadmap"),
+      action: () => {
+        if (hasCompletedRanking.value) {
+          void router.push({
+            name: "/conversation/[postSlugId]/analysis",
+            params: { postSlugId: featuredSlug },
+          });
+        } else {
+          void router.push({
+            name: "/conversation/[postSlugId]/",
+            params: { postSlugId: featuredSlug },
+          });
+        }
+      },
+      style: "none",
+    },
+  ];
+});
+
 const aboutSettings: SettingsInterface[] = [
   {
     type: "navigation",
@@ -231,6 +258,7 @@ function processDeleteAccount() {
           await deleteUserAccount();
           await updateAuthState({ partialLoginStatus: { isKnown: false } });
           showNotifyMessage(t("accountDeleted"));
+          await router.push({ name: "/welcome/" });
         } catch (e) {
           console.error("Failed to delete user account", e);
           showNotifyMessage(t("accountDeletionFailed"));

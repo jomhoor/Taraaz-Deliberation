@@ -1,5 +1,5 @@
 # ---- Build ----
-FROM node:22.22.0-alpine AS build
+FROM node:24.14.1-alpine AS build
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10 --activate
 ENV PATH=/app/node_modules/.bin:$PATH
@@ -21,6 +21,8 @@ COPY --from=build /app/dist/spa /usr/share/nginx/html
 # preventing "Failed to fetch dynamically imported module" errors for users
 # whose browser loaded index.html before the deployment.
 COPY --from=build /app/dist/spa/assets /app/new-assets
+# Sourcemaps were uploaded to Sentry during build; remove from image to save ~20 MB
+RUN find /usr/share/nginx/html /app/new-assets -name "*.map" -delete
 COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 EXPOSE 80

@@ -1,8 +1,8 @@
 <template>
-  <component
-    :is="to ? 'router-link' : 'button'"
+  <SpaLink
+    v-if="to"
     :to="to"
-    :replace="to ? replace : undefined"
+    :deferred="deferred"
     class="tabStyle"
     :class="{
       highlightTab: isHighlighted,
@@ -25,13 +25,42 @@
       :name="iconCode"
       size="1rem"
     />
-    <span v-if="text !== undefined" :style="{ paddingBottom: '3px' }">
+    <span v-if="text !== undefined" :style="{ paddingBottom: '0' }">
       {{ text }}
     </span>
-  </component>
+  </SpaLink>
+  <button
+    v-else
+    class="tabStyle"
+    :class="{
+      highlightTab: isHighlighted,
+      underlineTab: shouldUnderlineOnHighlight,
+      activeTabUnderlineColor: isHighlighted && shouldUnderlineOnHighlight,
+      inactiveTabUnderlineColor: !isHighlighted && shouldUnderlineOnHighlight,
+    }"
+    @click="handleClick"
+  >
+    <!--  TODO: proper icon color -->
+    <!-- :color="isHighlighted ? 'primary' : '#7D7A85'" -->
+    <q-spinner
+      v-if="isLoading"
+      :color="isHighlighted ? 'primary' : '#7D7A85'"
+      size="1rem"
+    />
+    <ZKIcon
+      v-else-if="iconCode !== undefined"
+      :color="isHighlighted ? '#6b4eff' : '#7D7A85'"
+      :name="iconCode"
+      size="1rem"
+    />
+    <span v-if="text !== undefined" :style="{ paddingBottom: '0' }">
+      {{ text }}
+    </span>
+  </button>
 </template>
 
 <script setup lang="ts">
+import SpaLink from "src/components/ui-library/SpaLink.vue";
 import ZKIcon from "src/components/ui-library/ZKIcon.vue";
 import type { RouteLocationRaw } from "vue-router";
 
@@ -42,7 +71,7 @@ defineProps<{
   shouldUnderlineOnHighlight: boolean;
   isLoading?: boolean;
   to?: RouteLocationRaw;
-  replace?: boolean;
+  deferred?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -63,8 +92,8 @@ function handleClick(event: MouseEvent): void {
   cursor: pointer;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.3rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
   font-weight: var(--font-weight-medium);
   color: #7d7a85;
   user-select: none;

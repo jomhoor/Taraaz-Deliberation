@@ -1,6 +1,4 @@
 // util service to get data about devices, users, emails, etc
-import { log } from "@/app.js";
-import * as authService from "@/service/auth.js";
 import {
     conversationTable,
     deviceTable,
@@ -8,18 +6,20 @@ import {
     opinionTable,
     organizationTable,
     phoneTable,
-    ssoAccountTable,
     userOrganizationMappingTable,
     userTable,
-    walletTable,
     zkPassportTable,
 } from "@/shared-backend/schema.js";
-import type { IsLoggedInResponse } from "@/shared/types/dto-auth.js";
-import type { DeviceLoginStatusExtended, ParticipationMode } from "@/shared/types/zod.js";
-import { nowZeroMs } from "@/shared/util.js";
-import { httpErrors } from "@fastify/sensible";
 import { and, eq, gt } from "drizzle-orm";
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
+import type { IsLoggedInResponse } from "@/shared/types/dto-auth.js";
+import { normalizeEmail } from "@/shared/types/zod-email.js";
+import { nowZeroMs } from "@/shared/util.js";
+import { httpErrors } from "@fastify/sensible";
+import type {
+    DeviceLoginStatusExtended,
+    ParticipationMode,
+} from "@/shared/types/zod.js";
 
 // Internal type extending the API type with sessionExpiry for the isKnown=true case.
 // sessionExpiry is internal-only — NOT exposed in the check-login-status API response.
@@ -32,6 +32,8 @@ type DeviceStatusKnownWithSession = Extract<
 export type DeviceLoginStatusInternal =
     | DeviceStatusKnownWithSession
     | Extract<DeviceLoginStatusExtended, { isKnown: false }>;
+import * as authService from "@/service/auth.js";
+import { log } from "@/app.js";
 
 interface InfoDevice {
     userAgent: string;
@@ -127,7 +129,7 @@ export async function getOrRegisterUserIdFromDeviceStatus({
     });
     // For non-guest modes, the user must be registered and logged in.
     // The specific verification check (strong/email) is done separately
-    // in voting.ts, comment.ts, and poll.ts.
+    // in voting.ts and comment.ts.
     if (participationMode !== "guest") {
         if (!deviceStatus.isKnown) {
             throw httpErrors.unauthorized("Device is unknown");
@@ -258,8 +260,6 @@ export async function getDeviceStatus({
             phoneLastTwoDigits: phoneTable.lastTwoDigits,
             phoneCountryCallingCode: phoneTable.countryCallingCode,
             zkPassportTableId: zkPassportTable.id,
-            walletTableId: walletTable.id,
-            ssoAccountTableId: ssoAccountTable.id,
             zkPassportCitizenship: zkPassportTable.citizenship,
             zkPassportSex: zkPassportTable.sex,
             emailTableId: emailTable.id,
@@ -290,19 +290,6 @@ export async function getDeviceStatus({
                 eq(emailTable.isDeleted, false),
             ),
         )
-        .leftJoin(
-            walletTable,
-            and(
-                eq(walletTable.userId, deviceTable.userId),
-            ),
-        )
-        .leftJoin(
-            ssoAccountTable,
-            and(
-                eq(ssoAccountTable.userId, deviceTable.userId),
-                eq(ssoAccountTable.isDeleted, false),
-            ),
-        )
         .where(eq(deviceTable.didWrite, didWrite));
 
     if (resultDevice.length === 0) {
@@ -330,14 +317,12 @@ export async function getDeviceStatus({
 
     const sessionExpiry = device.sessionExpiry;
     const isLoggedIn = sessionExpiry.getTime() > now.getTime();
-    // isRegistered: true if user has phone, Rarimo, Wallet, email, or SSO account (strong credentials)
+    // isRegistered: true if user has phone, Rarimo, or email (strong credentials)
     // Zupass tickets are NOT checked here - they are "soft credentials"
     const isRegistered =
         device.phoneTableId !== null ||
         device.zkPassportTableId !== null ||
-        device.walletTableId !== null ||
-        device.emailTableId !== null ||
-        device.ssoAccountTableId !== null;
+        device.emailTableId !== null;
 
     const credentials = {
         email: device.email,
@@ -355,7 +340,10 @@ export async function getDeviceStatus({
         rarimo:
             device.zkPassportCitizenship !== null &&
             device.zkPassportSex !== null
-                ? { citizenship: device.zkPassportCitizenship, sex: device.zkPassportSex }
+                ? {
+                      citizenship: device.zkPassportCitizenship,
+                      sex: device.zkPassportSex,
+                  }
                 : null,
     };
 
@@ -474,12 +462,7 @@ export async function getEmailsFromUserId(
         .select({ email: emailTable.email })
         .from(emailTable)
         .leftJoin(userTable, eq(emailTable.userId, userTable.id))
-        .where(
-            and(
-                eq(userTable.id, userId),
-                eq(emailTable.isDeleted, false),
-            ),
-        );
+        .where(and(eq(userTable.id, userId), eq(emailTable.isDeleted, false)));
     if (results.length === 0) {
         return [];
     } else {
@@ -515,6 +498,8 @@ export async function isEmailAssociatedWithDevice(
     didWrite: string,
     email: string,
 ): Promise<boolean> {
+    const canonicalEmail = normalizeEmail(email);
+
     const result = await db
         .select()
         .from(userTable)
@@ -522,7 +507,7 @@ export async function isEmailAssociatedWithDevice(
         .leftJoin(deviceTable, eq(deviceTable.userId, userTable.id))
         .where(
             and(
-                eq(emailTable.email, email),
+                eq(emailTable.email, canonicalEmail),
                 eq(deviceTable.didWrite, didWrite),
                 eq(emailTable.isDeleted, false),
             ),
@@ -547,24 +532,6 @@ export async function getUserIdFromDevice(
         throw new Error("This didWrite is not registered to any user");
     }
     return results[0].userId;
-}
-
-/**
- * Validates that import operations are allowed based on organization restrictions.
- * If IS_ORG_IMPORT_ONLY is enabled, the request must specify a valid organization.
- */
-export function validateOrgImportRestriction(
-    postAsOrganization: string | undefined,
-    isOrgImportOnly: boolean,
-): void {
-    if (
-        (!postAsOrganization || postAsOrganization.trim() === "") &&
-        isOrgImportOnly
-    ) {
-        throw httpErrors.forbidden(
-            "Import feature restricted to organizations",
-        );
-    }
 }
 
 interface CanModerateConversationResult {

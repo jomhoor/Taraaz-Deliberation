@@ -100,7 +100,7 @@
     </div>
 
     <!-- Character count footer (shown when maxLength is provided) -->
-    <div v-if="maxLength !== undefined && (showCharacterCount ?? true)" class="character-count-footer">
+    <div v-if="maxLength !== undefined && showCharacterCount" class="character-count-footer">
       <span :class="{ 'character-count-over-limit': isOverLimit }">
         {{ internalCharacterCount }}
       </span>
@@ -130,7 +130,7 @@ defineOptions({
   },
 });
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   showToolbar: boolean;
   placeholder: string;
   minHeight: string;
@@ -138,10 +138,16 @@ const props = defineProps<{
   singleLine: boolean;
   maxLength?: number;
   showCharacterCount?: boolean;
-}>();
+  submitOnEnter?: boolean;
+}>(), {
+  maxLength: undefined,
+  showCharacterCount: true,
+  submitOnEnter: false,
+});
 const emit = defineEmits<{
   manuallyFocused: [];
   blur: [];
+  enter: [];
   "update:characterCount": [count: number];
   "update:isOverLimit": [isOverLimit: boolean];
 }>();
@@ -281,6 +287,14 @@ const editor = useEditor({
       };
       return sanitizeHtml(html, options);
     },
+    handleKeyDown(_view, event) {
+      if (props.submitOnEnter && event.key === "Enter" && !event.shiftKey) {
+        emit("enter");
+        return true;
+      }
+
+      return false;
+    },
   },
   onCreate: ({ editor }) => {
     emitCharacterCount(computeCharacterCount(editor));
@@ -379,7 +393,7 @@ watch(
   display: flex;
   gap: 0.25rem;
   padding: 0.5rem;
-  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .bubble-menu-content {
@@ -408,6 +422,7 @@ watch(
   line-height: normal;
   max-height: 40vh;
   overflow-y: auto;
+  overflow-wrap: break-word;
 }
 
 .editor :deep(.ProseMirror p) {

@@ -1,99 +1,94 @@
 <template>
   <div>
     <WidthWrapper :enable="true">
-      <q-pull-to-refresh @refresh="pullDownTriggered">
-        <FeedSkeleton v-if="isPending" />
-        <q-infinite-scroll
-          v-else
-          :offset="2000"
-          :disable="!canLoadMore"
-          @load="onLoad"
+      <q-infinite-scroll
+        :offset="2000"
+        :disable="!canLoadMore"
+        @load="onLoad"
+      >
+        <PageLoadingSpinner v-if="showLoading" />
+
+        <div
+          v-if="isError && !showLoading"
+          class="emptyDivPadding"
         >
-          <div
-            v-if="isError"
-            class="emptyDivPadding"
-          >
-            <div class="centerMessage">
-              <div>
-                <q-icon name="mdi-alert-circle-outline" size="4rem" />
-              </div>
-
-              <div :style="{ fontSize: '1.3rem' }">
-                {{ t("emptyStateTitle") }}
-              </div>
-
-              <ZKButton
-                button-type="standardButton"
-                color="primary"
-                no-caps
-                unelevated
-                size="lg"
-                :label="t('retryButton')"
-                @click="refetch()"
-              />
-            </div>
-          </div>
-
-          <div
-            v-else-if="partialHomeFeedList.length == 0"
-            class="emptyDivPadding"
-          >
-            <div class="centerMessage">
-              <div>
-                <q-icon name="mdi-account-group" size="4rem" />
-              </div>
-
-              <div :style="{ fontSize: '1.3rem' }">
-                {{ t("emptyStateTitle") }}
-              </div>
-
-              <div>
-                {{ t("emptyStateDescription") }}
-                <q-icon name="mdi-plus-circle" /> button.
-              </div>
-            </div>
-          </div>
-
-          <div v-else>
-            <!-- Loading indicator for tab switches -->
-            <div
-              v-if="isFetching"
-              class="centerMessage loading-indicator"
-            >
-              <q-spinner-dots size="4rem" color="primary" />
-            </div>
-
-            <div
-              class="postListFlex"
-              :class="{ 'loading-overlay': isFetching }"
-            >
-              <PostListItem
-                v-for="postData in partialHomeFeedList"
-                :key="postData.metadata.conversationSlugId"
-                :conversation-data="postData"
-              />
-            </div>
-          </div>
-
-          <div
-            v-if="!isError && partialHomeFeedList.length > 0"
-            class="centerMessage"
-          >
+          <div class="centerMessage">
             <div>
-              <q-icon name="mdi-check" size="4rem" />
+              <q-icon
+                :name="isOffline ? 'mdi-wifi-off' : 'mdi-alert-circle-outline'"
+                size="4rem"
+              />
             </div>
 
-            <div :style="{ fontSize: '1.3rem' }">{{ t("completedTitle") }}</div>
+            <div :style="{ fontSize: '1.3rem' }">
+              {{ isOffline ? t("networkErrorTitle") : t("errorStateTitle") }}
+            </div>
 
-            <div>{{ t("completedDescription") }}</div>
+            <div v-if="isOffline">
+              {{ t("networkErrorDescription") }}
+            </div>
+
+            <ActionButton
+              v-if="!isOffline"
+              variant="outline"
+              @click="refetchFeedData()"
+            >
+              {{ t('retryButton') }}
+            </ActionButton>
           </div>
-        </q-infinite-scroll>
-      </q-pull-to-refresh>
+        </div>
+
+        <div
+          v-else-if="partialHomeFeedList.length === 0 && !showLoading"
+          class="emptyDivPadding"
+        >
+          <div class="centerMessage">
+            <div>
+              <q-icon name="mdi-account-group" size="4rem" />
+            </div>
+
+            <div :style="{ fontSize: '1.3rem' }">
+              {{ t("emptyStateTitle") }}
+            </div>
+
+            <div>
+              {{ t("emptyStateDescription") }}
+              <q-icon name="mdi-plus-circle" /> button.
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="partialHomeFeedList.length > 0">
+          <div
+            class="postListFlex"
+            :class="{ 'loading-overlay': showLoading }"
+          >
+            <PostListItem
+              v-for="postData in partialHomeFeedList"
+              :key="postData.metadata.conversationSlugId"
+              :conversation-data="postData"
+            />
+          </div>
+        </div>
+
+        <div
+          v-if="!isError && partialHomeFeedList.length > 0"
+          class="centerMessage"
+        >
+          <div>
+            <q-icon name="mdi-check" size="4rem" />
+          </div>
+
+          <div :style="{ fontSize: '1.3rem' }">{{ t("completedTitle") }}</div>
+
+          <div>{{ t("completedDescription") }}</div>
+        </div>
+      </q-infinite-scroll>
     </WidthWrapper>
 
     <!-- @vue-expect-error Quasar q-page-sticky doesn't type onClick event handler -->
     <q-page-sticky
-      v-if="hasPendingNewPosts && !isPending"
+      v-if="hasPendingCurrentTab && !showLoading"
       position="top"
       :offset="[0, 20]"
       @click="refreshPage(() => {})"
@@ -118,30 +113,33 @@
 import { useDocumentVisibility, useWindowScroll } from "@vueuse/core";
 import { storeToRefs } from "pinia";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
+import { isNetworkOffline } from "src/composables/useNetworkStatus";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useHomeFeedStore } from "src/stores/homeFeed";
 import { useFeedQuery } from "src/utils/api/post/useFeedQuery";
-import { onMounted, watch } from "vue";
+import { computed, onActivated, onDeactivated, ref, watch } from "vue";
 
 import WidthWrapper from "../navigation/WidthWrapper.vue";
 import PostListItem from "../post/list/PostListItem.vue";
+import PageLoadingSpinner from "../ui/PageLoadingSpinner.vue";
+import ActionButton from "../ui-library/ActionButton.vue";
 import ZKButton from "../ui-library/ZKButton.vue";
 import {
   type CompactPostListTranslations,
   compactPostListTranslations,
 } from "./CompactPostList.i18n";
-import FeedSkeleton from "./FeedSkeleton.vue";
 
 const {
   partialHomeFeedList,
-  hasPendingNewPosts,
+  hasPendingCurrentTab,
   canLoadMore,
 } = storeToRefs(useHomeFeedStore());
-const { hasNewPostCheck, loadMore, setFeedData } = useHomeFeedStore();
+const { hasNewPostCheck, loadMore, setFeedData, clearFeedData } = useHomeFeedStore();
 
 const documentVisibility = useDocumentVisibility();
 
-const { isAuthInitialized } = storeToRefs(useAuthenticationStore());
+const authStore = useAuthenticationStore();
+const { isAuthInitialized } = storeToRefs(authStore);
 
 const { y: windowY } = useWindowScroll();
 
@@ -149,25 +147,69 @@ const { t } = useComponentI18n<CompactPostListTranslations>(
   compactPostListTranslations
 );
 
-const { data, isPending, isFetching, isError, refetch } = useFeedQuery({
+// isPending: query has never resolved (waiting for auth init or first fetch).
+// isFetching: any fetch is in flight (first load or refetch).
+const { data, isPending, isError, isFetching, refetch } = useFeedQuery({
   enabled: isAuthInitialized,
 });
 
+const isOffline = isNetworkOffline;
+
+const isActive = ref(true);
+
+watch(isOffline, (offline, wasOffline) => {
+  if (!offline && wasOffline && isError.value && isActive.value) {
+    void refetch();
+  }
+});
+
+const showLoading = computed(() =>
+  (isPending.value && !isError.value) || (isError.value && isFetching.value)
+);
+
 watch(data, (newData) => {
-  if (newData) {
+  if (newData && isActive.value) {
     setFeedData(newData);
   }
 });
 
-onMounted(async () => {
+onActivated(async () => {
+  isActive.value = true;
+  if (data.value && partialHomeFeedList.value.length === 0) {
+    setFeedData(data.value);
+  }
   await hasNewPostCheck();
 });
 
+onDeactivated(() => {
+  isActive.value = false;
+});
+
 watch(documentVisibility, async () => {
-  if (documentVisibility.value === "visible") {
+  if (isActive.value && documentVisibility.value === "visible") {
     await hasNewPostCheck();
   }
 });
+
+watch(
+  () => authStore.isLoggedIn,
+  (isLoggedIn) => {
+    if (!isLoggedIn) {
+      clearFeedData();
+      void refetch();
+    }
+  }
+);
+
+watch(
+  () => authStore.isGuestOrLoggedIn,
+  (isGuestOrLoggedIn) => {
+    if (!isGuestOrLoggedIn) {
+      clearFeedData();
+      void refetch();
+    }
+  }
+);
 
 function onLoad(index: number, done: () => void) {
   if (canLoadMore.value) {
@@ -176,26 +218,51 @@ function onLoad(index: number, done: () => void) {
   done();
 }
 
-function pullDownTriggered(done: () => void) {
+async function refetchFeedData(): Promise<void> {
+  const refetchResult = await refetch();
+
+  if (refetchResult.data) {
+    setFeedData(refetchResult.data);
+  }
+
+  canLoadMore.value = true;
+}
+
+function refreshFeed(done: () => void) {
+  if (isOffline.value) {
+    done();
+    return;
+  }
   setTimeout(() => {
     void (async () => {
-      await refetch();
-      canLoadMore.value = true;
-      done();
+      try {
+        await refetchFeedData();
+      } finally {
+        done();
+      }
     })();
   }, 500);
 }
 
 async function refreshPage(done: () => void) {
+  if (isOffline.value) {
+    done();
+    return;
+  }
   windowY.value = 0;
 
-  await refetch();
-  canLoadMore.value = true;
-
-  setTimeout(() => {
-    done();
-  }, 500);
+  try {
+    await refetchFeedData();
+  } finally {
+    setTimeout(() => {
+      done();
+    }, 500);
+  }
 }
+
+defineExpose({
+  refreshFeed,
+});
 </script>
 
 <style scoped lang="scss">
@@ -230,11 +297,4 @@ async function refreshPage(done: () => void) {
   pointer-events: none;
 }
 
-.loading-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-}
 </style>

@@ -1,9 +1,7 @@
 import { generateRandomSlugId } from "@/crypto.js";
-import * as zupassService from "@/service/zupass.js";
 import {
     opinionContentTable,
     opinionTable,
-    opinionProofTable,
     conversationTable,
     userTable,
     opinionModerationTable,
@@ -11,9 +9,10 @@ import {
     polisClusterOpinionTable,
     polisClusterUserTable,
     polisContentTable,
+    userMutePreferenceTable,
     voteTable,
 } from "@/shared-backend/schema.js";
-import type { NotificationSSEManager } from "./notificationSSE.js";
+import type { RealtimeSSEManager } from "./realtimeSSE.js";
 import {
     createOpinionNotifications,
     getNotificationRecipients,
@@ -60,7 +59,7 @@ import { useCommonComment, useCommonPost } from "./common.js";
 import { log } from "@/app.js";
 import { createCommentModerationPropertyObject } from "./moderation.js";
 import { getUserMutePreferences } from "./muteUser.js";
-import * as authUtilService from "@/service/authUtil.js";
+import { checkConversationParticipation } from "./participationGate.js";
 import { castVoteForOpinionSlugId } from "./voting.js";
 import type { VoteBuffer } from "./voteBuffer.js";
 import {
@@ -961,12 +960,19 @@ export async function fetchAnalysisByConversationSlugId({
     googleCloudCredentials?: GoogleCloudCredentials;
 }): Promise<ConversationAnalysis> {
     const { getPolisMetadata } = useCommonPost();
-    const polisMetadata = await getPolisMetadata({
-        db: db,
-        conversationSlugId,
-        personalizationUserId,
-        displayLanguage,
-    });
+    const [hasVotedOnAllAvailableOpinions, polisMetadata] = await Promise.all([
+        getHasVotedOnAllAvailableOpinions({
+            db,
+            conversationSlugId,
+            personalizationUserId,
+        }),
+        getPolisMetadata({
+            db: db,
+            conversationSlugId,
+            personalizationUserId,
+            displayLanguage,
+        }),
+    ]);
     if (polisMetadata === undefined) {
         return {
             polisContentId: undefined,
@@ -974,6 +980,7 @@ export async function fetchAnalysisByConversationSlugId({
             consensusDisagree: [],
             controversial: [],
             clusters: {},
+            hasVotedOnAllAvailableOpinions,
         };
     }
 
@@ -1060,8 +1067,64 @@ export async function fetchAnalysisByConversationSlugId({
         consensusDisagree: Array.from(consensusDisagreeOpinions.values()),
         controversial: Array.from(controversialOpinions.values()),
         clusters: polisClusters,
+        hasVotedOnAllAvailableOpinions,
     };
     return result;
+}
+
+async function getHasVotedOnAllAvailableOpinions({
+    db,
+    conversationSlugId,
+    personalizationUserId,
+}: {
+    db: PostgresJsDatabase;
+    conversationSlugId: string;
+    personalizationUserId?: string;
+}): Promise<boolean | undefined> {
+    if (personalizationUserId === undefined) {
+        return undefined;
+    }
+
+    const unvotedOpinions = await db
+        .select({ opinionId: opinionTable.id })
+        .from(opinionTable)
+        .innerJoin(userTable, eq(userTable.id, opinionTable.authorId))
+        .innerJoin(
+            conversationTable,
+            eq(conversationTable.id, opinionTable.conversationId),
+        )
+        .leftJoin(
+            opinionModerationTable,
+            eq(opinionModerationTable.opinionId, opinionTable.id),
+        )
+        .leftJoin(
+            voteTable,
+            and(
+                eq(voteTable.opinionId, opinionTable.id),
+                eq(voteTable.authorId, personalizationUserId),
+                isNotNull(voteTable.currentContentId),
+            ),
+        )
+        .leftJoin(
+            userMutePreferenceTable,
+            and(
+                eq(userMutePreferenceTable.sourceUserId, personalizationUserId),
+                eq(userMutePreferenceTable.targetUserId, opinionTable.authorId),
+            ),
+        )
+        .where(
+            and(
+                eq(conversationTable.slugId, conversationSlugId),
+                isNotNull(opinionTable.currentContentId),
+                isNull(opinionModerationTable.id),
+                isNull(voteTable.id),
+                isNull(userMutePreferenceTable.id),
+                eq(userTable.isDeleted, false),
+            ),
+        )
+        .limit(1);
+
+    return unvotedOpinions.length === 0;
 }
 
 async function getPostIdFromPostSlugId(
@@ -1086,15 +1149,15 @@ async function getPostIdFromPostSlugId(
 
 interface PostNewOpinionProps {
     db: PostgresJsDatabase;
+    tx?: PostgresJsDatabase;
     voteBuffer: VoteBuffer;
     commentBody: string;
     conversationSlugId: string;
     didWrite: string;
-    proof: string;
     userAgent: string;
     now: Date;
     isSeed: boolean;
-    notificationSSEManager?: NotificationSSEManager;
+    realtimeSSEManager?: RealtimeSSEManager;
     conversationMetadata?: {
         conversationId: number;
         conversationContentId: number;
@@ -1108,68 +1171,22 @@ interface PostNewOpinionProps {
 
 export async function postNewOpinion({
     db,
+    tx,
     voteBuffer,
     commentBody,
     conversationSlugId,
     didWrite,
-    proof,
     userAgent,
     now,
     isSeed,
-    notificationSSEManager,
+    realtimeSSEManager,
     conversationMetadata,
 }: PostNewOpinionProps): Promise<CreateCommentResponse> {
-    // Use provided metadata if available (for seed opinions), otherwise fetch from DB
-    let conversationId: number;
-    let conversationContentId: number | null;
-    let participationMode: ParticipationMode;
-    let conversationIsClosed: boolean;
-    let requiresEventTicket: EventSlug | null;
-
-    if (conversationMetadata) {
-        conversationId = conversationMetadata.conversationId;
-        conversationContentId = conversationMetadata.conversationContentId;
-        participationMode =
-            conversationMetadata.conversationParticipationMode;
-        conversationIsClosed = conversationMetadata.conversationIsClosed;
-        requiresEventTicket = conversationMetadata.requiresEventTicket;
-    } else {
-        const { getPostMetadataFromSlugId } = useCommonPost();
-        const metadata = await getPostMetadataFromSlugId({
-            db: db,
-            conversationSlugId: conversationSlugId,
-        });
-        conversationId = metadata.id;
-        conversationContentId = metadata.contentId;
-        participationMode = metadata.participationMode;
-        conversationIsClosed = metadata.isClosed;
-        requiresEventTicket = metadata.requiresEventTicket;
-    }
-
-    if (conversationContentId == null) {
-        throw httpErrors.gone("Cannot comment on a deleted post");
-    }
-
-    // Skip lock check if metadata provided (seed opinions on just-created conversations)
-    if (!conversationMetadata) {
-        const isLocked = await useCommonPost().isPostSlugIdLocked({
-            postSlugId: conversationSlugId,
-            db: db,
-        });
-        if (isLocked) {
-            return {
-                success: false,
-                reason: "conversation_locked",
-            };
-        }
-    }
-
-    // Check if conversation is closed (skip for seed opinions on just-created conversations)
-    if (!conversationMetadata && conversationIsClosed) {
-        return {
-            success: false,
-            reason: "conversation_closed",
-        };
+    interface ParticipationContext {
+        success: true;
+        conversationId: number;
+        conversationContentId: number;
+        participantId: string;
     }
 
     try {
@@ -1182,90 +1199,64 @@ export async function postNewOpinion({
         }
     }
 
-    const userId = await authUtilService.getOrRegisterUserIdFromDeviceStatus({
-        db,
-        didWrite,
-        participationMode,
-        userAgent,
-        now,
-    });
+    const participationContext:
+        | ParticipationContext
+        | Extract<CreateCommentResponse, { success: false }> =
+        conversationMetadata !== undefined
+            ? {
+                  success: true,
+                  conversationId: conversationMetadata.conversationId,
+                  conversationContentId: conversationMetadata.conversationContentId,
+                  participantId: conversationMetadata.conversationAuthorId,
+              }
+            : await (async () => {
+                  const participationCheck = await checkConversationParticipation({
+                      db,
+                      conversationSlugId,
+                      didWrite,
+                      userAgent,
+                      now,
+                  });
+                  if (!participationCheck.success) {
+                      return participationCheck;
+                  }
 
-    // Check verification gating based on participation mode
-    // Skip for seed opinions during conversation creation (conversationMetadata present)
-    if (!conversationMetadata) {
-        if (participationMode === "strong_verification") {
-            const hasStrong = await authUtilService.hasStrongVerification({
-                db,
-                userId,
-            });
-            if (!hasStrong) {
-                return {
-                    success: false,
-                    reason: "strong_verification_required",
-                };
-            }
-        } else if (participationMode === "email_verification") {
-            const hasEmail = await authUtilService.hasEmailVerification({
-                db,
-                userId,
-            });
-            if (!hasEmail) {
-                return {
-                    success: false,
-                    reason: "email_verification_required",
-                };
-            }
-        }
-    }
+                  return {
+                      success: true,
+                      conversationId: participationCheck.conversationId,
+                      conversationContentId:
+                          participationCheck.conversationContentId,
+                      participantId: participationCheck.participantId,
+                  };
+              })();
 
-    // Check event ticket gating (skip for seed opinions on just-created conversations)
-    if (requiresEventTicket !== null && !conversationMetadata) {
-        const hasTicket = await zupassService.hasEventTicket({
-            db,
-            userId,
-            eventSlug: requiresEventTicket,
-        });
-        if (!hasTicket) {
-            return {
-                success: false,
-                reason: "event_ticket_required",
-            };
-        }
+    if (!participationContext.success) {
+        return participationContext;
     }
 
     const opinionSlugId = generateRandomSlugId();
 
-    const { opinionId } = await db.transaction(async (tx) => {
-        const insertCommentResponse = await tx
+    const persistNewOpinion = async (
+        transactionDb: PostgresJsDatabase,
+    ): Promise<{ opinionId: number }> => {
+        const insertCommentResponse = await transactionDb
             .insert(opinionTable)
             .values({
                 slugId: opinionSlugId,
-                authorId: userId,
+                authorId: participationContext.participantId,
                 currentContentId: null,
-                conversationId: conversationId,
+                conversationId: participationContext.conversationId,
                 isSeed: isSeed,
             })
             .returning({ opinionId: opinionTable.id });
 
         const opinionId = insertCommentResponse[0].opinionId;
 
-        const insertProofResponse = await tx
-            .insert(opinionProofTable)
-            .values({
-                type: "creation",
-                opinionId: opinionId,
-                authorDid: didWrite,
-                proof: proof,
-                proofVersion: 1,
-            })
-            .returning({ proofId: opinionProofTable.id });
-        const proofId = insertProofResponse[0].proofId;
-        const commentContentTableResponse = await tx
+        const commentContentTableResponse = await transactionDb
             .insert(opinionContentTable)
             .values({
-                opinionProofId: proofId,
                 opinionId: opinionId,
-                conversationContentId: conversationContentId,
+                conversationContentId: participationContext.conversationContentId,
                 content: commentBody,
             })
             .returning({ commentContentTableId: opinionContentTable.id });
@@ -1273,7 +1264,7 @@ export async function postNewOpinion({
         const commentContentTableId =
             commentContentTableResponse[0].commentContentTableId;
 
-        await tx
+        await transactionDb
             .update(opinionTable)
             .set({
                 currentContentId: commentContentTableId,
@@ -1281,42 +1272,49 @@ export async function postNewOpinion({
             .where(eq(opinionTable.id, opinionId));
 
         // Update the user profile's comment count using atomic increment
-        await tx
-            .update(userTable)
-            .set({
-                totalOpinionCount: sql`total_opinion_count + 1`,
-            })
-            .where(eq(userTable.id, userId));
+        await transactionDb
+                .update(userTable)
+                .set({
+                    totalOpinionCount: sql`total_opinion_count + 1`,
+                })
+                .where(eq(userTable.id, participationContext.participantId));
 
         // Update conversation opinionCount (+1 for new opinion)
         // Note: voteCount and participantCount will be updated by vote buffer
         // when the automatic vote is processed
         await updateOpinionCount({
-            db: tx,
-            conversationId,
+            db: transactionDb,
+            conversationId: participationContext.conversationId,
             delta: 1,
             doUpdateLastReactedAt: true,
         });
 
         return { opinionId };
-    });
+    };
+
+    const { opinionId } =
+        tx !== undefined
+            ? await persistNewOpinion(tx)
+            : await db.transaction(async (transactionDb) => {
+                  return await persistNewOpinion(transactionDb);
+              });
 
     // Create notification for conversation owner + org members (outside transaction)
     // Skip for seed opinions
     if (!isSeed) {
         const { recipientUserIds } = await getNotificationRecipients({
             db,
-            conversationId,
-            excludeUserIds: [userId],
+            conversationId: participationContext.conversationId,
+            excludeUserIds: [participationContext.participantId],
         });
         if (recipientUserIds.length > 0) {
             await createOpinionNotifications({
                 db,
                 recipientUserIds,
-                opinionAuthorId: userId,
+                opinionAuthorId: participationContext.participantId,
                 opinionId,
-                conversationId,
-                notificationSSEManager,
+                conversationId: participationContext.conversationId,
+                realtimeSSEManager,
             });
         }
     }
@@ -1328,7 +1326,6 @@ export async function postNewOpinion({
             voteBuffer: voteBuffer,
             opinionSlugId: opinionSlugId,
             didWrite: didWrite,
-            proof: proof,
             votingAction: "agree",
             userAgent: userAgent,
             now: now,
@@ -1345,16 +1342,12 @@ interface DeleteCommentBySlugIdProps {
     db: PostgresJsDatabase;
     opinionSlugId: string;
     userId: string;
-    proof: string;
-    didWrite: string;
 }
 
 export async function deleteOpinionBySlugId({
     db,
     opinionSlugId,
     userId,
-    proof,
-    didWrite,
 }: DeleteCommentBySlugIdProps): Promise<void> {
     const { isOpinionDeleted } =
         await useCommonComment().getOpinionMetadataFromOpinionSlugId({
@@ -1389,16 +1382,7 @@ export async function deleteOpinionBySlugId({
             tx.rollback();
         }
 
-        const commentId = updatedCommentIdResponse[0].updateCommentId;
         const conversationId = updatedCommentIdResponse[0].conversationId;
-
-        await tx.insert(opinionProofTable).values({
-            type: "deletion",
-            opinionId: commentId,
-            authorDid: didWrite,
-            proof: proof,
-            proofVersion: 1,
-        });
 
         // Reconcile all counters (automatically enqueues math update)
         // Deleting opinion affects opinionCount, voteCount, and participantCount

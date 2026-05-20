@@ -42,6 +42,15 @@ export const polisUrlInputTranslations: Record<
     termsOfUse: "Términos de uso",
     ccLicense: "CC BY 4.0",
   },
+  fa: {
+    importTitle: "واردات گفتگو از Polis",
+    description: "آدرس Polis را در زیر جای‌گذاری کنید تا گفتگو وارد شود.",
+    validUrlExamples: "نمونه‌های آدرس معتبر:",
+    urlPlaceholder: "مثلاً https://pol.is/xxxxx",
+    polisTerms: "شرایط Pol.is",
+    termsOfUse: "شرایط استفاده",
+    ccLicense: "CC BY 4.0",
+  },
   fr: {
     importTitle: "Importer une Conversation depuis Polis",
     description:
@@ -62,12 +71,21 @@ export const polisUrlInputTranslations: Record<
     ccLicense: "CC BY 4.0",
   },
   "zh-Hant": {
-    importTitle: "從 Polis 導入對話",
-    description: "粘貼一個 Polis URL 以導入對話。",
+    importTitle: "從 Polis 匯入對話",
+    description: "貼上一個 Polis URL 以匯入對話。",
     validUrlExamples: "有效 URL 示例：",
     urlPlaceholder: "例如，https://pol.is/xxxxx",
     polisTerms: "Pol.is 條款",
     termsOfUse: "使用條款",
+    ccLicense: "CC BY 4.0",
+  },
+  he: {
+    importTitle: "ייבוא שיחה מ-Polis",
+    description: "הדביקו כתובת Polis למטה כדי לייבא שיחה.",
+    validUrlExamples: "דוגמאות לכתובות תקינות:",
+    urlPlaceholder: "לדוגמה, https://pol.is/xxxxx",
+    polisTerms: "תנאי Pol.is",
+    termsOfUse: "תנאי שימוש",
     ccLicense: "CC BY 4.0",
   },
   ja: {

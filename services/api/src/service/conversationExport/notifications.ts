@@ -5,17 +5,24 @@ import {
 } from "@/shared-backend/schema.js";
 import { generateRandomSlugId } from "@/crypto.js";
 import { log } from "@/app.js";
-import type { NotificationType } from "@/shared/types/zod.js";
-import type { NotificationSSEManager } from "../notificationSSE.js";
+import type { ExportFailureReason, NotificationType } from "@/shared/types/zod.js";
+import type { RealtimeSSEManager } from "../realtimeSSE.js";
 import { broadcastExportNotification } from "../notification.js";
+
+type ExportCancellationReason = NonNullable<
+    (typeof notificationExportTable.$inferSelect)["cancellationReason"]
+>;
 
 interface CreateExportNotificationParams {
     db: PostgresJsDatabase;
     userId: string;
-    exportId: number;
+    exportRequestId: number;
+    exportSlugId: string;
     conversationId: number;
     type: NotificationType;
-    notificationSSEManager?: NotificationSSEManager;
+    failureReason?: ExportFailureReason;
+    cancellationReason?: ExportCancellationReason;
+    realtimeSSEManager?: RealtimeSSEManager;
 }
 
 /**
@@ -24,10 +31,13 @@ interface CreateExportNotificationParams {
 export async function createExportNotification({
     db,
     userId,
-    exportId,
+    exportRequestId,
+    exportSlugId,
     conversationId,
     type,
-    notificationSSEManager,
+    failureReason,
+    cancellationReason,
+    realtimeSSEManager,
 }: CreateExportNotificationParams): Promise<void> {
     try {
         // Create notification record
@@ -49,28 +59,29 @@ export async function createExportNotification({
         // Create export-specific notification data
         await db.insert(notificationExportTable).values({
             notificationId: notificationId,
-            exportId: exportId,
+            exportRequestId,
+            exportSlugId,
             conversationId: conversationId,
+            failureReason,
+            cancellationReason,
         });
 
         log.info(
-            `Created ${type} notification for user ${userId}, export ${String(exportId)}`,
+            `Created ${type} notification for user ${userId}, export ${exportSlugId}`,
         );
 
         // Broadcast notification via SSE (don't await to avoid blocking)
         void broadcastExportNotification(
-            notificationSSEManager,
+            realtimeSSEManager,
             db,
             userId,
             notificationSlugId,
-            exportId,
-            conversationId,
         );
     } catch (error: unknown) {
         // Don't fail the export if notification creation fails
         log.error(
             error,
-            `Failed to create ${type} notification for user ${userId}, export ${String(exportId)}:`,
+            `Failed to create ${type} notification for user ${userId}, export ${exportSlugId}:`,
         );
     }
 }

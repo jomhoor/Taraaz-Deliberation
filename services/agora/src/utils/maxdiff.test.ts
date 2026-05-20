@@ -1,11 +1,37 @@
 import { describe, expect, it } from "vitest";
 
 import {
-    aggregateMaxDiffResults,
     createMaxDiff,
+    estimateRemainingVotes,
+    type MaxDiffInstance,
     recordMaxDiffVote,
     restoreMaxDiff,
 } from "./maxdiff";
+
+/** Deterministic voting simulation: always picks first as best, last as worst. */
+function simulateVotingToCompletion({
+    instance,
+    candidateLimit = 4,
+    maxRounds = 500,
+}: {
+    instance: MaxDiffInstance;
+    candidateLimit?: number;
+    maxRounds?: number;
+}): number {
+    let rounds = 0;
+    while (!instance.complete && rounds < maxRounds) {
+        const candidates = instance.getCandidates(candidateLimit);
+        if (candidates.length < 2) break;
+        recordMaxDiffVote({
+            instance,
+            candidates,
+            best: candidates[0],
+            worst: candidates[candidates.length - 1],
+        });
+        rounds++;
+    }
+    return rounds;
+}
 
 describe("createMaxDiff", () => {
     describe("single item", () => {
@@ -137,24 +163,12 @@ describe("recordMaxDiffVote", () => {
     it("reaches completion through repeated votes", () => {
         const instance = createMaxDiff(["a", "b", "c", "d", "e"]);
 
-        let rounds = 0;
-        while (!instance.complete) {
-            const candidates = instance.getCandidates(4);
-            if (candidates.length < 2) break;
+        const rounds = simulateVotingToCompletion({
+            instance,
+            maxRounds: 20,
+        });
 
-            // Always pick first as best, last as worst (deterministic)
-            recordMaxDiffVote({
-                instance,
-                candidates,
-                best: candidates[0],
-                worst: candidates[candidates.length - 1],
-            });
-            rounds++;
-
-            // Safety: should not take more rounds than N*(N-1)/2
-            expect(rounds).toBeLessThan(20);
-        }
-
+        expect(rounds).toBeLessThan(20);
         expect(instance.complete).toBe(true);
         expect(instance.result).toBeDefined();
         expect(instance.result?.length).toBe(5);
@@ -276,82 +290,209 @@ describe("exportState and restoreMaxDiff", () => {
     });
 });
 
-describe("aggregateMaxDiffResults", () => {
-    it("ranks items by average rank across users", () => {
-        const allItems = ["a", "b", "c"];
-        const rankings = [
-            ["a", "b", "c"], // user1: a=1, b=2, c=3
-            ["a", "c", "b"], // user2: a=1, c=2, b=3
-            ["b", "a", "c"], // user3: b=1, a=2, c=3
-        ];
+describe("undo via restoreMaxDiff", () => {
+    it("restoring with fewer comparisons reverts progress", () => {
+        const instance = createMaxDiff(["a", "b", "c", "d"]);
 
-        const results = aggregateMaxDiffResults({ rankings, allItems });
+        // First vote
+        const candidates1 = instance.getCandidates(4);
+        recordMaxDiffVote({
+            instance,
+            candidates: candidates1,
+            best: candidates1[0],
+            worst: candidates1[candidates1.length - 1],
+        });
+        const progressAfterFirst = instance.progress;
+        const stateAfterFirst = instance.exportState();
 
-        // a: avg rank = (1+1+2)/3 = 1.33
-        // b: avg rank = (2+3+1)/3 = 2.00
-        // c: avg rank = (3+2+3)/3 = 2.67
-        expect(results[0].item).toBe("a");
-        expect(results[1].item).toBe("b");
-        expect(results[2].item).toBe("c");
-        expect(results[0].avgRank).toBeCloseTo(4 / 3);
-        expect(results[1].avgRank).toBeCloseTo(2);
-        expect(results[2].avgRank).toBeCloseTo(8 / 3);
+        // Second vote
+        const candidates2 = instance.getCandidates(4);
+        if (candidates2.length >= 2) {
+            recordMaxDiffVote({
+                instance,
+                candidates: candidates2,
+                best: candidates2[0],
+                worst: candidates2[candidates2.length - 1],
+            });
+        }
+
+        // Undo second vote by restoring with only first comparison
+        const restored = restoreMaxDiff({
+            items: stateAfterFirst.items,
+            comparisons: stateAfterFirst.comparisons,
+        });
+
+        expect(restored.progress).toBeCloseTo(progressAfterFirst, 5);
+        expect(restored.complete).toBe(false);
     });
 
-    it("computes normalized scores from 0 to 1", () => {
-        const allItems = ["a", "b"];
-        const rankings = [
-            ["a", "b"], // a=1, b=2
-            ["a", "b"], // a=1, b=2
-        ];
+    it("restoring with empty comparisons gives fresh state", () => {
+        const instance = createMaxDiff(["a", "b", "c", "d"]);
 
-        const results = aggregateMaxDiffResults({ rankings, allItems });
+        const candidates = instance.getCandidates(4);
+        recordMaxDiffVote({
+            instance,
+            candidates,
+            best: candidates[0],
+            worst: candidates[candidates.length - 1],
+        });
 
-        // a: avg rank = 1, score = (2-1)/(2-1) = 1.0
-        // b: avg rank = 2, score = (2-2)/(2-1) = 0.0
-        expect(results[0].item).toBe("a");
-        expect(results[0].score).toBeCloseTo(1.0);
-        expect(results[1].item).toBe("b");
-        expect(results[1].score).toBeCloseTo(0.0);
+        // Undo all by restoring with no comparisons
+        const restored = restoreMaxDiff({
+            items: instance.items,
+            comparisons: [],
+        });
+
+        expect(restored.progress).toBe(0);
+        expect(restored.complete).toBe(false);
+        expect(restored.getUnorderedPairs().length).toBe(6); // 4*(4-1)/2
     });
 
-    it("includes participant count per item", () => {
-        const allItems = ["a", "b", "c"];
-        const rankings = [
-            ["a", "b"],    // user1 only ranked a, b (partial)
-            ["a", "b", "c"],
-        ];
+    it("removed comparison set field contains valid candidates", () => {
+        const instance = createMaxDiff(["a", "b", "c", "d", "e"]);
 
-        const results = aggregateMaxDiffResults({ rankings, allItems });
+        const candidates = instance.getCandidates(4);
+        recordMaxDiffVote({
+            instance,
+            candidates,
+            best: candidates[0],
+            worst: candidates[candidates.length - 1],
+        });
 
-        const itemA = results.find((r) => r.item === "a");
-        const itemC = results.find((r) => r.item === "c");
+        const state = instance.exportState();
+        const lastComparison = state.comparisons[state.comparisons.length - 1];
 
-        expect(itemA).toBeDefined();
-        expect(itemC).toBeDefined();
-        expect(itemA?.participantCount).toBe(2);
-        expect(itemC?.participantCount).toBe(1);
+        // The set should contain all candidates from the round
+        expect(lastComparison.set.length).toBe(4);
+        for (const item of lastComparison.set) {
+            expect(instance.items).toContain(item);
+        }
     });
 
-    it("handles single user", () => {
-        const allItems = ["x", "y", "z"];
-        const rankings = [["z", "x", "y"]];
+    it("undo from completed state returns to incomplete", () => {
+        const instance = createMaxDiff(["a", "b", "c"]);
 
-        const results = aggregateMaxDiffResults({ rankings, allItems });
+        while (!instance.complete) {
+            const candidates = instance.getCandidates(4);
+            if (candidates.length < 2) break;
+            recordMaxDiffVote({
+                instance,
+                candidates,
+                best: candidates[0],
+                worst: candidates[candidates.length - 1],
+            });
+        }
 
-        expect(results[0].item).toBe("z");
-        expect(results[0].avgRank).toBe(1);
-        expect(results[0].score).toBeCloseTo(1.0);
-    });
+        expect(instance.complete).toBe(true);
 
-    it("handles empty rankings", () => {
-        const allItems = ["a", "b"];
-        const rankings: string[][] = [];
+        // Undo last vote
+        const state = instance.exportState();
+        const remaining = state.comparisons.slice(0, -1);
+        const restored = restoreMaxDiff({
+            items: state.items,
+            comparisons: remaining,
+        });
 
-        const results = aggregateMaxDiffResults({ rankings, allItems });
-
-        // With no rankings, avgRank defaults to N (worst)
-        expect(results[0].avgRank).toBe(2);
-        expect(results[0].participantCount).toBe(0);
+        expect(restored.complete).toBe(false);
+        expect(restored.result).toBeUndefined();
     });
 });
+
+describe("estimateRemainingVotes", () => {
+    it("returns 0 when no unordered pairs remain", () => {
+        const result = estimateRemainingVotes({
+            votesDone: 10,
+            orderedPairs: 820,
+            unorderedPairs: 0,
+            itemCount: 41,
+        });
+        expect(result).toBe(0);
+    });
+
+    it("uses heuristic for first vote (votesDone === 0)", () => {
+        // For 41 items: ceil(41 * log2(41) / 5) ≈ 44
+        const result = estimateRemainingVotes({
+            votesDone: 0,
+            orderedPairs: 0,
+            unorderedPairs: 820,
+            itemCount: 41,
+        });
+        expect(result).toBeGreaterThan(30);
+        expect(result).toBeLessThan(60);
+    });
+
+    it("uses heuristic when avg pairs per vote is below 1", () => {
+        // Edge case: 1 vote resolved 0 pairs (redundant vote)
+        const result = estimateRemainingVotes({
+            votesDone: 1,
+            orderedPairs: 0,
+            unorderedPairs: 820,
+            itemCount: 41,
+        });
+        // Should fall back to heuristic, not return 820
+        expect(result).toBeLessThan(100);
+    });
+
+    it("blends heuristic with actual rate for early votes (votesDone < 3)", () => {
+        const heuristic = Math.ceil((41 * Math.log2(41)) / 5);
+
+        const result1 = estimateRemainingVotes({
+            votesDone: 1,
+            orderedPairs: 8,
+            unorderedPairs: 812,
+            itemCount: 41,
+        });
+        const result2 = estimateRemainingVotes({
+            votesDone: 2,
+            orderedPairs: 16,
+            unorderedPairs: 804,
+            itemCount: 41,
+        });
+
+        // With weight=1/3 and weight=2/3, blended estimates should be
+        // between pure heuristic and pure rate estimate
+        const pureRate1 = Math.ceil(812 / (8 / 1));
+        const pureRate2 = Math.ceil(804 / (16 / 2));
+        expect(result1).toBeGreaterThanOrEqual(Math.min(heuristic, pureRate1));
+        expect(result2).toBeGreaterThanOrEqual(Math.min(heuristic, pureRate2));
+    });
+
+    it("refines estimate based on actual voting rate after 3+ votes", () => {
+        // After 10 votes resolved 80 pairs, 740 remain
+        const result = estimateRemainingVotes({
+            votesDone: 10,
+            orderedPairs: 80,
+            unorderedPairs: 740,
+            itemCount: 41,
+        });
+        // 740 / (80/10) = 92.5 → ceil = 93
+        expect(result).toBe(93);
+    });
+
+    it("estimate decreases as more votes are done", () => {
+        const early = estimateRemainingVotes({
+            votesDone: 5,
+            orderedPairs: 30,
+            unorderedPairs: 790,
+            itemCount: 41,
+        });
+        const late = estimateRemainingVotes({
+            votesDone: 50,
+            orderedPairs: 600,
+            unorderedPairs: 220,
+            itemCount: 41,
+        });
+        expect(late).toBeLessThan(early);
+    });
+
+    it("handles 2 items (minimal case)", () => {
+        const result = estimateRemainingVotes({
+            votesDone: 0,
+            orderedPairs: 0,
+            unorderedPairs: 1,
+            itemCount: 2,
+        });
+        expect(result).toBeGreaterThanOrEqual(1);
+    });
+});
+

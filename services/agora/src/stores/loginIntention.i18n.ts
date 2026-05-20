@@ -36,6 +36,21 @@ export const welcomeTranslations: Record<
       "Se requiere una cuenta de usuario para reportar contenido.",
     voting: "Se le devolverá a esta conversación cuando regrese.",
   },
+  fa: {
+    newOpinion: "پیش‌نویس گزاره نوشته شده شما هنگام بازگشت بازیابی خواهد شد.",
+    newConversation:
+      "پیش‌نویس گفتگوی نوشته شده شما هنگام بازگشت بازیابی خواهد شد.",
+    agreement: "هنگام بازگشت به این گزاره بازگردانده خواهید شد.",
+    reportUserContent: "برای گزارش محتوای کاربر، حساب کاربری لازم است.",
+    voting: "هنگام بازگشت به این گفتگو بازگردانده خواهید شد.",
+  },
+  he: {
+    newOpinion: "טיוטת ההצהרה שכתבתם תשוחזר כשתחזרו.",
+    newConversation: "טיוטת השיחה שכתבתם תשוחזר כשתחזרו.",
+    agreement: "תוחזרו להצהרה זו כשתחזרו.",
+    reportUserContent: "נדרש חשבון משתמש כדי לדווח על תוכן משתמש.",
+    voting: "תוחזרו לשיחה זו כשתחזרו.",
+  },
   fr: {
     newOpinion: "Votre brouillon de proposition sera restauré à votre retour.",
     newConversation:
@@ -46,24 +61,24 @@ export const welcomeTranslations: Record<
     voting: "Vous serez redirigé vers cette conversation à votre retour.",
   },
   "zh-Hant": {
-    newOpinion: "您撰寫的觀點草稿將在您返回時恢復。",
+    newOpinion: "您撰寫的意見草稿將在您返回時恢復。",
     newConversation: "您撰寫的對話草稿將在您返回時恢復。",
-    agreement: "當您返回時，將回到此觀點。",
+    agreement: "當您返回時，將回到此意見。",
     reportUserContent: "檢舉用戶內容需要一個用戶帳號。",
     voting: "當您返回時，將回到此對話。",
   },
   "zh-Hans": {
-    newOpinion: "您撰写的观点草稿将在您返回时恢复。",
+    newOpinion: "您撰写的意见草稿将在您返回时恢复。",
     newConversation: "您撰写的对话草稿将在您返回时恢复。",
-    agreement: "当您返回时，将回到此观点。",
+    agreement: "当您返回时，将回到此意见。",
     reportUserContent: "举报用户内容需要一个用户账号。",
     voting: "当您返回时，将回到此对话。",
   },
   ja: {
-    newOpinion: "お書きいただいたご主張の下書きは、戻られた際に復元されます。",
+    newOpinion: "お書きいただいたご意見の下書きは、戻られた際に復元されます。",
     newConversation:
       "お書きいただいた会話の下書きは、戻られた際に復元されます。",
-    agreement: "戻られた際に、このご主張に戻ります。",
+    agreement: "戻られた際に、このご意見に戻ります。",
     reportUserContent:
       "ユーザーコンテンツを報告するには、アカウントが必要です。",
     voting: "戻られた際に、この会話に戻ります。",

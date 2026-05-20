@@ -12,7 +12,7 @@
       />
     </ZKButton>
 
-    <PreLoginIntentionDialog
+    <PreParticipationIntentionDialog
       v-model="showLoginDialog"
       :ok-callback="onLoginConfirmationOk"
       active-intention="reportUserContent"
@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { copyToClipboard } from "quasar";
-import PreLoginIntentionDialog from "src/components/authentication/intention/PreLoginIntentionDialog.vue";
+import PreParticipationIntentionDialog from "src/components/authentication/intention/PreParticipationIntentionDialog.vue";
 import ReportContentDialog from "src/components/report/ReportContentDialog.vue";
 import ZKActionDialog from "src/components/ui-library/ZKActionDialog.vue";
 import ZKButton from "src/components/ui-library/ZKButton.vue";
@@ -152,7 +152,7 @@ function shareOpinionCallback() {
     targetAuthor: props.commentItem.username,
     copyLinkCallback: async () => {
       await copyToClipboard(sharePostUrl);
-      notify.showNotifyMessage(t("copiedToClipboard"));
+      notify.showCopiedToClipboard();
     },
     showShareVia: true,
     shareUrl: sharePostUrl,

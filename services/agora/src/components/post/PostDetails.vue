@@ -28,50 +28,52 @@
           :conversation-title="conversationData.payload.title"
           :author-username="conversationData.metadata.authorUsername"
           :conversation-type="conversationData.metadata.conversationType"
+          :has-survey="conversationData.interaction.surveyGate?.hasSurvey === true"
         />
 
-        <div v-if="!compactMode">
-          <AnalysisPage
-            v-if="currentTab == 'analysis'"
-            ref="analysisPageRef"
-            :conversation-slug-id="
-              props.conversationData.metadata.conversationSlugId
-            "
-            :participant-count="
-              props.conversationData.metadata.participantCount
-            "
-            :analysis-query="analysisQuery"
-            :navigate-to-discover-tab="navigateToDiscoverTab"
-          />
+        <AnalysisPage
+          v-if="!compactMode && currentTab === 'analysis'"
+          ref="analysisPageRef"
+          :conversation-slug-id="
+            props.conversationData.metadata.conversationSlugId
+          "
+          :participant-count="
+            props.conversationData.metadata.participantCount
+          "
+          :analysis-query="analysisQuery"
+          :survey-query="surveyResultsQuery"
+          :has-survey="hasSurvey"
+          :survey-gate="conversationData.interaction.surveyGate"
+          :navigate-to-discover-tab="navigateToDiscoverTab"
+        />
 
-          <CommentSection
-            v-if="currentTab == 'comment'"
-            ref="opinionSectionRef"
-            :post-slug-id="conversationData.metadata.conversationSlugId"
-            :conversation-author-username="conversationData.metadata.authorUsername"
-            :conversation-organization-name="conversationData.metadata.organization?.name ?? ''"
-            :participation-mode="
-              conversationData.metadata.participationMode
-            "
-            :requires-event-ticket="
-              conversationData.metadata.requiresEventTicket
-            "
-            :on-view-analysis="viewAnalysisTab"
-            :is-voting-disabled="isVotingDisabled"
-            :preloaded-queries="{
-              commentsDiscoverQuery,
-              commentsNewQuery,
-              commentsModeratedQuery,
-              hiddenCommentsQuery,
-              commentsMyVotesQuery,
-            }"
-            @deleted="decrementOpinionCount()"
-            @participant-count-delta="
-              (delta: number) => (participantCountLocal += delta)
-            "
-            @ticket-verified="(payload) => handleTicketVerified(payload)"
-          />
-        </div>
+        <CommentSection
+          v-if="!compactMode && currentTab === 'comment'"
+          ref="opinionSectionRef"
+          :post-slug-id="conversationData.metadata.conversationSlugId"
+          :conversation-author-username="conversationData.metadata.authorUsername"
+          :conversation-organization-name="conversationData.metadata.organization?.name ?? ''"
+          :participation-mode="
+            conversationData.metadata.participationMode
+          "
+          :requires-event-ticket="
+            conversationData.metadata.requiresEventTicket
+          "
+          :survey-gate="conversationData.interaction.surveyGate"
+          :on-view-analysis="viewAnalysisTab"
+          :is-voting-disabled="isVotingDisabled"
+          :preloaded-queries="{
+            commentsDiscoverQuery,
+            commentsNewQuery,
+            commentsModeratedQuery,
+            hiddenCommentsQuery,
+            commentsMyVotesQuery,
+          }"
+          @deleted="decrementOpinionCount()"
+          @participant-count-delta="
+            (delta: number) => (participantCountLocal += delta)
+          "
+        />
       </div>
     </ZKHoverEffect>
 
@@ -82,8 +84,9 @@
           conversationData.metadata.participationMode
         "
         :requires-event-ticket="conversationData.metadata.requiresEventTicket"
+        :survey-gate="conversationData.interaction.surveyGate"
+        :is-composer-disabled="isVotingDisabled"
         @submitted-comment="submittedComment"
-        @ticket-verified="(payload) => handleTicketVerified(payload)"
       />
     </FloatingBottomContainer>
   </div>
@@ -100,6 +103,7 @@ import {
   useHiddenCommentsQuery,
   useInvalidateCommentQueries,
 } from "src/utils/api/comment/useCommentQueries";
+import { useSurveyResultsAggregatedQuery } from "src/utils/api/survey/useSurveyQueries";
 import { computed, onMounted, ref, watch } from "vue";
 
 import FloatingBottomContainer from "../navigation/FloatingBottomContainer.vue";
@@ -140,6 +144,9 @@ const userStore = useUserStore();
 const participantCountLocal = ref(
   props.conversationData.metadata.participantCount
 );
+const hasSurvey = computed(
+  () => props.conversationData.interaction.surveyGate?.hasSurvey === true
+);
 
 const { profileData } = storeToRefs(userStore);
 
@@ -156,6 +163,11 @@ const analysisQuery = useAnalysisQuery({
   conversationSlugId: props.conversationData.metadata.conversationSlugId,
   voteCount: props.conversationData.metadata.voteCount,
   enabled: isAnalysisEnabled,
+});
+
+const surveyResultsQuery = useSurveyResultsAggregatedQuery({
+  conversationSlugId: props.conversationData.metadata.conversationSlugId,
+  enabled: computed(() => isAnalysisEnabled.value && hasSurvey.value),
 });
 
 // Preload comment queries for all filter types (only if not in compact mode)
@@ -218,8 +230,12 @@ const isCurrentTabLoading = computed((): boolean => {
   if (currentTab.value === "comment") {
     return opinionSectionRef.value?.isLoading ?? false;
   } else if (currentTab.value === "analysis") {
-    // Use the preloaded analysis query loading state
-    return analysisQuery.isPending.value || analysisQuery.isRefetching.value;
+    return (
+      analysisQuery.isPending.value ||
+      analysisQuery.isRefetching.value ||
+      surveyResultsQuery.isPending.value ||
+      surveyResultsQuery.isRefetching.value
+    );
   }
 
   return false;
@@ -320,6 +336,10 @@ watch(currentTab, async (newTab) => {
       if (analysisQuery.isStale.value) {
         await analysisQuery.refetch();
       }
+
+      if (hasSurvey.value && surveyResultsQuery.isStale.value) {
+        await surveyResultsQuery.refetch();
+      }
     }
   }
 });
@@ -385,8 +405,8 @@ defineExpose({
 <style scoped lang="scss">
 .container {
   display: flex;
-  gap: 1rem;
   flex-direction: column;
+  gap: 1rem;
 }
 
 .standardStyle {

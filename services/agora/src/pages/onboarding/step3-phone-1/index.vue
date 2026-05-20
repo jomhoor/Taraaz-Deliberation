@@ -1,5 +1,5 @@
 <template>
-  <OnboardingLayout>
+  <OnboardingLayout body-behind-footer>
     <template #body><DefaultImageExample /> </template>
 
     <template #footer>
@@ -8,7 +8,7 @@
           :submit-call-back="onSubmit"
           :current-step="3"
           :total-steps="5"
-          :enable-next-button="!isLoading"
+          :enable-next-button="!isLoading && nextCodeWaitSeconds === 0"
           :show-next-button="true"
           :show-loading-button="isLoading"
         >
@@ -77,7 +77,7 @@ const { completeVerification } = useVerificationComplete();
 
 const { credentialUpgradeTarget } = storeToRefs(onboardingFlowStore());
 
-const { isLoading, submitPhone } = usePhoneSubmit({
+const { isLoading, submitPhone, nextCodeWaitSeconds } = usePhoneSubmit({
   onNavigateToOtp: () => router.replace({ name: "/onboarding/step3-phone-2/" }),
   onAlreadyHasCredential: () => {
     showNotifyMessage(t("alreadyHasPhone"));

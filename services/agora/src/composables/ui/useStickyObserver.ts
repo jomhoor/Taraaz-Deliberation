@@ -1,10 +1,11 @@
 import { getHeaderHeight } from "src/utils/html/scroll";
-import { onBeforeUnmount, onMounted, type Ref, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, type Ref, ref, watch } from "vue";
 
 interface UseStickyObserverReturn {
   sentinelElement: Ref<HTMLElement | null>;
   isSticky: Ref<boolean>;
   headerHeight: Ref<number>;
+  refresh: () => void;
 }
 
 /**
@@ -23,16 +24,15 @@ export function useStickyObserver(): UseStickyObserverReturn {
   const headerHeight = ref(0);
   let observer: IntersectionObserver | undefined;
 
-  onMounted(() => {
+  onMounted(async () => {
+    await nextTick();
     headerHeight.value = getHeaderHeight();
   });
 
   watch(sentinelElement, (el) => {
     observer?.disconnect();
     if (el) {
-      if (headerHeight.value === 0) {
-        headerHeight.value = getHeaderHeight();
-      }
+      headerHeight.value = getHeaderHeight();
       observer = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
@@ -56,5 +56,11 @@ export function useStickyObserver(): UseStickyObserverReturn {
     observer?.disconnect();
   });
 
-  return { sentinelElement, isSticky, headerHeight };
+  function refresh(): void {
+    const el = sentinelElement.value;
+    if (!el) return;
+    isSticky.value = el.getBoundingClientRect().top < headerHeight.value;
+  }
+
+  return { sentinelElement, isSticky, headerHeight, refresh };
 }

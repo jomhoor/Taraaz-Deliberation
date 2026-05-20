@@ -1,14 +1,18 @@
 <template>
   <div>
+    <!-- Analysis/comment tabs use deferred SpaLink navigation (not the global
+         interceptor) because they need custom history management:
+         canGoBackToComment + router.back() would conflict with the interceptor's
+         router.push(). See SpaLink.vue for the two-mode explanation. -->
     <div class="container">
       <ZKTab
         :icon-code="props.conversationType === 'maxdiff' ? 'mdi:sort-numeric-ascending' : 'meteor-icons:comment'"
-        :text="props.conversationType === 'maxdiff' ? t('rank') : formatAmount(opinionCount)"
+        :text="formatAmount(opinionCount)"
         :is-highlighted="model === 'comment' && !compactMode"
         :should-underline-on-highlight="true"
         :is-loading="isLoading && model === 'comment'"
-        :to="model === 'comment' ? (compactMode ? undefined : { name: commentRouteName, params: { postSlugId: conversationSlugId } }) : undefined"
-        :replace="true"
+        :to="compactMode ? undefined : { name: commentRouteName, params: { postSlugId: conversationSlugId } }"
+        :deferred="true"
         @click="handleCommentClick"
       />
       <ZKTab
@@ -18,8 +22,8 @@
         :is-highlighted="model === 'analysis'"
         :should-underline-on-highlight="true"
         :is-loading="isLoading && model === 'analysis'"
-        :to="model === 'analysis' ? undefined : { name: analysisRouteName, params: { postSlugId: conversationSlugId } }"
-        :replace="false"
+        :to="{ name: analysisRouteName, params: { postSlugId: conversationSlugId } }"
+        :deferred="true"
         @click="handleAnalysisClick"
       />
     </div>
@@ -99,6 +103,10 @@ function handleAnalysisClick(): void {
     props.onSameTabClick?.();
   } else {
     canGoBackToComment.value = true;
+    void router.push({
+      name: analysisRouteName.value,
+      params: { postSlugId: props.conversationSlugId },
+    });
   }
 }
 </script>

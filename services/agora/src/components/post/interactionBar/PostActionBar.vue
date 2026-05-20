@@ -15,7 +15,6 @@
 
       <div class="rightSection">
         <ZKButton
-          v-if="conversationType !== 'maxdiff'"
           button-type="compactButton"
           @click.stop.prevent="showVoteBreakdown = true"
         >
@@ -26,7 +25,6 @@
         </ZKButton>
 
         <ZKButton
-          v-if="conversationType !== 'maxdiff'"
           button-type="compactButton"
           @click.stop.prevent="showParticipantBreakdown = true"
         >
@@ -64,7 +62,7 @@
       :analysis-count="voteCount"
       :total-label="t('totalVotes')"
       :analysis-label="t('usedForAnalysis')"
-      :explanation-text="t('moderatedVotesExplanation')"
+      :explanation-text="votesExplanation"
     />
 
     <CountBreakdownDialog
@@ -73,7 +71,7 @@
       :analysis-count="participantCount"
       :total-label="t('totalParticipants')"
       :analysis-label="t('usedForAnalysis')"
-      :explanation-text="t('moderatedParticipantsExplanation')"
+      :explanation-text="participantsExplanation"
     />
 
     <slot name="dropdown" />
@@ -89,7 +87,7 @@ import type { ContentAction } from "src/utils/actions/core/types";
 import { formatAmount } from "src/utils/common";
 import { useNotify } from "src/utils/ui/notify";
 import { useConversationUrl } from "src/utils/url/conversationUrl";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 import ZKActionDialog from "../../ui-library/ZKActionDialog.vue";
 import ZKButton from "../../ui-library/ZKButton.vue";
@@ -108,6 +106,7 @@ const props = withDefaults(defineProps<{
   voteCount: number;
   totalParticipantCount: number;
   totalVoteCount: number;
+  hasSurvey?: boolean;
   isLoading?: boolean;
   conversationSlugId: string;
   conversationTitle: string;
@@ -115,6 +114,7 @@ const props = withDefaults(defineProps<{
   onSameTabClick?: () => void;
   conversationType?: ConversationType;
 }>(), {
+  hasSurvey: false,
   onSameTabClick: undefined,
   conversationType: "polis",
 });
@@ -135,6 +135,32 @@ const showVoteBreakdown = ref(false);
 const showParticipantBreakdown = ref(false);
 const notify = useNotify();
 
+const votesExplanation = computed(() => {
+  if (props.conversationType === "maxdiff") {
+    return t("maxdiffVotesExplanation");
+  }
+
+  const explanations = [t("moderatedVotesExplanation")];
+  if (props.hasSurvey) {
+    explanations.push(t("surveyVotesExplanation"));
+  }
+
+  return explanations.join("\n");
+});
+
+const participantsExplanation = computed(() => {
+  if (props.conversationType === "maxdiff") {
+    return t("maxdiffParticipantsExplanation");
+  }
+
+  const explanations = [t("moderatedParticipantsExplanation")];
+  if (props.hasSurvey) {
+    explanations.push(t("surveyParticipantsExplanation"));
+  }
+
+  return explanations.join("\n");
+});
+
 function shareClicked(): void {
   const sharePostUrl = getConversationUrl(props.conversationSlugId);
   const shareTitle = "Agora - " + props.conversationTitle;
@@ -146,7 +172,7 @@ function shareClicked(): void {
     targetAuthor: props.authorUsername,
     copyLinkCallback: async () => {
       await copyToClipboard(sharePostUrl);
-      notify.showNotifyMessage(t("copiedToClipboard"));
+      notify.showCopiedToClipboard();
     },
     openQrCodeCallback: async () => {
       const { default: ShareDialog } = await import("../ShareDialog.vue");
@@ -172,7 +198,6 @@ async function handleShareActionSelected(action: ContentAction): Promise<void> {
 .postActionBarContainer {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .buttonClusterBar {
@@ -181,7 +206,7 @@ async function handleShareActionSelected(action: ContentAction): Promise<void> {
   justify-content: space-between;
   gap: 1rem;
 
-  @media (max-width: 599px) {
+  @media (max-width: $breakpoint-xs-max) {
     gap: 0.5rem;
   }
 }
@@ -189,7 +214,7 @@ async function handleShareActionSelected(action: ContentAction): Promise<void> {
 .buttonClusterBorder {
   border-bottom-width: 1px;
   border-bottom-style: solid;
-  border-bottom-color: #e2e1e7;
+  border-bottom-color: $sky-light;
 }
 
 .leftSection {
@@ -202,7 +227,7 @@ async function handleShareActionSelected(action: ContentAction): Promise<void> {
   align-items: center;
   margin-left: auto;
 
-  @media (max-width: 599px) {
+  @media (max-width: $breakpoint-xs-max) {
     gap: 0.5rem;
     font-size: 0.8rem;
   }

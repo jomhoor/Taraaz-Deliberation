@@ -2,10 +2,11 @@
   <div>
     <div class="container">
       <ShortcutButton
-        v-for="item in shortcutItemList"
+        v-for="item in items"
         :key="item"
         :is-selected="item === currentTab"
-        :label="getTranslatedLabel(item)"
+        :label="getLabel(item)"
+        :to="getRoute?.(item)"
         @click="clickedShortcutButton(item)"
       />
     </div>
@@ -13,49 +14,22 @@
 </template>
 
 <script setup lang="ts">
-import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import type { ShortcutItem } from "src/utils/component/analysis/shortcutBar";
+import type { RouteLocationRaw } from "vue-router";
 
-import {
-  type ShortcutBarTranslations,
-  shortcutBarTranslations,
-} from "./ShortcutBar.i18n";
 import ShortcutButton from "./ShortcutButton.vue";
 
-const emit = defineEmits<{
-  sameTabClick: [];
+const props = defineProps<{
+  items: string[];
+  getLabel: (item: string) => string;
+  getRoute?: (item: string) => RouteLocationRaw;
+  onSameTabClick?: () => void;
 }>();
 
-const currentTab = defineModel<ShortcutItem>({ required: true });
+const currentTab = defineModel<string>({ required: true });
 
-const { t } = useComponentI18n<ShortcutBarTranslations>(
-  shortcutBarTranslations
-);
-
-const shortcutItemList: ShortcutItem[] = [
-  "Summary",
-  "Me",
-  "Groups",
-  "Agreements",
-  "Disagreements",
-  "Divisive",
-];
-
-function getTranslatedLabel(item: ShortcutItem): string {
-  const keyMap: Record<ShortcutItem, keyof ShortcutBarTranslations> = {
-    Summary: "summary",
-    Me: "me",
-    Groups: "groups",
-    Agreements: "agreements",
-    Disagreements: "disagreements",
-    Divisive: "divisive",
-  };
-  return t(keyMap[item]);
-}
-
-function clickedShortcutButton(shortcutName: ShortcutItem) {
+function clickedShortcutButton(shortcutName: string) {
   if (shortcutName === currentTab.value) {
-    emit("sameTabClick");
+    props.onSameTabClick?.();
   } else {
     currentTab.value = shortcutName;
   }

@@ -161,6 +161,49 @@
         <div
           v-if="
             exportStatusQuery.data.value.status === 'completed' &&
+            exportStatusQuery.data.value.bundle
+          "
+          class="bundle-section"
+        >
+          <div class="file-card file-card--primary">
+            <div class="file-header">
+              <ZKIcon
+                name="lucide:file-archive"
+                size="2rem"
+                color="var(--primary-color)"
+                aria-hidden="true"
+              />
+              <span class="file-name">{{ exportStatusQuery.data.value.bundle.fileName }}</span>
+            </div>
+
+            <dl class="file-details">
+              <div class="file-detail-item">
+                <dt class="detail-label">{{ t("fileSize") }}:</dt>
+                <dd class="detail-value">
+                  {{ formatFileSize(exportStatusQuery.data.value.bundle.fileSize) }}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="file-actions">
+              <PrimeButton
+                :label="
+                  isUrlExpired(exportStatusQuery.data.value.bundle.urlExpiresAt)
+                    ? t('downloadExpired')
+                    : t('download')
+                "
+                icon="pi pi-download"
+                :disabled="isUrlExpired(exportStatusQuery.data.value.bundle.urlExpiresAt)"
+                :aria-label="`${t('download')} ${exportStatusQuery.data.value.bundle.fileName}`"
+                @click="handleDownload(exportStatusQuery.data.value.bundle.downloadUrl)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="
+            exportStatusQuery.data.value.status === 'completed' &&
             exportStatusQuery.data.value.files &&
             exportStatusQuery.data.value.files.length > 0
           "
@@ -225,6 +268,7 @@ import { useQuasar } from "quasar";
 import AsyncStateHandler from "src/components/ui/AsyncStateHandler.vue";
 import ZKIcon from "src/components/ui-library/ZKIcon.vue";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
+import { useLocalizedDateTimeFormatter } from "src/composables/ui/useLocalizedDateTime";
 
 import {
   type ExportStatusViewTranslations,
@@ -246,7 +290,7 @@ import {
   useDeleteExportMutation,
   useExportStatusQuery,
 } from "src/utils/api/conversationExport/useConversationExportQueries";
-import { formatDateTime, formatFileSize, isUrlExpired } from "src/utils/format";
+import { formatFileSize, isUrlExpired } from "src/utils/format";
 import { useNotify } from "src/utils/ui/notify";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
@@ -268,6 +312,7 @@ const { profileData } = storeToRefs(userStore);
 const $q = useQuasar();
 const router = useRouter();
 const { showNotifyMessage } = useNotify();
+const formatDateTime = useLocalizedDateTimeFormatter();
 
 const exportStatusQuery = useExportStatusQuery({
   exportSlugId: props.exportSlugId,
@@ -365,7 +410,7 @@ function getFailureReasonText(reason: ExportFailureReason): string {
   grid-template-columns: 1fr;
   gap: 1rem;
 
-  @media (min-width: 768px) {
+  @media (min-width: $breakpoint-sm-min) {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -465,6 +510,11 @@ function getFailureReasonText(reason: ExportFailureReason): string {
   gap: 1.5rem;
 }
 
+.bundle-section {
+  display: flex;
+  flex-direction: column;
+}
+
 .section-title {
   margin: 0;
   font-size: 1.25rem;
@@ -477,7 +527,7 @@ function getFailureReasonText(reason: ExportFailureReason): string {
   grid-template-columns: 1fr;
   gap: 1rem;
 
-  @media (min-width: 768px) {
+  @media (min-width: $breakpoint-sm-min) {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 }
@@ -496,6 +546,11 @@ function getFailureReasonText(reason: ExportFailureReason): string {
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
+}
+
+.file-card--primary {
+  border-color: rgba($primary, 0.28);
+  background-color: rgba($primary, 0.04);
 }
 
 .file-header {
@@ -555,7 +610,7 @@ function getFailureReasonText(reason: ExportFailureReason): string {
     width: 100%;
     justify-content: center;
 
-    @media (min-width: 768px) {
+    @media (min-width: $breakpoint-sm-min) {
       width: auto;
       min-width: 200px;
     }

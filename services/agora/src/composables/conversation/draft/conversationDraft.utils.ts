@@ -22,12 +22,6 @@ export function createEmptyDraft(): ConversationDraft {
     // Conversation Type
     conversationType: "polis",
 
-    // Polling Configuration
-    poll: {
-      enabled: false,
-      options: ["", ""], // Start with two empty options
-    },
-
     // Publishing Options
     postAs: {
       postAsOrganization: false,
@@ -36,7 +30,7 @@ export function createEmptyDraft(): ConversationDraft {
 
     // Privacy and Advanced Settings
     isPrivate: false,
-    participationMode: "strong_verification",
+    participationMode: "account_required",
     privateConversationSettings: {
       hasScheduledConversion: false,
       conversionDate: tomorrow,
@@ -44,6 +38,12 @@ export function createEmptyDraft(): ConversationDraft {
 
     // Event Ticket Verification
     requiresEventTicket: undefined,
+
+    // External Source (GitHub integration for MaxDiff)
+    externalSourceConfig: null,
+
+    // Survey configuration
+    surveyConfig: null,
 
     // Creation Settings
     importSettings: {
@@ -64,13 +64,7 @@ export function createEmptyDraft(): ConversationDraft {
  */
 export function hasContentThatWouldBeCleared(
   title: string,
-  content: string,
-  pollEnabled: boolean,
-  pollOptions: string[]
+  content: string
 ): boolean {
-  return (
-    title.trim() !== "" ||
-    content.trim() !== "" ||
-    (pollEnabled && pollOptions.some((opt) => opt.trim() !== ""))
-  );
+  return title.trim() !== "" || content.trim() !== "";
 }

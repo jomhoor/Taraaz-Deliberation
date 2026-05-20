@@ -1,9 +1,15 @@
 <template>
-  <router-view v-slot="{ Component }">
-    <keep-alive :include="keepAliveRoutes">
-      <component :is="Component" />
-    </keep-alive>
-  </router-view>
+  <PersistentLayout v-if="isDrawerLayout">
+    <router-view v-slot="{ Component }">
+      <keep-alive :include="keepAliveRoutes">
+        <component :is="Component" />
+      </keep-alive>
+    </router-view>
+  </PersistentLayout>
+
+  <!-- Non-drawer pages (onboarding, embed, welcome, survey onboarding, 404) render their own layout -->
+  <router-view v-else />
+
   <PostSignupPreferencesDialog />
   <EmbeddedBrowserWarningDialog />
 
@@ -14,19 +20,27 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
+import { type AppTranslations, appTranslations } from "./App.i18n";
 import EmbeddedBrowserWarningDialog from "./components/embeddedBrowser/EmbeddedBrowserWarningDialog.vue";
 import PostSignupPreferencesDialog from "./components/onboarding/dialogs/PostSignupPreferencesDialog.vue";
-import { useNotificationSSE } from "./composables/useNotificationSSE";
+import { createOfflineNotificationController } from "./composables/offlineNotification";
+import { useComponentI18n } from "./composables/ui/useComponentI18n";
+import { isNetworkOffline } from "./composables/useNetworkStatus";
+import { useRealtimeSSE } from "./composables/useRealtimeSSE";
 import { useZupassVerification } from "./composables/zupass/useZupassVerification";
+import PersistentLayout from "./layouts/PersistentLayout.vue";
 import { useAuthenticationStore } from "./stores/authentication";
 import { onboardingFlowStore } from "./stores/onboarding/flow";
 import { useBackendAuthApi } from "./utils/api/auth";
 import { useHtmlNodeCssPatch } from "./utils/css/htmlNodeCssPatch";
+import { useNotify } from "./utils/ui/notify";
 
-const keepAliveRoutes = ["NotificationPage", "UserProfilePage"];
+const { t } = useComponentI18n<AppTranslations>(appTranslations);
+
+const keepAliveRoutes = ["HomePage", "NotificationPage", "UserProfilePage"];
 
 const authenticationStore = useBackendAuthApi();
 const authStore = useAuthenticationStore();
@@ -37,15 +51,80 @@ useHtmlNodeCssPatch();
 // Initialize global Zupass iframe container
 const { zupassIframeContainer } = useZupassVerification();
 
-// Initialize SSE for real-time notifications
-// The composable automatically handles connecting/disconnecting based on auth state
-useNotificationSSE();
+// Initialize SSE for real-time events (notifications + feed updates).
+// Always connected: authenticated users get personal notifications + global
+// events; anonymous users get only global events (e.g. new_conversation).
+useRealtimeSSE();
+
+// Determine layout mode from route name
+const route = useRoute();
+const nonDrawerRoutePatterns = [
+  "/onboarding/",
+  "/verify/",
+  "/welcome",
+  "/conversation/[postSlugId].onboarding",
+  "/[...all]",
+];
+
+const isDrawerLayout = computed(() => {
+  const name = String(route.name ?? "");
+  if (name.includes(".embed")) return false;
+  return !nonDrawerRoutePatterns.some((pattern) => name.startsWith(pattern));
+});
+
+const { showNotifyMessage, showPersistentNotifyMessage } = useNotify();
+
+// Offline notification — state machine handles show/dismiss logic.
+// Quasar dismiss reference tracked here (not in the state machine) since
+// it is a framework-specific side effect.
+let dismissOfflineFn: (() => void) | null = null;
+
+const offlineController = createOfflineNotificationController({
+  showOffline: () => {
+    let thisDismiss: (() => void) | null = null;
+    thisDismiss = showPersistentNotifyMessage({
+      message: t("connectionLost"),
+      caption: t("reconnecting"),
+      showSpinner: true,
+      group: "offline-notification",
+      onDismiss: () => {
+        if (dismissOfflineFn === thisDismiss) {
+          dismissOfflineFn = null;
+        }
+      },
+    });
+    dismissOfflineFn = thisDismiss;
+  },
+  dismissOffline: () => {
+    dismissOfflineFn?.();
+    dismissOfflineFn = null;
+  },
+  showConnected: () => {
+    showNotifyMessage(t("connected"));
+  },
+});
+
+watch(isNetworkOffline, (offline) => {
+  if (offline) {
+    offlineController.onWentOffline();
+  } else {
+    offlineController.onWentOnline();
+  }
+}, { flush: 'sync' });
 
 const isJomhoorWebView =
   typeof window !== "undefined" &&
   !!(window as unknown as Record<string, unknown>).__JOMHOOR__;
 
 onMounted(async () => {
+  // Remove SPA splash screen (only present in SPA builds, see index.html)
+  const splash = document.getElementById("app-loading");
+  if (splash) {
+    splash.classList.add("fade-out");
+    splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+    setTimeout(() => splash.remove(), 500);
+  }
+
   try {
     // Skip auth initialization on the SSO callback route.
     // The callback page handles auth completion itself (POST /auth/sso/exchange

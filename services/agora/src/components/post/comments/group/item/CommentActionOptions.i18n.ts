@@ -21,20 +21,28 @@ export const commentActionOptionsTranslations: Record<
     agoraOpinion: "Proposición de Agora",
     copiedToClipboard: "Enlace copiado al portapapeles",
   },
+  fa: {
+    agoraOpinion: "گزاره Agora",
+    copiedToClipboard: "لینک در کلیپ‌بورد کپی شد",
+  },
   fr: {
     agoraOpinion: "Proposition Agora",
     copiedToClipboard: "Lien copié dans le presse-papiers",
   },
   "zh-Hans": {
-    agoraOpinion: "Agora 观点",
+    agoraOpinion: "Agora 意见",
     copiedToClipboard: "链接已复制到剪贴板",
   },
   "zh-Hant": {
-    agoraOpinion: "Agora 觀點",
+    agoraOpinion: "Agora 意見",
     copiedToClipboard: "連結已複製到剪貼簿",
   },
+  he: {
+    agoraOpinion: "הצהרת Agora",
+    copiedToClipboard: "הקישור הועתק ללוח",
+  },
   ja: {
-    agoraOpinion: "Agora 主張",
+    agoraOpinion: "Agora 意見",
     copiedToClipboard: "リンクをクリップボードにコピーしました",
   },
   fa: {

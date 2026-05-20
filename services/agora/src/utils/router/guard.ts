@@ -1,11 +1,8 @@
+import { useAuthenticationStore } from "src/stores/authentication";
 import { onboardingFlowStore } from "src/stores/onboarding/flow";
-import type { RouteRecordName } from "vue-router";
-import { useRouter } from "vue-router";
+import type { Router,RouteRecordName } from "vue-router";
 
-export function useRouterGuard() {
-  const router = useRouter();
-
-  const onboardingRoutes: RouteRecordName[] = [
+const onboardingRoutes: RouteRecordName[] = [
     "/onboarding/step1-login/",
     "/onboarding/step1-signup/",
     "/onboarding/step2-signup/",
@@ -15,8 +12,8 @@ export function useRouterGuard() {
     "/onboarding/step3-phone-1/",
     "/onboarding/step3-phone-2/",
     "/onboarding/step4-username/",
-    "/onboarding/step5-experience-deprecated/",
     "/verify/identity/",
+    "/verify/hard/",
     "/verify/email/",
     "/verify/email-code/",
     "/verify/phone/",
@@ -24,7 +21,29 @@ export function useRouterGuard() {
     "/verify/passport/",
   ];
 
-  async function firstLoadGuard(toName: RouteRecordName) {
+// Login/onboarding pages that logged-in users should never see.
+// Excludes step4-username (reached right after isLoggedIn becomes true during signup)
+// and /verify/* pages (used for credential upgrades on gated conversations).
+const loginAndOnboardingRoutes: RouteRecordName[] = [
+    "/welcome/",
+    "/onboarding/step1-login/",
+    "/onboarding/step1-signup/",
+    "/onboarding/step2-signup/",
+    "/onboarding/step3-email-1/",
+    "/onboarding/step3-email-2/",
+    "/onboarding/step3-passport/",
+    "/onboarding/step3-phone-1/",
+    "/onboarding/step3-phone-2/",
+  ];
+
+export function useRouterGuard() {
+  async function firstLoadGuard({
+    toName,
+    router,
+  }: {
+    toName: RouteRecordName;
+    router: Router;
+  }) {
     const unauthenticatedRoutes: RouteRecordName[] = [
       ...onboardingRoutes,
       "/",
@@ -36,8 +55,24 @@ export function useRouterGuard() {
       "/conversation/[postSlugId].embed",
       "/conversation/[postSlugId].embed/",
       "/conversation/[postSlugId].embed/analysis",
+      "/conversation/[postSlugId].onboarding",
+      "/conversation/[postSlugId].onboarding/",
+      "/conversation/[postSlugId].onboarding/verify",
+      "/conversation/[postSlugId].onboarding/verify/hard",
+      "/conversation/[postSlugId].onboarding/verify/identity",
+      "/conversation/[postSlugId].onboarding/verify/email",
+      "/conversation/[postSlugId].onboarding/verify/email-code",
+      "/conversation/[postSlugId].onboarding/verify/phone",
+      "/conversation/[postSlugId].onboarding/verify/phone-code",
+      "/conversation/[postSlugId].onboarding/verify/passport",
+      "/conversation/[postSlugId].onboarding/verify/ticket",
+      "/conversation/[postSlugId].onboarding/question.[questionSlugId]",
+      "/conversation/[postSlugId].onboarding/summary",
+      "/conversation/[postSlugId].onboarding/complete",
       "/conversation/[conversationSlugId]/report",
       "/conversation/new/create/",
+      "/conversation/new/seed/",
+      "/conversation/new/survey/",
       "/conversation/new/review/",
       "/legal/privacy/",
       "/legal/terms/",
@@ -51,7 +86,7 @@ export function useRouterGuard() {
     ];
 
     if (!unauthenticatedRoutes.includes(toName)) {
-      await router.push({ name: "/welcome/" });
+      await router.push({ name: "/" });
     }
   }
 
@@ -80,5 +115,13 @@ export function useRouterGuard() {
     return "ignore";
   }
 
-  return { firstLoadGuard, conversationGuard };
+  function loggedInGuard(toName: RouteRecordName): "home" | "ignore" {
+    const authStore = useAuthenticationStore();
+    if (authStore.isLoggedIn && loginAndOnboardingRoutes.includes(toName)) {
+      return "home";
+    }
+    return "ignore";
+  }
+
+  return { firstLoadGuard, conversationGuard, loggedInGuard };
 }

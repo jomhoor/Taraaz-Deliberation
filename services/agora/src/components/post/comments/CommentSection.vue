@@ -19,11 +19,11 @@
             }"
             :participation-mode="props.participationMode"
             :requires-event-ticket="props.requiresEventTicket"
+            :survey-gate="props.surveyGate"
             :on-view-analysis="props.onViewAnalysis"
             :is-voting-disabled="props.isVotingDisabled"
             @deleted="(opinionSlugId) => handleOpinionDeleted(opinionSlugId)"
             @muted-comment="handleOpinionMuted()"
-            @ticket-verified="(payload) => emit('ticketVerified', payload)"
           />
         </AsyncStateHandler>
       </div>
@@ -40,12 +40,17 @@ import { useOpinionPagination } from "src/composables/opinion/useOpinionPaginati
 import { useOpinionVoting } from "src/composables/opinion/useOpinionVoting";
 import { useTargetOpinion } from "src/composables/opinion/useTargetOpinion";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import type { OpinionItem } from "src/shared/types/zod";
+import type {
+  EventSlug,
+  OpinionItem,
+  ParticipationMode,
+  SurveyGateSummary,
+} from "src/shared/types/zod";
 import { useUserStore } from "src/stores/user";
 import { useInvalidateCommentQueries } from "src/utils/api/comment/useCommentQueries";
 import type { CommentFilterOptions } from "src/utils/component/opinion";
 import { useNotify } from "src/utils/ui/notify";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onActivated, onMounted, ref, watch } from "vue";
 
 import {
   type CommentSectionTranslations,
@@ -59,6 +64,7 @@ const props = defineProps<{
   conversationOrganizationName: string;
   participationMode: ParticipationMode;
   requiresEventTicket?: EventSlug;
+  surveyGate: SurveyGateSummary | undefined;
   onViewAnalysis: () => void;
   isVotingDisabled: boolean;
   preloadedQueries: {
@@ -78,9 +84,8 @@ const emit = defineEmits<{
   ];
 }>();
 
-import type { EventSlug, ParticipationMode } from "src/shared/types/zod";
-
 const isComponentMounted = ref(false);
+const isInitialActivation = ref(true);
 
 const { t } = useComponentI18n<CommentSectionTranslations>(
   commentSectionTranslations
@@ -182,6 +187,15 @@ onMounted(async (): Promise<void> => {
   isComponentMounted.value = true;
 });
 
+onActivated(async (): Promise<void> => {
+  if (isInitialActivation.value) {
+    isInitialActivation.value = false;
+    return;
+  }
+  await setupHighlightFromRoute();
+  await clearRouteQueryParameters();
+});
+
 // Watch for postSlugId changes to refetch user votes when navigating between conversations
 watch(
   () => props.postSlugId,
@@ -234,7 +248,6 @@ defineExpose({
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding-bottom: 10rem;
+  padding-bottom: 5rem;
 }
 </style>

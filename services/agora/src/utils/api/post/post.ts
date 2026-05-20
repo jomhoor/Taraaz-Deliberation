@@ -4,12 +4,12 @@ import type {
   ApiV1ConversationImportPostRequest,
 } from "src/api";
 import {
-  type ApiV1ConversationCreatePostRequest,
   type ApiV1ConversationFetchRecentPostRequest,
   type ApiV1ModerationConversationWithdrawPostRequest,
   DefaultApiAxiosParamCreator,
   DefaultApiFactory,
 } from "src/api";
+import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import type { ImportCsvConversationResponse } from "src/shared/types/dto";
 import type {
   FetchFeedResponse,
@@ -22,8 +22,10 @@ import type {
   ConversationType,
   EventSlug,
   ExtendedConversation,
+  ExternalSourceConfig,
   FeedSortAlgorithm,
   ParticipationMode,
+  SurveyConfig,
 } from "src/shared/types/zod";
 import { zodExtendedConversationData } from "src/shared/types/zod";
 import { CSV_UPLOAD_FIELD_NAMES } from "src/shared-app-api/csvUpload";
@@ -37,6 +39,10 @@ import { useNotify } from "../../ui/notify";
 import { api,axiosInstance } from "../client";
 import type { AxiosErrorResponse, AxiosSuccessResponse } from "../common";
 import { useCommonApi } from "../common";
+import {
+  type PostApiTranslations,
+  postApiTranslations,
+} from "./post.i18n";
 
 export function useBackendPostApi() {
   const {
@@ -46,6 +52,7 @@ export function useBackendPostApi() {
   } = useCommonApi();
 
   const { showNotifyMessage } = useNotify();
+  const { t } = useComponentI18n<PostApiTranslations>(postApiTranslations);
 
   const router = useRouter();
 
@@ -58,8 +65,8 @@ export function useBackendPostApi() {
 
   async function fetchPostBySlugId(
     postSlugId: string,
-    loadUserPollResponse: boolean
-  ): Promise<ExtendedConversation | null> {
+    loadPersonalizedData: boolean
+  ): Promise<ExtendedConversation> {
     try {
       const params: ApiV1ModerationConversationWithdrawPostRequest = {
         conversationSlugId: postSlugId,
@@ -67,7 +74,7 @@ export function useBackendPostApi() {
 
       const { url, options } =
         await DefaultApiAxiosParamCreator().apiV1ConversationGetPost(params);
-      if (!loadUserPollResponse) {
+      if (!loadPersonalizedData) {
         const response = await DefaultApiFactory(
           undefined,
           undefined,
@@ -90,21 +97,13 @@ export function useBackendPostApi() {
         return createInternalPostData(response.data.conversationData);
       }
     } catch (error) {
-      const DEFAULT_ERROR = "Failed to fetch conversation by slug ID.";
-      console.error(error);
-      if (axiosInstance.isAxiosError(error)) {
-        if (error.status == 400) {
-          showNotifyMessage("Conversation resource not found.");
-        } else {
-          showNotifyMessage(DEFAULT_ERROR);
-        }
-      } else {
-        showNotifyMessage(DEFAULT_ERROR);
+      if (axiosInstance.isAxiosError(error) && error.status === 404) {
+        const conversationNotFoundMessage = t("conversationNotFound");
+        showNotifyMessage(conversationNotFoundMessage);
+        await router.push({ name: "/" });
+        throw new Error(conversationNotFoundMessage, { cause: error });
       }
-
-      await router.push({ name: "/" });
-
-      return null;
+      throw error;
     }
   }
 
@@ -115,12 +114,12 @@ export function useBackendPostApi() {
     | AxiosErrorResponse;
 
   interface FetchRecentPostProps {
-    loadUserPollData: boolean;
+    loadPersonalizedData: boolean;
     sortAlgorithm: FeedSortAlgorithm;
   }
 
   async function fetchRecentPost({
-    loadUserPollData,
+    loadPersonalizedData,
     sortAlgorithm,
   }: FetchRecentPostProps): Promise<FetchRecentPostResponse> {
     try {
@@ -128,7 +127,7 @@ export function useBackendPostApi() {
         sortAlgorithm: sortAlgorithm,
       };
 
-      if (!loadUserPollData) {
+      if (!loadPersonalizedData) {
         const response = await DefaultApiFactory(
           undefined,
           undefined,
@@ -172,7 +171,6 @@ export function useBackendPostApi() {
       }
     } catch (e) {
       console.error(e);
-      showNotifyMessage("Failed to fetch recent posts from the server.");
       return createAxiosErrorResponse(e);
     }
   }
@@ -180,7 +178,6 @@ export function useBackendPostApi() {
   interface CreateNewPostProps {
     postTitle: string;
     postBody: string | undefined;
-    pollingOptionList: string[] | undefined;
     postAsOrganizationName: string;
     targetIsoConvertDateString: string | undefined;
     isIndexed: boolean;
@@ -188,6 +185,8 @@ export function useBackendPostApi() {
     conversationType: ConversationType;
     seedOpinionList: string[];
     requiresEventTicket?: EventSlug;
+    externalSourceConfig?: ExternalSourceConfig | null;
+    surveyConfig?: SurveyConfig | null;
   }
 
   type CreateNewPostSuccessResponse =
@@ -314,7 +313,6 @@ export function useBackendPostApi() {
   async function createNewPost({
     postTitle,
     postBody,
-    pollingOptionList,
     postAsOrganizationName,
     targetIsoConvertDateString,
     isIndexed,
@@ -322,12 +320,13 @@ export function useBackendPostApi() {
     conversationType,
     seedOpinionList,
     requiresEventTicket,
+    externalSourceConfig,
+    surveyConfig,
   }: CreateNewPostProps): Promise<CreateNewPostResponse> {
     try {
-      const params: ApiV1ConversationCreatePostRequest = {
+      const params = Dto.createNewConversationRequest.parse({
         conversationTitle: postTitle,
         conversationBody: postBody,
-        pollingOptionList: pollingOptionList,
         isIndexed: isIndexed,
         participationMode: participationMode,
         conversationType: conversationType,
@@ -335,16 +334,14 @@ export function useBackendPostApi() {
         indexConversationAt: targetIsoConvertDateString,
         seedOpinionList: seedOpinionList,
         requiresEventTicket,
-      };
-
-      const { url, options } =
-        await DefaultApiAxiosParamCreator().apiV1ConversationCreatePost(params);
+        externalSourceConfig: externalSourceConfig ?? undefined,
+        surveyConfig: surveyConfig ?? undefined,
+      });
+      const url = "/api/v1/conversation/create";
+      const options = { method: "POST" };
       const encodedUcan = await buildEncodedUcan(url, options);
-      const response = await DefaultApiFactory(
-        undefined,
-        undefined,
-        api
-      ).apiV1ConversationCreatePost(
+      const response = await api.post(
+        url,
         params,
         createRawAxiosRequestConfig({ encodedUcan: encodedUcan })
       );
@@ -371,7 +368,7 @@ export function useBackendPostApi() {
         "Failed to parse conversation data with zod:",
         conversationListResult.error
       );
-      showNotifyMessage("Invalid conversation data received from server.");
+      showNotifyMessage(t("invalidConversationData"));
       return [];
     }
 
@@ -399,7 +396,7 @@ export function useBackendPostApi() {
       return true;
     } catch (e) {
       console.error(e);
-      showNotifyMessage("Failed to delete the post.");
+      showNotifyMessage(t("failedToDeletePost"));
       return false;
     }
   }

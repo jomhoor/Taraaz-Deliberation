@@ -24,20 +24,30 @@ export const divisiveInformationDialogTranslations: Record<
     description:
       "Proposiciones en las que los grupos de opinión no están de acuerdo entre sí. Un grupo aprueba mientras otro rechaza.\n\nRevelan las principales líneas divisorias en la conversación.\n\nSolo se muestran las más estadísticamente significativas primero.",
   },
+  fa: {
+    title: "گزاره‌های اختلاف‌برانگیز",
+    description:
+      "گزاره‌هایی که گروه‌های نظر در مورد آنها با یکدیگر اختلاف دارند. یک گروه تأیید می‌کند و گروه دیگر رد می‌کند.\n\nاینها خطوط اصلی تفرقه در گفتگو را آشکار می‌کنند.\n\nابتدا فقط مهم‌ترین موارد از نظر آماری نمایش داده می‌شوند.",
+  },
   fr: {
     title: "Propositions Clivantes",
     description:
       "Propositions sur lesquelles les groupes d'opinion sont en désaccord entre eux. Un groupe approuve tandis qu'un autre rejette.\n\nElles révèlent les principales lignes de fracture de la conversation.\n\nSeules les plus statistiquement significatives sont affichées en premier.",
   },
   "zh-Hans": {
-    title: "争议性观点",
+    title: "争议性意见",
     description:
-      "意见群组之间产生分歧的观点。一个群组认可而另一个群组否决。\n\n这些揭示了对话中的主要分歧线。\n\n仅先显示统计上最显著的观点。",
+      "意见群组之间产生分歧的意见。一个群组认可而另一个群组否决。\n\n这些揭示了对话中的主要分歧线。\n\n仅先显示统计上最显著的意见。",
   },
   "zh-Hant": {
-    title: "爭議性觀點",
+    title: "爭議性意見",
     description:
-      "意見群組之間產生分歧的觀點。一個群組認可而另一個群組否決。\n\n這些揭示了對話中的主要分歧線。\n\n僅先顯示統計上最顯著的觀點。",
+      "意見群組之間產生分歧的意見。一個群組認可而另一個群組否決。\n\n這些揭示了對話中的主要分歧線。\n\n僅先顯示統計上最顯著的意見。",
+  },
+  he: {
+    title: "הצהרות מפלגות",
+    description:
+      "הצהרות שקבוצות הדעה חלוקות לגביהן. קבוצה אחת מאשרת בעוד אחרת דוחה.\n\nאלו חושפות את קווי החלוקה המרכזיים בשיחה.\n\nרק המובהקות ביותר מבחינה סטטיסטית מוצגות תחילה.",
   },
   ja: {
     title: "分断的な意見",

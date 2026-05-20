@@ -28,6 +28,12 @@ export const groupConsensusSummaryTranslations: Record<
     aiSummaryDescription:
       "Utilizamos Mistral Large (modelo LLM) para generar el resumen y las etiquetas de cada grupo de consenso.",
   },
+  fa: {
+    groupSummaryTitle: "خلاصه گروه",
+    aiSummaryTitle: "خلاصه هوش مصنوعی",
+    aiSummaryDescription:
+      "ما از Mistral Large (مدل LLM) برای تولید خلاصه و برچسب‌ها برای هر گروه اجماع استفاده می‌کنیم.",
+  },
   fr: {
     groupSummaryTitle: "Résumé du groupe",
     aiSummaryTitle: "Résumé IA",
@@ -46,11 +52,17 @@ export const groupConsensusSummaryTranslations: Record<
     aiSummaryDescription:
       "我們使用 Mistral Large (LLM 模型) 為每個共識群組生成總結和標籤。",
   },
+  he: {
+    groupSummaryTitle: "סיכום קבוצה",
+    aiSummaryTitle: "סיכום AI",
+    aiSummaryDescription:
+      "אנו משתמשים ב-Mistral Large (מודל LLM) ליצירת הסיכום והתוויות עבור כל קבוצת קונצנזוס.",
+  },
   ja: {
     groupSummaryTitle: "グループサマリー",
     aiSummaryTitle: "AI サマリー",
     aiSummaryDescription:
-      "我々は Mistral Large (LLM モデル) を使用して、各合意形成グループの要約とラベルを生成します。",
+      "我々は Mistral Large (LLM モデル) を使用して、各合意形成グループのサマリーとラベルを生成します。",
   },
   fa: {
     groupSummaryTitle: "خلاصه گروه",

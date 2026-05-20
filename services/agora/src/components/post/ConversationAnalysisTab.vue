@@ -5,6 +5,9 @@
       :conversation-slug-id="conversationData.metadata.conversationSlugId"
       :participant-count="conversationData.metadata.participantCount"
       :analysis-query="analysisQuery"
+      :survey-query="surveyResultsQuery"
+      :has-survey="hasSurvey"
+      :survey-gate="conversationData.interaction.surveyGate"
       :show-report-button="showReportButton"
       :navigate-to-discover-tab="props.navigateToDiscoverTab"
     />
@@ -14,7 +17,8 @@
 <script setup lang="ts">
 import type { ExtendedConversation } from "src/shared/types/zod";
 import { useAnalysisQuery } from "src/utils/api/comment/useCommentQueries";
-import { computed, inject, onMounted, ref, watch } from "vue";
+import { useSurveyResultsAggregatedQuery } from "src/utils/api/survey/useSurveyQueries";
+import { computed, inject, onActivated, onMounted, ref, watch } from "vue";
 
 import AnalysisPage from "./analysis/AnalysisPage.vue";
 
@@ -53,6 +57,7 @@ const conversationSlugId = computed(
   () => props.conversationData.metadata.conversationSlugId
 );
 const voteCount = computed(() => props.conversationData.metadata.voteCount);
+const hasSurvey = computed(() => props.conversationData.interaction.surveyGate?.hasSurvey === true);
 
 // Load analysis data
 const analysisQuery = useAnalysisQuery({
@@ -61,18 +66,42 @@ const analysisQuery = useAnalysisQuery({
   enabled: () => props.hasConversationData,
 });
 
+const surveyResultsQuery = useSurveyResultsAggregatedQuery({
+  conversationSlugId,
+  enabled: hasSurvey,
+});
+
+const isSurveyResultsLoading = computed(
+  () =>
+    hasSurvey.value &&
+    (surveyResultsQuery.isPending.value || surveyResultsQuery.isRefetching.value)
+);
+
 // Report loading state to parent (for spinner in PostActionBar)
 const isLoading = computed(
-  () => analysisQuery.isPending.value || analysisQuery.isRefetching.value
+  () =>
+    analysisQuery.isPending.value ||
+    analysisQuery.isRefetching.value ||
+    isSurveyResultsLoading.value
 );
 
 watch(isLoading, (loading) => {
   setCurrentTabLoading(loading);
 });
 
-// Register pull-to-refresh handler: refetch analysis data
-registerChildRefreshHandler(async () => {
+async function handleChildRefresh(): Promise<void> {
+  if (hasSurvey.value) {
+    await Promise.all([analysisQuery.refetch(), surveyResultsQuery.refetch()]);
+    return;
+  }
+
   await analysisQuery.refetch();
+}
+
+registerChildRefreshHandler(handleChildRefresh);
+
+onActivated(() => {
+  registerChildRefreshHandler(handleChildRefresh);
 });
 
 onMounted(() => {

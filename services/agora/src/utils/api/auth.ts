@@ -7,7 +7,7 @@ import { useNewOpinionDraftsStore } from "src/stores/newOpinionDrafts";
 import { useNotificationStore } from "src/stores/notification";
 import { useTopicStore } from "src/stores/topic";
 import { useUserStore } from "src/stores/user";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import { resetZupassModuleState } from "../../composables/zupass/useZupassVerification";
 import { useNewPostDraftsStore } from "../../stores/newConversationDrafts";
@@ -32,6 +32,7 @@ export function useBackendAuthApi() {
     useLanguageStore();
 
   const route = useRoute();
+  const router = useRouter();
 
   const { firstLoadGuard } = useRouterGuard();
 
@@ -99,13 +100,12 @@ export function useBackendAuthApi() {
         (oldLoginStatus.isKnown !== newLoginStatus.isKnown || forceRefresh) &&
         newLoginStatus.isKnown == false
       ) {
-        console.log("Cleaning data from detecting change to unknown device");
         await logoutDataCleanup({
           shouldClearLanguagePreferences:
             oldIsGuestOrLoggedIn && !newIsGuestOrLoggedIn,
         });
         if (route.name) {
-          await firstLoadGuard(route.name);
+          await firstLoadGuard({ toName: route.name, router });
         }
         return { authStateChanged: true, needsCacheRefresh: false };
       }
@@ -126,48 +126,47 @@ export function useBackendAuthApi() {
         if (newIsGuestOrLoggedIn) {
           // Check if we should defer cache operations
           if (deferCacheOperations) {
-            console.log(
-              "Auth state changed but deferring cache operations for caller to handle"
-            );
             return { authStateChanged: true, needsCacheRefresh: true };
           }
 
-          console.log(
-            "Clearing query cache and loading authenticated modules upon detecting new login, guest user, or userId change"
-          );
+          // Only clear/invalidate cache when auth actually changed.
+          // On HMR remounts, forceRefresh is true but Pinia state persists
+          // (oldIsGuestOrLoggedIn === newIsGuestOrLoggedIn), so we skip cache
+          // clearing to avoid wiping the feed and causing a "..." spinner.
+          if (authStateChanged) {
+            // Detect if this is a new guest creation (anonymous → guest)
+            const newIsGuest = newLoginStatus.isKnown && !newLoginStatus.isRegistered;
+            const isNewGuestCreation = !oldIsGuestOrLoggedIn && newIsGuest;
 
-          // Detect if this is a new guest creation (anonymous → guest)
-          const newIsGuest = newLoginStatus.isKnown && !newLoginStatus.isRegistered;
-          const isNewGuestCreation = !oldIsGuestOrLoggedIn && newIsGuest;
-
-          if (isNewGuestCreation) {
-            // For new guests: preserve vote/comment caches, invalidate everything else
-            console.log("New guest detected - preserving vote/comment caches");
-            await queryClient.invalidateQueries({
-              predicate: (query) => {
-                const queryKey = query.queryKey[0];
-                // Preserve vote and comment caches (optimistic updates)
-                if (queryKey === 'userVotes') return false;
-                if (queryKey === 'comments') return false;
-                // Invalidate everything else (user profile, etc.)
-                return true;
-              }
-            });
-          } else {
-            // For other transitions (login, logout, account switch): clear everything
-            queryClient.clear();
+            if (isNewGuestCreation) {
+              // For new guests: preserve in-flight caches, invalidate everything else
+              await queryClient.invalidateQueries({
+                predicate: (query) => {
+                  const queryKey = query.queryKey[0];
+                  // Preserve caches with in-flight optimistic updates
+                  if (queryKey === 'userVotes') return false;
+                  if (queryKey === 'comments') return false;
+                  if (queryKey === 'maxdiff-items') return false;
+                  if (queryKey === 'maxdiff-load') return false;
+                  // Invalidate everything else (user profile, etc.)
+                  return true;
+                }
+              });
+            } else {
+              // For other transitions (login, logout, account switch): clear everything
+              queryClient.clear();
+            }
           }
 
           await loadAuthenticatedModules();
           return { authStateChanged: true, needsCacheRefresh: false };
         } else {
-          console.log("Cleaning data from logging out");
           await logoutDataCleanup({
             shouldClearLanguagePreferences:
               oldIsGuestOrLoggedIn && !newIsGuestOrLoggedIn,
           });
           if (route.name) {
-            await firstLoadGuard(route.name);
+            await firstLoadGuard({ toName: route.name, router });
           }
           return { authStateChanged: true, needsCacheRefresh: false };
         }
@@ -176,17 +175,19 @@ export function useBackendAuthApi() {
     } catch (e) {
       console.error("Failed to update authentication state", e);
       return { authStateChanged: false, needsCacheRefresh: false };
-    } finally {
-      isAuthInitialized.value = true;
     }
   }
 
   async function initializeAuthState() {
-    const deviceLoginStatus = await getDeviceLoginStatus();
-    await updateAuthState({
-      partialLoginStatus: deviceLoginStatus,
-      forceRefresh: true,
-    });
+    try {
+      const deviceLoginStatus = await getDeviceLoginStatus();
+      await updateAuthState({
+        partialLoginStatus: deviceLoginStatus,
+        forceRefresh: true,
+      });
+    } finally {
+      isAuthInitialized.value = true;
+    }
   }
 
   async function logoutDataCleanup({

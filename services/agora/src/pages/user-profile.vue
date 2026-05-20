@@ -1,21 +1,18 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: true,
-      enableFooter: false,
-      enableHeader: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
+  <div>
+    <Teleport v-if="isActive" to="#page-header">
       <StandardMenuBar :title="t('userProfile')" :center-content="true" />
-    </template>
+    </Teleport>
 
     <q-pull-to-refresh @refresh="pullDownTriggered">
-      <div v-if="isLoading" class="loadingContainer">
-        <q-spinner color="primary" size="3em" />
-      </div>
+      <PageLoadingSpinner v-if="isLoading" />
+
+      <ErrorRetryBlock
+        v-else-if="isError"
+        :title="t('errorTitle')"
+        :retry-label="t('retryButton')"
+        @retry="initialize()"
+      />
 
       <div v-else class="topBar">
         <div class="usernameBar">
@@ -37,25 +34,28 @@
             {{ profileData.activePostCount }} {{ t("conversations") }}
             <span class="dotPadding">•</span>
           </div>
-          <div>{{ getDateString(new Date(profileData.createdAt)) }}</div>
+          <div>{{ formatDateJoined(profileData.createdAt) }}</div>
         </div>
       </div>
 
-      <div v-if="!isLoading" class="tabCluster">
+      <div v-if="!isLoading && !isError" class="tabCluster">
         <div v-for="tabItem in tabList" :key="tabItem.value">
           <ZKTab
             :text="tabItem.label"
             :is-highlighted="currentTab === tabItem.value"
             :should-underline-on-highlight="true"
             :to="{ name: tabItem.route }"
-            :replace="true"
           />
         </div>
       </div>
 
-      <router-view v-if="!isLoading" />
+      <router-view v-if="!isLoading && !isError" v-slot="{ Component }">
+        <KeepAlive>
+          <component :is="Component" />
+        </KeepAlive>
+      </router-view>
     </q-pull-to-refresh>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -63,12 +63,18 @@ import { storeToRefs } from "pinia";
 import UserAvatar from "src/components/account/UserAvatar.vue";
 import UserMetadata from "src/components/features/user/UserMetadata.vue";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
+import ErrorRetryBlock from "src/components/ui/ErrorRetryBlock.vue";
+import PageLoadingSpinner from "src/components/ui/PageLoadingSpinner.vue";
 import ZKTab from "src/components/ui-library/ZKTab.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
+import {
+  localizedDateTimeFormatOptions,
+  useLocalizedDateTimeFormatter,
+} from "src/composables/ui/useLocalizedDateTime";
+import { isNetworkOffline } from "src/composables/useNetworkStatus";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useUserStore } from "src/stores/user";
-import { getDateString } from "src/utils/common";
 import { onActivated, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
@@ -78,6 +84,8 @@ import {
 } from "./user-profile.i18n";
 
 defineOptions({ name: "UserProfilePage" });
+
+const { isActive } = usePageLayout({ enableFooter: false, reducedWidth: true, addBottomPadding: true });
 
 const { loadUserProfile } = useUserStore();
 const authStore = useAuthenticationStore();
@@ -92,6 +100,10 @@ interface CustomTab {
 const { t } = useComponentI18n<UserProfileTranslations>(
   userProfileTranslations
 );
+
+const formatDateJoined = useLocalizedDateTimeFormatter({
+  options: localizedDateTimeFormatOptions.longDate,
+});
 
 const tabList: CustomTab[] = [
   {
@@ -110,6 +122,7 @@ const { profileData } = storeToRefs(useUserStore());
 
 const currentTab = ref(0);
 const isLoading = ref(true);
+const isError = ref(false);
 const hasLoadedOnce = ref(false);
 
 const route = useRoute();
@@ -119,6 +132,8 @@ applyCurrentTab();
 onActivated(() => {
   if (!hasLoadedOnce.value && isAuthInitialized.value) {
     void initialize();
+  } else if (hasLoadedOnce.value) {
+    void loadUserProfile();
   }
 });
 
@@ -145,21 +160,25 @@ watch(route, () => {
 
 async function initialize() {
   if (isAuthInitialized.value) {
-    try {
-      isLoading.value = true;
-      await loadUserProfile();
+    isLoading.value = true;
+    isError.value = false;
+    await loadUserProfile();
+    isLoading.value = false;
+    if (profileData.value.dataLoaded) {
       hasLoadedOnce.value = true;
-    } catch (error) {
-      console.error("Failed to load user profile:", error);
-    } finally {
-      isLoading.value = false;
+    } else {
+      isError.value = true;
     }
   }
 }
 
 function pullDownTriggered(done: () => void) {
+  if (isNetworkOffline.value) {
+    done();
+    return;
+  }
   setTimeout(() => {
-    void loadUserProfile().then(() => {
+    void initialize().finally(() => {
       done();
     });
   }, 500);
@@ -193,8 +212,8 @@ function applyCurrentTab() {
   flex-direction: column;
   gap: 1rem;
   justify-content: space-between;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
   padding-bottom: 2rem;
 }
 
@@ -225,16 +244,8 @@ function applyCurrentTab() {
 .tabCluster {
   display: flex;
   gap: 1rem;
-  padding-bottom: 1rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
-
-.loadingContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 50vh;
-  padding: 2rem;
+  padding-bottom: 0.25rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 </style>

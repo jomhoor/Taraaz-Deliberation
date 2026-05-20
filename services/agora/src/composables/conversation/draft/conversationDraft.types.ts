@@ -7,7 +7,13 @@
  * - Conversation form components
  */
 
-import type { ConversationType, EventSlug, ParticipationMode } from "src/shared/types/zod";
+import type {
+  ConversationType,
+  EventSlug,
+  ExternalSourceConfig,
+  ParticipationMode,
+  SurveyConfig,
+} from "src/shared/types/zod";
 
 // ============================================================================
 // Draft Data Structures
@@ -32,16 +38,6 @@ export interface PrivateConversationSettings {
   hasScheduledConversion: boolean;
   /** The target date for automatic conversion */
   conversionDate: Date;
-}
-
-/**
- * Polling configuration for the conversation
- */
-export interface PollSettings {
-  /** Whether this conversation includes a poll */
-  enabled: boolean;
-  /** List of poll options */
-  options: string[];
 }
 
 /**
@@ -76,9 +72,6 @@ export interface ConversationDraft {
   /** The type of conversation: "polis" for standard agree/disagree voting, "maxdiff" for best-worst scaling */
   conversationType: ConversationType;
 
-  // Polling Configuration
-  poll: PollSettings;
-
   // Publishing Options
   postAs: PostAsSettings;
 
@@ -93,6 +86,12 @@ export interface ConversationDraft {
   // Event Ticket Verification
   /** If set, requires users to verify ownership of the specified event ticket. If undefined, no verification required. */
   requiresEventTicket?: EventSlug;
+
+  // External Source (GitHub integration for MaxDiff)
+  externalSourceConfig: ExternalSourceConfig | null;
+
+  // Survey configuration
+  surveyConfig: SurveyConfig | null;
 
   // Import Settings
   importSettings: ConversationImportSettings;
@@ -134,14 +133,13 @@ export interface FieldValidationState {
 export interface ValidationState {
   title: FieldValidationState;
   body: FieldValidationState;
-  poll: FieldValidationState;
   polisUrl: FieldValidationState;
 }
 
 /**
  * Field identifiers for validation errors
  */
-export type ValidationErrorField = "title" | "poll" | "body" | "polisUrl";
+export type ValidationErrorField = "title" | "body" | "polisUrl";
 
 /**
  * Mutation result interface for consistent error handling
@@ -158,7 +156,6 @@ export interface ValidationResult {
   isValid: boolean;
   errors: {
     title?: string;
-    poll?: string;
     body?: string;
     polisUrl?: string;
   };
@@ -177,10 +174,6 @@ export interface ConversationFormState {
   title: string;
   content: string;
 
-  // Poll configuration
-  pollEnabled: boolean;
-  pollOptions: string[];
-
   // Privacy settings
   isPrivate: boolean;
   participationMode: ParticipationMode;
@@ -188,4 +181,7 @@ export interface ConversationFormState {
 
   // Private conversation settings
   privateConversationSettings: PrivateConversationSettings;
+
+  // Survey configuration
+  surveyConfig: SurveyConfig | null;
 }

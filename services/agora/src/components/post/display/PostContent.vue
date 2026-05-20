@@ -13,25 +13,22 @@
       :is-closed="extendedPostData.metadata.isClosed"
       :compact-mode="compactMode"
       :conversation-title="extendedPostData.payload.title"
+      :conversation-type="extendedPostData.metadata.conversationType"
+      :external-source-config="extendedPostData.metadata.externalSourceConfig ?? null"
       @open-moderation-history="$emit('openModerationHistory')"
+      @conversation-deleted="$emit('conversationDeleted')"
     />
 
     <div class="postDiv" :class="{ 'postDiv--compact': compactMode }">
       <div>
-        <ConversationTitleWithPrivacyLabel
+        <ConversationTitle
           :is-private="!extendedPostData.metadata.isIndexed"
           :title="extendedPostData.payload.title"
           size="medium"
           :conversation-type="extendedPostData.metadata.conversationType"
           :alignment="isCompactRtl ? 'right' : 'auto'"
           :full-width="isCompactRtl"
-        />
-
-        <EventTicketRequirementBanner
-          v-if="extendedPostData.metadata.requiresEventTicket"
-          :requires-event-ticket="extendedPostData.metadata.requiresEventTicket"
-          :read-only="compactMode"
-          @verified="(payload) => $emit('verified', payload)"
+          :external-source-config="extendedPostData.metadata.externalSourceConfig"
         />
       </div>
 
@@ -50,18 +47,10 @@
         />
       </div>
 
-      <div v-if="extendedPostData.payload.poll" class="pollContainer">
-        <PollWrapper
-          :participation-mode="
-            extendedPostData.metadata.participationMode
-          "
-          :poll-options="extendedPostData.payload.poll"
-          :post-slug-id="extendedPostData.metadata.conversationSlugId"
-          :user-response="extendedPostData.interaction"
-          :requires-event-ticket="extendedPostData.metadata.requiresEventTicket"
-          @ticket-verified="(payload) => $emit('verified', payload)"
-        />
-      </div>
+      <ImportedConversationIndicator
+        v-if="!compactMode && extendedPostData.metadata.importInfo"
+        :import-info="extendedPostData.metadata.importInfo"
+      />
 
       <ZKCard
         v-if="
@@ -85,10 +74,9 @@
 import type { ExtendedConversation } from "src/shared/types/zod";
 import { computed, defineAsyncComponent } from "vue";
 
-import ConversationTitleWithPrivacyLabel from "../../features/conversation/ConversationTitleWithPrivacyLabel.vue";
+import ConversationTitle from "../../features/conversation/ConversationTitle.vue";
 import ZKCard from "../../ui-library/ZKCard.vue";
 import ZKHtmlContent from "../../ui-library/ZKHtmlContent.vue";
-import PollWrapper from "./poll/PollWrapper.vue";
 import PostLockedMessage from "./PostLockedMessage.vue";
 import PostMetadata from "./PostMetadata.vue";
 
@@ -99,11 +87,12 @@ const props = defineProps<{
 
 defineEmits<{
   openModerationHistory: [];
+  conversationDeleted: [];
   verified: [payload: { userIdChanged: boolean; needsCacheRefresh: boolean }];
 }>();
 
-const EventTicketRequirementBanner = defineAsyncComponent(
-  () => import("../EventTicketRequirementBanner.vue")
+const ImportedConversationIndicator = defineAsyncComponent(
+  () => import("./ImportedConversationIndicator.vue")
 );
 
 const isCompactRtl = computed(() => {
@@ -122,12 +111,8 @@ const isCompactRtl = computed(() => {
   gap: 0.3rem;
 }
 
-.pollContainer {
-  padding-bottom: 1rem;
-}
-
 .bodyDiv {
-  padding-bottom: 1rem;
+  padding-bottom: 0;
 }
 
 .postDiv {

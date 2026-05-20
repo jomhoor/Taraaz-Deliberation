@@ -1,16 +1,8 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: true,
-      addBottomPadding: false,
-      enableHeader: true,
-      enableFooter: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
+  <div>
+    <Teleport v-if="isActive" to="#page-header">
       <StandardMenuBar :title="t('privacyPolicy')" :center-content="true" />
-    </template>
+    </Teleport>
 
     <article v-if="isFarsi" class="privacy-content" dir="rtl">
       <p><strong>آخرین به‌روزرسانی:</strong> ۱۴۰۴/۰۸/۲۰ (سال/ماه/روز)</p>
@@ -289,7 +281,7 @@
           <li>Unique User Identifier (UUID)</li>
           <li>
             Activity history (posts, opinions, interactions (emojis,
-            agree/disagree actions, claps, upvotes/downvotes), poll responses
+            agree/disagree actions, claps, upvotes/downvotes), survey responses
             and flagged/reported content
           </li>
           <li>Communities and topics of interest</li>
@@ -535,7 +527,7 @@
             <tr>
               <td>
                 <strong>Actions you take</strong> (Posts, Opinions, Replies,
-                Reactions, polls)
+                Reactions, surveys)
               </td>
               <td>
                 To facilitate discussions, user interactions and engagement on
@@ -876,28 +868,22 @@
         </p>
         <p>
           6.5. Note that you can delete your own reactions, claps,
-          upvote/downvote, poll responses, agree/disagree actions,
+          upvote/downvote, survey responses, agree/disagree actions,
           conversations, opinions, replies, "views" information and the language
           spoken (at least one must remain).
         </p>
 
-        <h3>6.6. Cryptographic accountability records:</h3>
+        <h3>6.6. Security records:</h3>
         <p>
-          Some cryptographic records are retained after account deletion to ensure accountability:
+          Some security records are retained after account deletion to protect the service:
         </p>
         <ul>
           <li>
-            Zero-Knowledge Proofs (ZKP) and User Controlled Authorization Network (UCAN) proofs
-            associated with your account actions
-          </li>
-          <li>
-            Cryptographic proofs of deletion requests, verifying that deletions were user-initiated
+            Short-lived User Controlled Authorization Network (UCAN) token hashes used for replay attack protection
           </li>
         </ul>
         <p>
-          These cryptographic records exist to prove to third-party auditors
-          that Agora did not censor accounts or data but rather processed deletions
-          only upon user request. This ensures transparency and trust in the system.
+          These records are kept only for the duration needed to prevent reused authorization tokens.
         </p>
 
         <h3>6.7. How to delete your account:</h3>
@@ -918,7 +904,7 @@
           <li>Your verification credentials (phone number, passport proof, event tickets) are invalidated</li>
           <li>Your content (posts, votes, opinions) remains on the platform but is no longer publicly associated with your account</li>
           <li>After 15 days, your account data is permanently removed from our database</li>
-          <li>Cryptographic proofs of the deletion request are retained for accountability and audit purposes</li>
+          <li>Cryptographic proofs of account actions are not retained after verification</li>
         </ul>
 
 
@@ -1014,20 +1000,21 @@
         </p>
       </section>
     </article>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useQuasar } from "quasar";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
-import { computed } from "vue";
 
 import {
   type PrivacyPolicyTranslations,
   privacyPolicyTranslations,
 } from "./index.i18n";
+
+const { isActive } = usePageLayout({ reducedWidth: true });
 
 const { t } = useComponentI18n<PrivacyPolicyTranslations>(
   privacyPolicyTranslations

@@ -1,16 +1,8 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: true,
-      addBottomPadding: false,
-      enableHeader: true,
-      enableFooter: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
+  <div>
+    <Teleport v-if="isActive" to="#page-header">
       <StandardMenuBar :title="t('termsOfService')" :center-content="true" />
-    </template>
+    </Teleport>
 
     <article v-if="isFarsi" class="terms-content" dir="rtl">
       <p><strong>آخرین به‌روزرسانی:</strong> ۱۴۰۴/۰۷/۱۵</p>
@@ -712,20 +704,21 @@
         </address>
       </section>
     </article>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useQuasar } from "quasar";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
-import { computed } from "vue";
 
 import {
   type TermsOfServiceTranslations,
   termsOfServiceTranslations,
 } from "./index.i18n";
+
+const { isActive } = usePageLayout({ reducedWidth: true });
 
 const { t } = useComponentI18n<TermsOfServiceTranslations>(
   termsOfServiceTranslations

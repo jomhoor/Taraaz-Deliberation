@@ -6,32 +6,41 @@ import type {
 import { and, eq, SQL } from "drizzle-orm";
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
 import { useCommonPost } from "./common.js";
+import { getConversationEngagementScore } from "./recommendationSystem.js";
 import type { FetchFeedResponse } from "@/shared/types/dto.js";
 
-interface GetPostSlugIdLastCreatedAtProps {
+interface GetPostSlugIdLastCursorProps {
     lastSlugId: string | undefined;
     db: PostgresDatabase;
 }
 
-export async function getPostSlugIdLastCreatedAt({
+export interface PostCursor {
+    conversationId: number;
+    createdAt: Date;
+}
+
+export async function getPostSlugIdLastCursor({
     lastSlugId,
     db,
-}: GetPostSlugIdLastCreatedAtProps): Promise<Date | undefined> {
-    let lastCreatedAt;
+}: GetPostSlugIdLastCursorProps): Promise<PostCursor | undefined> {
+    let lastCursor;
 
     if (lastSlugId) {
         const selectResponse = await db
-            .select({ createdAt: conversationTable.createdAt })
+            .select({
+                conversationId: conversationTable.id,
+                createdAt: conversationTable.createdAt,
+            })
             .from(conversationTable)
             .where(eq(conversationTable.slugId, lastSlugId));
         if (selectResponse.length == 1) {
-            lastCreatedAt = selectResponse[0].createdAt;
+            lastCursor = selectResponse[0];
         } else {
             // Ignore the slug ID if it cannot be found
         }
     }
 
-    return lastCreatedAt;
+    return lastCursor;
 }
 
 interface FetchFeedProps {
@@ -78,4 +87,37 @@ export async function fetchFeed({
         conversationDataList: Array.from(conversations.values()),
         topConversationSlugIdList: topSlugIdList,
     };
+}
+
+interface GetTopEngagementSlugIdsProps {
+    db: PostgresDatabase;
+}
+
+export async function getTopEngagementSlugIds({
+    db,
+}: GetTopEngagementSlugIdsProps): Promise<string[]> {
+    const conversations = await db
+        .select({
+            slugId: conversationTable.slugId,
+            createdAt: conversationTable.createdAt,
+            lastReactedAt: conversationTable.lastReactedAt,
+            opinionCount: conversationTable.opinionCount,
+            voteCount: conversationTable.voteCount,
+            participantCount: conversationTable.participantCount,
+        })
+        .from(conversationTable)
+        .where(
+            and(
+                eq(conversationTable.isIndexed, true),
+                eq(conversationTable.isImporting, false),
+            ),
+        );
+
+    conversations.sort((a, b) => {
+        const scoreA = getConversationEngagementScore(a);
+        const scoreB = getConversationEngagementScore(b);
+        return scoreB - scoreA;
+    });
+
+    return conversations.slice(0, 10).map((c) => c.slugId);
 }

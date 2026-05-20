@@ -48,11 +48,11 @@
         :voting-utilities="votingUtilities"
         :participation-mode="participationMode"
         :requires-event-ticket="props.requiresEventTicket"
+        :survey-gate="props.surveyGate"
         :on-view-analysis="props.onViewAnalysis"
         :is-voting-disabled="props.isVotingDisabled"
         @deleted="deletedComment(commentItem.opinionSlugId)"
         @muted-comment="mutedComment()"
-        @ticket-verified="(payload) => emit('ticketVerified', payload)"
       />
     </ZKCard>
   </div>
@@ -61,7 +61,16 @@
 <script setup lang="ts">
 import ZKCard from "src/components/ui-library/ZKCard.vue";
 import type { OpinionVotingUtilities } from "src/composables/opinion/types";
-import type { OpinionItem } from "src/shared/types/zod";
+import {
+  localizedDateTimeFormatOptions,
+  useLocalizedDateTimeFormatter,
+} from "src/composables/ui/useLocalizedDateTime";
+import type {
+  EventSlug,
+  OpinionItem,
+  ParticipationMode,
+  SurveyGateSummary,
+} from "src/shared/types/zod";
 import { computed, nextTick } from "vue";
 
 import CommentItem from "./item/CommentItem.vue";
@@ -75,6 +84,7 @@ const props = defineProps<{
   votingUtilities: OpinionVotingUtilities;
   participationMode: ParticipationMode;
   requiresEventTicket?: EventSlug;
+  surveyGate: SurveyGateSummary | undefined;
   onViewAnalysis: () => void;
   isVotingDisabled: boolean;
 }>();
@@ -87,7 +97,9 @@ const emit = defineEmits<{
   ];
 }>();
 
-import type { EventSlug, ParticipationMode } from "src/shared/types/zod";
+const formatDateForScreenReader = useLocalizedDateTimeFormatter({
+  options: localizedDateTimeFormatOptions.dateTime,
+});
 
 const finalCommentList = computed((): OpinionItem[] => {
   const result: OpinionItem[] = [];
@@ -131,20 +143,6 @@ function getCommentAriaLabel(commentItem: OpinionItem, index: number): string {
   const seed = commentItem.isSeed ? ", seed comment" : "";
 
   return `${position} ${author}${highlighted}${seed}`;
-}
-
-/**
- * Formats date for screen reader accessibility
- */
-function formatDateForScreenReader(dateInput: string | Date): string {
-  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 /**

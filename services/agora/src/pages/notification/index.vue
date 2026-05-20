@@ -1,25 +1,22 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: false,
-      enableHeader: true,
-      enableFooter: true,
-      reducedWidth: false,
-    }"
-  >
-    <template #header>
+  <div>
+    <Teleport v-if="isActive" to="#page-header">
       <HomeMenuBar>
         <template #center>
           <div>{{ t("notifications") }}</div>
         </template>
       </HomeMenuBar>
-    </template>
+    </Teleport>
 
     <q-pull-to-refresh @refresh="pullDownTriggered">
-      <div v-if="isLoading" class="loadingContainer">
-        <q-spinner color="primary" size="3em" />
-      </div>
+      <PageLoadingSpinner v-if="isLoading" />
+
+      <ErrorRetryBlock
+        v-else-if="isError"
+        :title="t('errorTitle')"
+        :retry-label="t('retryButton')"
+        @retry="loadInitialData()"
+      />
 
       <q-infinite-scroll
         v-else-if="isAuthInitialized"
@@ -29,11 +26,10 @@
       >
         <div class="widthConstraint">
           <div class="notificaitonListFlexStyle">
-            <router-link
+            <SpaLink
               v-for="notificationItem in notificationList"
               :key="notificationItem.slugId"
               :to="getRouteFromTarget(notificationItem.routeTarget) ?? {}"
-              class="notificationLink"
             >
               <ZKHoverEffect
                 :enable-hover="true"
@@ -43,6 +39,7 @@
                 <div
                   class="notificationItemBase"
                   :class="{ unreadNotification: !notificationItem.isRead }"
+                  @click="markNotificationAsRead(notificationItem.slugId)"
                 >
                   <div class="iconWrapper">
                     <div v-if="!notificationItem.isRead" class="unreadDot"></div>
@@ -81,7 +78,7 @@
                   </div>
                 </div>
               </ZKHoverEffect>
-            </router-link>
+            </SpaLink>
           </div>
         </div>
 
@@ -94,24 +91,28 @@
         </div>
       </q-infinite-scroll>
     </q-pull-to-refresh>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import UserAvatar from "src/components/account/UserAvatar.vue";
 import { HomeMenuBar } from "src/components/navigation/header/variants";
+import ErrorRetryBlock from "src/components/ui/ErrorRetryBlock.vue";
+import PageLoadingSpinner from "src/components/ui/PageLoadingSpinner.vue";
+import SpaLink from "src/components/ui-library/SpaLink.vue";
 import ZKHoverEffect from "src/components/ui-library/ZKHoverEffect.vue";
 import ZKHtmlContent from "src/components/ui-library/ZKHtmlContent.vue";
 import ZKIcon from "src/components/ui-library/ZKIcon.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
+import { isNetworkOffline } from "src/composables/useNetworkStatus";
 import type { NotificationType, RouteTarget } from "src/shared/types/zod";
 import { useAuthenticationStore } from "src/stores/authentication";
 import { useNotificationStore } from "src/stores/notification";
 import { useNotificationApi } from "src/utils/api/notification/notification";
 import type { DisplayNotification } from "src/utils/notification/transform";
-import { onActivated, onDeactivated, ref, watch } from "vue";
+import { onActivated, ref, watch } from "vue";
 import type { RouteLocationRaw } from "vue-router";
 
 import {
@@ -121,27 +122,31 @@ import {
 
 defineOptions({ name: "NotificationPage" });
 
+const { isActive } = usePageLayout({});
+
 const notificationStore = useNotificationStore();
 const { notificationList, numNewNotifications } =
   storeToRefs(notificationStore);
 const authStore = useAuthenticationStore();
 const { isAuthInitialized } = storeToRefs(authStore);
-const { loadNotificationData, markAllAsReadLocally, clearNotificationData } =
-  notificationStore;
+const {
+  loadNotificationData,
+  markNotificationAsRead,
+  clearBadgeCount,
+  clearNotificationData,
+} = notificationStore;
 
 const { markAllNotificationsAsRead } = useNotificationApi();
 
 const hasMore = ref(true);
 const isLoading = ref(true);
+const isError = ref(false);
 const hasLoadedOnce = ref(false);
-const isActive = ref(false);
-
 const { t } = useComponentI18n<NotificationTranslations>(
   notificationTranslations
 );
 
 onActivated(() => {
-  isActive.value = true;
   if (!hasLoadedOnce.value) {
     void loadInitialData();
   } else {
@@ -149,16 +154,12 @@ onActivated(() => {
   }
 });
 
-onDeactivated(() => {
-  isActive.value = false;
-  markAllAsReadLocally();
-});
-
 // Watch for new notifications arriving via SSE while on this page
 // Guard with isActive to prevent keep-alive watcher from marking notifications
 // as read when the user is on a different page
 watch(numNewNotifications, (newCount, oldCount) => {
   if (newCount > oldCount && !isLoading.value && isActive.value) {
+    clearBadgeCount();
     void markAllNotificationsAsRead();
   }
 });
@@ -177,11 +178,14 @@ watch(
 async function loadInitialData() {
   try {
     isLoading.value = true;
+    isError.value = false;
     await loadNotificationData(false);
     hasLoadedOnce.value = true;
+    clearBadgeCount();
     void markAllNotificationsAsRead();
   } catch (error) {
     console.error("Failed to load notifications:", error);
+    isError.value = true;
   } finally {
     isLoading.value = false;
   }
@@ -189,6 +193,7 @@ async function loadInitialData() {
 
 async function silentRefresh() {
   try {
+    clearBadgeCount();
     await markAllNotificationsAsRead();
   } catch (error) {
     console.error("Failed to refresh notifications:", error);
@@ -292,11 +297,18 @@ function getTitleFromNotification(
 }
 
 function pullDownTriggered(done: () => void) {
+  if (isNetworkOffline.value) {
+    done();
+    return;
+  }
   setTimeout(() => {
     void (async () => {
-      await loadNotificationData(false);
-      hasMore.value = true;
-      done();
+      try {
+        await loadNotificationData(false);
+        hasMore.value = true;
+      } finally {
+        done();
+      }
     })();
   }, 500);
 }
@@ -412,14 +424,7 @@ function getRouteFromTarget(
 }
 
 .titleStyle {
-  color: #0a0714;
+  color: $ink-darkest;
 }
 
-.loadingContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 50vh;
-  padding: 2rem;
-}
 </style>

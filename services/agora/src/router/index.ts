@@ -65,7 +65,7 @@ function isConversationTabSwitch({
  */
 
 export default defineRouter(function (/* { store, ssrContext } */) {
-  const { conversationGuard } = useRouterGuard();
+  const { conversationGuard, loggedInGuard } = useRouterGuard();
 
   const createHistory = process.env.SERVER
     ? createMemoryHistory
@@ -126,18 +126,28 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       };
     }
 
+    if (to.name === "/conversation/[postSlugId].onboarding") {
+      return {
+        name: "/conversation/[postSlugId].onboarding/",
+        params: to.params,
+        query: to.query,
+        hash: to.hash,
+      };
+    }
+
+    const loggedInTarget = loggedInGuard(to.name);
+    if (loggedInTarget === "home") {
+      return { name: "/" };
+    }
+
     const target = conversationGuard(to.name, from.name);
     if (target == "home") {
       return { name: "/" };
     }
   });
 
-  // Auto-reload when a stale chunk fails to load after deployment.
-  // Uses shared utility — the inline script in index.html and the
-  // chunkErrorRecovery boot file handle non-router chunk failures.
   Router.onError((error, to) => {
     if (isChunkLoadError(error)) {
-      // Navigate to the target path so the URL stays correct after reload
       reloadForChunkError({ navigateTo: to.fullPath });
     }
   });

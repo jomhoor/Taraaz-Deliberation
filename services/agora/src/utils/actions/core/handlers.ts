@@ -3,23 +3,30 @@
  * This composable provides action execution functions with proper error handling
  */
 
+import { useComponentI18n } from "src/composables/ui/useComponentI18n";
+import { useNewOpinionDraftsStore } from "src/stores/newOpinionDrafts";
 import { useUserStore } from "src/stores/user";
 import { useBackendPostApi } from "src/utils/api/post/post";
 import { useInvalidateFeedQuery } from "src/utils/api/post/useFeedQuery";
 import { useNotify } from "src/utils/ui/notify";
-import { useRoute, useRouter } from "vue-router";
 
+import {
+  type ActionHandlersTranslations,
+  actionHandlersTranslations,
+} from "./handlers.i18n";
 import type { ContentActionContext, ContentActionResult } from "./types";
 
 /**
  * Composable for handling action execution
  */
 export function useActionHandlers() {
-  const router = useRouter();
-  const route = useRoute();
   const { showNotifyMessage } = useNotify();
+  const { t } = useComponentI18n<ActionHandlersTranslations>(
+    actionHandlersTranslations
+  );
   const { deletePostBySlugId } = useBackendPostApi();
   const { loadUserProfile } = useUserStore();
+  const { deleteOpinionDraft } = useNewOpinionDraftsStore();
   const { invalidateFeed } = useInvalidateFeedQuery();
 
   /**
@@ -38,17 +45,10 @@ export function useActionHandlers() {
 
       const response = await deletePostBySlugId(context.targetId);
       if (response) {
-        showNotifyMessage("Conversation deleted");
+        showNotifyMessage(t("conversationDeleted"));
+        deleteOpinionDraft(context.targetId);
         invalidateFeed();
         await loadUserProfile();
-
-        // Navigate to home if we're currently viewing this post
-        if (
-          route.name === "/conversation/[postSlugId]" ||
-          route.name === "/conversation/[postSlugId]/"
-        ) {
-          await router.push({ name: "/" });
-        }
 
         return { success: true, message: "Conversation deleted successfully" };
       } else {

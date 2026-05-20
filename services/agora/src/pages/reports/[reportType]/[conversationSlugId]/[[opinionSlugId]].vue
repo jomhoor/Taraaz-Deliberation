@@ -1,16 +1,8 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: true,
-      enableFooter: true,
-      enableHeader: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
+  <div>
+    <Teleport v-if="isActive" to="#page-header">
       <StandardMenuBar title="" :center-content="false" />
-    </template>
+    </Teleport>
 
     <div class="container">
       <div class="titleBar">
@@ -58,17 +50,18 @@
         </div>
       </div>
     </div>
-  </DrawerLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { StandardMenuBar } from "src/components/navigation/header/variants";
 import ZKButton from "src/components/ui-library/ZKButton.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import { useLocalizedTimeAgoFormatter } from "src/composables/ui/useLocalizedTimeAgo";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import type { UserReportItem } from "src/shared/types/zod";
 import { useBackendReportApi } from "src/utils/api/report";
+import { getSingleRouteParam } from "src/utils/router/params";
 import { useNotify } from "src/utils/ui/notify";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -78,9 +71,9 @@ import {
   userReportsViewerTranslations,
 } from "./[[opinionSlugId]].i18n";
 
-const route = useRoute(
-  "/reports/[reportType]/[conversationSlugId]/[[opinionSlugId]]"
-);
+const { isActive } = usePageLayout({ reducedWidth: true, addBottomPadding: true });
+
+const route = useRoute();
 const router = useRouter();
 
 const { showNotifyMessage } = useNotify();
@@ -106,9 +99,9 @@ async function openPage() {
     route.name ===
     "/reports/[reportType]/[conversationSlugId]/[[opinionSlugId]]"
   ) {
-    const conversationSlugId = Array.isArray(route.params.conversationSlugId)
-      ? route.params.conversationSlugId[0]
-      : route.params.conversationSlugId;
+    const conversationSlugId = getSingleRouteParam(
+      route.params.conversationSlugId,
+    );
 
     if (route.params.reportType == "conversation") {
       await router.push({
@@ -116,9 +109,7 @@ async function openPage() {
         params: { postSlugId: conversationSlugId },
       });
     } else if (route.params.reportType == "opinion") {
-      const opinionSlugId = Array.isArray(route.params.opinionSlugId)
-        ? route.params.opinionSlugId[0]
-        : route.params.opinionSlugId;
+      const opinionSlugId = getSingleRouteParam(route.params.opinionSlugId);
 
       await router.push({
         name: "/conversation/[postSlugId]/",
@@ -136,9 +127,9 @@ async function loadReports() {
     route.name ===
     "/reports/[reportType]/[conversationSlugId]/[[opinionSlugId]]"
   ) {
-    const conversationSlugId = Array.isArray(route.params.conversationSlugId)
-      ? route.params.conversationSlugId[0]
-      : route.params.conversationSlugId;
+    const conversationSlugId = getSingleRouteParam(
+      route.params.conversationSlugId,
+    );
 
     if (route.params.reportType == "conversation") {
       reportType.value = "conversation";
@@ -149,9 +140,7 @@ async function loadReports() {
       route.params.opinionSlugId
     ) {
       reportType.value = "opinion";
-      const opinionSlugId = Array.isArray(route.params.opinionSlugId)
-        ? route.params.opinionSlugId[0]
-        : route.params.opinionSlugId;
+      const opinionSlugId = getSingleRouteParam(route.params.opinionSlugId);
 
       reportItemList.value =
         await fetchUserReportsByCommentSlugId(opinionSlugId);

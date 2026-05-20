@@ -1,148 +1,201 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: true,
-      enableFooter: false,
-      enableHeader: true,
-      reducedWidth: false,
-    }"
-  >
-    <template #header>
-      <StandardMenuBar
-        :title="t('analysisReportTest')"
-        :center-content="true"
+  <Teleport v-if="isActive" to="#page-header">
+    <StandardMenuBar :title="t('analysisReportTest')" :center-content="true" />
+  </Teleport>
+
+  <div class="page-layout">
+    <PrimeCard class="control-card no-print">
+      <template #title>
+        <div class="section-header">
+          <i class="pi pi-cog section-icon"></i>
+          <span>{{ t("controls") }}</span>
+        </div>
+      </template>
+      <template #content>
+        <div class="controls-row">
+          <div class="control-item">
+            <label for="cluster-count" class="control-label">
+              {{ t("clusterCountLabel") }}
+            </label>
+            <PrimeSelect
+              id="cluster-count"
+              v-model="selectedClusterCount"
+              :options="clusterCountOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+          <div class="control-item">
+            <label for="ai-labels" class="control-label">
+              {{ t("aiLabelsLabel") }}
+            </label>
+            <PrimeSelect
+              id="ai-labels"
+              v-model="aiLabelMode"
+              :options="aiLabelOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+          <div class="control-item">
+            <label for="empty-sections" class="control-label">
+              {{ t("emptySectionsLabel") }}
+            </label>
+            <PrimeSelect
+              id="empty-sections"
+              v-model="emptySectionsMode"
+              :options="emptySectionsOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+          <div class="control-item">
+            <label for="number-scale" class="control-label">
+              {{ t("numberScaleLabel") }}
+            </label>
+            <PrimeSelect
+              id="number-scale"
+              v-model="numberScale"
+              :options="numberScaleOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+          <div class="control-item">
+            <label for="viewer-access" class="control-label">
+              {{ t("viewerAccessLabel") }}
+            </label>
+            <PrimeSelect
+              id="viewer-access"
+              v-model="surveyViewerAccess"
+              :options="viewerAccessOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+          <div class="control-item">
+            <label for="survey-scenario" class="control-label">
+              Survey state
+            </label>
+            <PrimeSelect
+              id="survey-scenario"
+              v-model="surveyScenario"
+              :options="surveyScenarioOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+          <div class="control-item">
+            <label for="all-statements-order" class="control-label">
+              All statements order
+            </label>
+            <PrimeSelect
+              id="all-statements-order"
+              v-model="allStatementsOrder"
+              :options="allStatementsOrderOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
+          </div>
+        </div>
+      </template>
+    </PrimeCard>
+
+    <div class="download-bar no-print">
+      <PrimeButton
+        :label="isGeneratingZip ? t('generating') : t('downloadImagesZip')"
+        icon="pi pi-image"
+        :disabled="isGeneratingZip"
+        @click="handleDownloadZip"
       />
-    </template>
-
-    <div class="page-layout">
-      <PrimeCard class="control-card no-print">
-        <template #title>
-          <div class="section-header">
-            <i class="pi pi-cog section-icon"></i>
-            <span>{{ t("controls") }}</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="controls-row">
-            <div class="control-item">
-              <label for="cluster-count" class="control-label">
-                {{ t("clusterCountLabel") }}
-              </label>
-              <PrimeSelect
-                id="cluster-count"
-                v-model="selectedClusterCount"
-                :options="clusterCountOptions"
-                option-label="label"
-                option-value="value"
-                class="control-select"
-              />
-            </div>
-            <div class="control-item">
-              <label for="ai-labels" class="control-label">
-                {{ t("aiLabelsLabel") }}
-              </label>
-              <PrimeSelect
-                id="ai-labels"
-                v-model="useAiLabels"
-                :options="aiLabelOptions"
-                option-label="label"
-                option-value="value"
-                class="control-select"
-              />
-            </div>
-            <div class="control-item">
-              <label for="empty-sections" class="control-label">
-                {{ t("emptySectionsLabel") }}
-              </label>
-              <PrimeSelect
-                id="empty-sections"
-                v-model="emptySectionsMode"
-                :options="emptySectionsOptions"
-                option-label="label"
-                option-value="value"
-                class="control-select"
-              />
-            </div>
-            <div class="control-item">
-              <label for="number-scale" class="control-label">
-                {{ t("numberScaleLabel") }}
-              </label>
-              <PrimeSelect
-                id="number-scale"
-                v-model="numberScale"
-                :options="numberScaleOptions"
-                option-label="label"
-                option-value="value"
-                class="control-select"
-              />
-            </div>
-          </div>
-        </template>
-      </PrimeCard>
-
-      <div class="download-bar no-print">
-        <PrimeButton
-          :label="isGeneratingZip ? t('generating') : t('downloadImagesZip')"
-          icon="pi pi-image"
-          :disabled="isGeneratingZip"
-          @click="handleDownloadZip"
-        />
-        <PrimeButton
-          :label="isGeneratingPdf ? t('generating') : t('downloadPdf')"
-          icon="pi pi-file-pdf"
-          :disabled="isGeneratingPdf"
-          @click="handleDownloadPdf"
-        />
-      </div>
-
-      <div class="report-preview">
-        <AnalysisReport
-          ref="analysisReportRef"
-          :key="`${selectedClusterCount}-${useAiLabels}-${emptySectionsMode}-${numberScale}`"
-          :items-per-page="itemsPerPage"
-          :conversation-slug-id="mockConversationSlugId"
-          :conversation-title="mockConversationTitle"
-          :author-username="mockAuthorUsername"
-          :created-at="mockCreatedAt"
-          :participant-count="totalParticipantCount"
-          :opinion-count="mockOpinionCount"
-          :vote-count="mockVoteCount"
-          :total-participant-count="Math.ceil(totalParticipantCount * 1.1)"
-          :total-opinion-count="Math.ceil(mockOpinionCount * 1.1)"
-          :total-vote-count="Math.ceil(mockVoteCount * 1.1)"
-          :clusters="mockClusters"
-          :agreement-items="mockAgreementItems"
-          :disagreement-items="mockDisagreementItems"
-          :divisive-items="mockDivisiveItems"
-        />
-      </div>
+      <PrimeButton
+        :label="isGeneratingPdf ? t('generating') : t('downloadPdf')"
+        icon="pi pi-file-pdf"
+        :disabled="isGeneratingPdf"
+        @click="handleDownloadPdf"
+      />
     </div>
-  </DrawerLayout>
+
+    <div class="report-preview">
+      <AnalysisReport
+        ref="analysisReportRef"
+        :key="`${selectedClusterCount}-${aiLabelMode}-${emptySectionsMode}-${numberScale}-${surveyViewerAccess}-${surveyScenario}-${reportSurveyDisplayMode}-${allStatementsOrder}`"
+        v-model:survey-display-mode="reportSurveyDisplayMode"
+        v-model:all-statements-order="allStatementsOrder"
+        :items-per-page="itemsPerPage"
+        :conversation-slug-id="mockConversationSlugId"
+        :conversation-title="mockConversationTitle"
+        :author-username="mockAuthorUsername"
+        :created-at="mockCreatedAt"
+        :participant-count="totalParticipantCount"
+        :opinion-count="mockOpinionCount"
+        :vote-count="mockVoteCount"
+        :total-participant-count="Math.ceil(totalParticipantCount * 1.1)"
+        :total-opinion-count="Math.ceil(mockOpinionCount * 1.1)"
+        :total-vote-count="Math.ceil(mockVoteCount * 1.1)"
+        :clusters="mockClusters"
+        :agreement-items="mockAgreementItems"
+        :disagreement-items="mockDisagreementItems"
+        :divisive-items="mockDivisiveItems"
+        :all-items="mockAllItems"
+        :all-statements-order-options="allStatementsOrderOptions"
+        :has-survey="hasMockSurvey"
+        :survey-rows="reportSurveyRows"
+        :show-survey-toggle="showReportSurveyToggle"
+      />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
+import { useQuery } from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Select from "primevue/select";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
 import AnalysisReport from "src/components/post/report/AnalysisReport.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useReportDownload } from "src/composables/report/useReportDownload";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import type {
   AnalysisOpinionItem,
   ClusterStats,
   PolisClusters,
-  PolisKey,
 } from "src/shared/types/zod";
-import { REPORT_ITEMS_PER_CAPTURE_PAGE, REPORT_ITEMS_PER_PDF_PAGE } from "src/utils/component/report/reportData";
-import { computed, nextTick, ref } from "vue";
+import {
+  getReportAllOpinions,
+  REPORT_ITEMS_PER_CAPTURE_PAGE,
+  REPORT_ITEMS_PER_PDF_PAGE,
+  type ReportAllStatementsOrder,
+} from "src/utils/component/report/reportData";
+import {
+  canViewFullSurveyResults,
+  getDisplayedSurveyRows,
+  type SurveyResultsDisplayMode,
+} from "src/utils/survey/results";
+import { computed, nextTick, ref, watch } from "vue";
 
 import {
   type AnalysisReportTestTranslations,
   analysisReportTestTranslations,
 } from "./analysis-report-test.i18n";
+import {
+  type AiLabelMode,
+  aiSummaries,
+  buildMockSurveyResults,
+  longAiLabels,
+  mockStatements,
+  polisKeys,
+  shortAiLabels,
+  type SurveyScenario,
+} from "./analysisTestData";
 
 defineOptions({
   components: {
@@ -152,14 +205,25 @@ defineOptions({
   },
 });
 
+const { isActive } = usePageLayout({
+  enableFooter: false,
+  addBottomPadding: true,
+});
+
 const { t } = useComponentI18n<AnalysisReportTestTranslations>(
-  analysisReportTestTranslations,
+  analysisReportTestTranslations
 );
 
 const selectedClusterCount = ref(3);
-const useAiLabels = ref(true);
-const emptySectionsMode = ref<"none" | "all" | "agreements" | "disagreements" | "divisive">("none");
+const aiLabelMode = ref<AiLabelMode>("long");
+const emptySectionsMode = ref<
+  "none" | "all" | "agreements" | "disagreements" | "divisive" | "noSurvey"
+>("none");
 const numberScale = ref<"normal" | "large" | "veryLarge">("large");
+const surveyViewerAccess = ref<"public" | "owner">("owner");
+const surveyScenario = ref<SurveyScenario>("visible");
+const reportSurveyDisplayMode = ref<SurveyResultsDisplayMode>("suppressed");
+const allStatementsOrder = ref<ReportAllStatementsOrder>("newest");
 
 const mockConversationSlugId = "dev-test-report";
 const mockConversationTitle =
@@ -173,8 +237,22 @@ const scaleFactors = {
   veryLarge: { opinions: 300_000_000, votes: 300_000_000 },
 } as const;
 
-const mockOpinionCount = computed(() => scaleFactors[numberScale.value].opinions);
+const mockOpinionCount = computed(
+  () => scaleFactors[numberScale.value].opinions
+);
 const mockVoteCount = computed(() => scaleFactors[numberScale.value].votes);
+const surveyResponseScaleMultiplier = computed(() => {
+  switch (numberScale.value) {
+    case "normal":
+      return 1;
+    case "large":
+      return 600;
+    case "veryLarge":
+      return 600_000;
+  }
+
+  throw new Error("Unhandled number scale");
+});
 
 const clusterCountOptions = computed(() => [
   { label: t("clusterCount0"), value: 0 },
@@ -187,8 +265,9 @@ const clusterCountOptions = computed(() => [
 ]);
 
 const aiLabelOptions = computed(() => [
-  { label: t("withAiLabels"), value: true },
-  { label: t("withoutAiLabels"), value: false },
+  { label: "Long AI labels", value: "long" as const },
+  { label: "Short AI labels", value: "short" as const },
+  { label: t("withoutAiLabels"), value: "none" as const },
 ]);
 
 const numberScaleOptions = computed(() => [
@@ -197,46 +276,53 @@ const numberScaleOptions = computed(() => [
   { label: t("numberScaleVeryLarge"), value: "veryLarge" as const },
 ]);
 
+const viewerAccessOptions = computed(() => [
+  { label: t("viewerAccessPublic"), value: "public" as const },
+  { label: t("viewerAccessOwner"), value: "owner" as const },
+]);
+
+const surveyScenarioOptions = computed(() => [
+  { label: "Visible by group", value: "visible" as const },
+  { label: "Suppressed by group", value: "suppressed" as const },
+  {
+    label: "Suppressed incl. overall",
+    value: "overallSuppressed" as const,
+  },
+  { label: "Mixed groups", value: "mixed" as const },
+  { label: "No results yet", value: "empty" as const },
+]);
+
+const allStatementsOrderOptions = [
+  { label: "Newest first", value: "newest" as const },
+  { label: "Most approved first", value: "agreement" as const },
+  { label: "Most rejected first", value: "disagreement" as const },
+  { label: "Most divisive first", value: "divisive" as const },
+];
+
 const emptySectionsOptions = computed(() => [
   { label: t("emptySectionsNone"), value: "none" as const },
   { label: t("emptySectionsAll"), value: "all" as const },
   { label: t("emptySectionsAgreements"), value: "agreements" as const },
   { label: t("emptySectionsDisagreements"), value: "disagreements" as const },
   { label: t("emptySectionsDivisive"), value: "divisive" as const },
+  { label: "No survey", value: "noSurvey" as const },
 ]);
 
-const longAiLabels = [
-  "Écologistes progressistes pour la transition énergétique",
-  "Conservateurs fiscaux attachés aux traditions institutionnelles",
-  "Réformistes sociaux-démocrates pour un État-providence renforcé",
-  "Libertariens technophiles pour la décentralisation numérique",
-  "Pragmatiques communautaires axés sur les compromis locaux",
-  "Militants pour la décentralisation radicale des institutions",
-];
+const effectiveSurveyScenario = computed<SurveyScenario>(() =>
+  emptySectionsMode.value === "noSurvey" ? "absent" : surveyScenario.value
+);
 
-const aiSummaries = [
-  "Ce groupe soutient des politiques environnementales progressistes et une transition énergétique rapide vers les énergies renouvelables. Ils plaident pour des investissements massifs dans les infrastructures vertes et les transports en commun durables, tout en préservant les espaces naturels et la biodiversité locale.",
-  "Ce groupe favorise la prudence fiscale et le respect des traditions institutionnelles établies. Ils s'opposent aux augmentations d'impôts et préfèrent une gestion rigoureuse des dépenses publiques, avec un accent particulier sur la réduction de la dette communale et la simplification administrative.",
-  "Ce groupe promeut des réformes sociales-démocrates avec un État-providence renforcé et des services publics de qualité. Ils soutiennent l'augmentation des budgets pour l'éducation, la santé et le logement social, tout en favorisant le dialogue social et la négociation collective.",
-  "Ce groupe valorise la liberté individuelle et les solutions technologiques décentralisées pour la gouvernance. Ils préconisent l'utilisation de plateformes numériques pour la démocratie directe, le vote électronique sécurisé et la transparence totale des données publiques via la blockchain.",
-  "Ce groupe privilégie le pragmatisme communautaire et les compromis locaux basés sur l'expérience du terrain. Ils favorisent les solutions progressives et testées à petite échelle, avec une forte implication des associations de quartier et des conseils citoyens dans les processus décisionnels.",
-  "Ce groupe milite pour une décentralisation radicale des institutions existantes et un transfert massif de pouvoir vers les citoyens. Ils souhaitent la création d'assemblées populaires autonomes, le tirage au sort pour les mandats publics et l'abolition progressive des structures bureaucratiques centralisées.",
-];
+const mockSurveyResults = computed(() =>
+  buildMockSurveyResults({
+    clusterCount: selectedClusterCount.value,
+    aiLabelMode: aiLabelMode.value,
+    surveyViewerAccess: surveyViewerAccess.value,
+    surveyScenario: effectiveSurveyScenario.value,
+    responseScaleMultiplier: surveyResponseScaleMultiplier.value,
+  })
+);
 
-const mockStatements = [
-  "Établir un budget participatif annuel représentant au moins 10% du budget communal.",
-  "Pour développer la participation citoyenne, il est essentiel de créer des assemblées de quartier régulières.",
-  "La transparence totale des décisions du conseil municipal est une condition préalable à toute forme de gouvernance participative.",
-  "Il faudrait mettre en place une plateforme numérique de consultation citoyenne accessible à tous.",
-  "Les associations locales devraient avoir un rôle consultatif officiel dans les décisions d'urbanisme.",
-  "Créer un observatoire citoyen indépendant pour évaluer l'impact des politiques publiques.",
-  "Organiser des forums citoyens trimestriels sur les grands projets d'infrastructure.",
-  "Instaurer un droit d'initiative citoyenne permettant de proposer des délibérations au conseil municipal.",
-  "Développer des programmes d'éducation civique dans les écoles pour former les futurs citoyens.",
-  "Mettre en place un système de pétition en ligne avec obligation de réponse du conseil municipal.",
-];
-
-const polisKeys: PolisKey[] = ["0", "1", "2", "3", "4", "5"];
+const hasMockSurvey = computed(() => mockSurveyResults.value.hasSurvey);
 
 function generateClusterStats({
   clusterCount,
@@ -298,7 +384,18 @@ const mockClusters = computed<Partial<PolisClusters>>(() => {
   if (selectedClusterCount.value === 0) return {};
 
   const clusters: Partial<PolisClusters> = {};
-  const scaleMultiplier = numberScale.value === "veryLarge" ? 600_000 : numberScale.value === "large" ? 600 : 1;
+  const aiLabels =
+    aiLabelMode.value === "long"
+      ? longAiLabels
+      : aiLabelMode.value === "short"
+        ? shortAiLabels
+        : undefined;
+  const scaleMultiplier =
+    numberScale.value === "veryLarge"
+      ? 600_000
+      : numberScale.value === "large"
+        ? 600
+        : 1;
   const baseSizes = [145, 112, 87, 63, 48, 35].map((s) => s * scaleMultiplier);
 
   for (let i = 0; i < selectedClusterCount.value; i++) {
@@ -309,15 +406,15 @@ const mockClusters = computed<Partial<PolisClusters>>(() => {
         generateMockOpinion({
           index: i * 5 + j,
           clusterCount: selectedClusterCount.value,
-        }),
+        })
       );
     }
 
     clusters[key] = {
       key,
       numUsers: baseSizes[i] ?? 5,
-      aiLabel: useAiLabels.value ? longAiLabels[i] : undefined,
-      aiSummary: useAiLabels.value ? aiSummaries[i] : undefined,
+      aiLabel: aiLabels?.[i],
+      aiSummary: aiLabels === undefined ? undefined : aiSummaries[i],
       isUserInCluster: i === 0,
       representative,
     };
@@ -329,20 +426,24 @@ const mockClusters = computed<Partial<PolisClusters>>(() => {
 const totalParticipantCount = computed(() => {
   return Object.values(mockClusters.value).reduce(
     (sum, cluster) => sum + (cluster?.numUsers ?? 0),
-    0,
+    0
   );
 });
 
 const mockAgreementItems = computed(() => {
   if (selectedClusterCount.value === 0) return [];
-  if (emptySectionsMode.value === "all" || emptySectionsMode.value === "agreements") return [];
+  if (
+    emptySectionsMode.value === "all" ||
+    emptySectionsMode.value === "agreements"
+  )
+    return [];
   const items: AnalysisOpinionItem[] = [];
   for (let i = 0; i < 20; i++) {
     items.push(
       generateMockOpinion({
         index: i,
         clusterCount: selectedClusterCount.value,
-      }),
+      })
     );
   }
   return items;
@@ -350,14 +451,18 @@ const mockAgreementItems = computed(() => {
 
 const mockDisagreementItems = computed(() => {
   if (selectedClusterCount.value === 0) return [];
-  if (emptySectionsMode.value === "all" || emptySectionsMode.value === "disagreements") return [];
+  if (
+    emptySectionsMode.value === "all" ||
+    emptySectionsMode.value === "disagreements"
+  )
+    return [];
   const items: AnalysisOpinionItem[] = [];
   for (let i = 0; i < 15; i++) {
     items.push(
       generateMockOpinion({
         index: i + 20,
         clusterCount: selectedClusterCount.value,
-      }),
+      })
     );
   }
   return items;
@@ -365,18 +470,68 @@ const mockDisagreementItems = computed(() => {
 
 const mockDivisiveItems = computed(() => {
   if (selectedClusterCount.value === 0) return [];
-  if (emptySectionsMode.value === "all" || emptySectionsMode.value === "divisive") return [];
+  if (
+    emptySectionsMode.value === "all" ||
+    emptySectionsMode.value === "divisive"
+  )
+    return [];
   const items: AnalysisOpinionItem[] = [];
   for (let i = 8; i < 10; i++) {
     items.push(
       generateMockOpinion({
         index: i,
         clusterCount: selectedClusterCount.value,
-      }),
+      })
     );
   }
   return items;
 });
+
+const mockAllItems = computed(() =>
+  getReportAllOpinions({
+    order: allStatementsOrder.value,
+    items: [
+      ...mockAgreementItems.value,
+      ...mockDisagreementItems.value,
+      ...mockDivisiveItems.value,
+    ],
+  })
+);
+
+const surveyResultsQuery = useQuery({
+  queryKey: computed(() => [
+    "dev-survey-results",
+    selectedClusterCount.value,
+    aiLabelMode.value,
+    surveyViewerAccess.value,
+    effectiveSurveyScenario.value,
+    surveyResponseScaleMultiplier.value,
+  ]),
+  queryFn: () => mockSurveyResults.value,
+  staleTime: Infinity,
+});
+
+const showReportSurveyToggle = computed(() =>
+  hasMockSurvey.value &&
+  canViewFullSurveyResults({ surveyResults: surveyResultsQuery.data.value })
+);
+
+const reportSurveyRows = computed(() =>
+  getDisplayedSurveyRows({
+    surveyResults: surveyResultsQuery.data.value,
+    displayMode: reportSurveyDisplayMode.value,
+  })
+);
+
+watch(
+  showReportSurveyToggle,
+  (canShow) => {
+    if (!canShow) {
+      reportSurveyDisplayMode.value = "suppressed";
+    }
+  },
+  { immediate: true }
+);
 
 // Download functionality
 interface AnalysisReportExposed {
@@ -386,9 +541,13 @@ interface AnalysisReportExposed {
   agreementEmptyRef: HTMLElement | null;
   disagreementEmptyRef: HTMLElement | null;
   divisiveEmptyRef: HTMLElement | null;
+  allEmptyRef: HTMLElement | null;
   agreementRefs: HTMLElement[];
   disagreementRefs: HTMLElement[];
   divisiveRefs: HTMLElement[];
+  allRefs: HTMLElement[];
+  surveyEmptyRef: HTMLElement | null;
+  surveyRefs: HTMLElement[];
   footerRef: HTMLElement | null;
 }
 
@@ -396,9 +555,10 @@ const analysisReportRef = ref<AnalysisReportExposed | null>(null);
 
 const itemsPerPage = ref(REPORT_ITEMS_PER_CAPTURE_PAGE);
 
-const { downloadAsZip, downloadAsPdf, isGeneratingZip, isGeneratingPdf } = useReportDownload({
-  fileName: computed(() => `test-report-${selectedClusterCount.value}groups`),
-});
+const { downloadAsZip, downloadAsPdf, isGeneratingZip, isGeneratingPdf } =
+  useReportDownload({
+    fileName: computed(() => `test-report-${selectedClusterCount.value}groups`),
+  });
 
 function buildCaptures(): Array<{ element: HTMLElement; name: string }> {
   const report = analysisReportRef.value;
@@ -419,7 +579,10 @@ function buildCaptures(): Array<{ element: HTMLElement; name: string }> {
     }
   }
   if (report.agreementEmptyRef?.isConnected) {
-    captures.push({ element: report.agreementEmptyRef, name: "agreements-empty" });
+    captures.push({
+      element: report.agreementEmptyRef,
+      name: "agreements-empty",
+    });
   }
   for (let j = 0; j < report.agreementRefs.length; j++) {
     const el = report.agreementRefs[j];
@@ -428,7 +591,10 @@ function buildCaptures(): Array<{ element: HTMLElement; name: string }> {
     }
   }
   if (report.disagreementEmptyRef?.isConnected) {
-    captures.push({ element: report.disagreementEmptyRef, name: "disagreements-empty" });
+    captures.push({
+      element: report.disagreementEmptyRef,
+      name: "disagreements-empty",
+    });
   }
   for (let j = 0; j < report.disagreementRefs.length; j++) {
     const el = report.disagreementRefs[j];
@@ -443,6 +609,24 @@ function buildCaptures(): Array<{ element: HTMLElement; name: string }> {
     const el = report.divisiveRefs[j];
     if (el?.isConnected) {
       captures.push({ element: el, name: `divisive-${j}` });
+    }
+  }
+  if (report.surveyEmptyRef?.isConnected) {
+    captures.push({ element: report.surveyEmptyRef, name: "survey-empty" });
+  }
+  for (let j = 0; j < report.surveyRefs.length; j++) {
+    const el = report.surveyRefs[j];
+    if (el?.isConnected) {
+      captures.push({ element: el, name: `survey-${j}` });
+    }
+  }
+  if (report.allEmptyRef?.isConnected) {
+    captures.push({ element: report.allEmptyRef, name: "all-empty" });
+  }
+  for (let j = 0; j < report.allRefs.length; j++) {
+    const el = report.allRefs[j];
+    if (el?.isConnected) {
+      captures.push({ element: el, name: `all-${j}` });
     }
   }
 
@@ -517,8 +701,10 @@ async function handleDownloadPdf(): Promise<void> {
 
 .download-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: center;
+  align-items: center;
   margin-bottom: 1rem;
 }
 

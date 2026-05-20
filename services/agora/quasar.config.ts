@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
-import type { Plugin } from "vite";
+import tidewave from "tidewave/vite-plugin";
 import viteCompression from "vite-plugin-compression";
 
 import { defineConfig } from "#q-app/wrappers";
@@ -26,7 +26,15 @@ export default defineConfig((ctx) => {
     boot.push("sentry");
   }
   boot.push(
-    ...["i18n", "axios", "primevue", "vue-query", "embeddedBrowserGuard", "maz-ui"]
+    ...[
+      "i18n",
+      "axios",
+      "primevue",
+      "vue-query",
+      "embeddedBrowserGuard",
+      "maz-ui",
+      "spaLinkInterceptor",
+    ]
   );
 
   if (process.env.NODE_ENV) {
@@ -68,10 +76,9 @@ export default defineConfig((ctx) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#build
     build: {
-      sourcemap: true, // should be just boolean true, see https://github.com/quasarframework/quasar/issues/14589
-      minify: "terser",
+      sourcemap: "hidden", // generates .map files for Sentry but strips sourceMappingURL from bundles so browsers don't download them
       target: {
-        browser: ["es2020", "firefox115", "chrome115", "safari14", "chrome86"],
+        browser: ["es2020", "firefox115", "chrome86", "safari14"],
         node: "node20",
       },
 
@@ -105,6 +112,10 @@ export default defineConfig((ctx) => {
           viteConf.resolve.alias = {};
         }
 
+        if (ctx.dev) {
+          viteConf.plugins.push(tidewave());
+        }
+
         // Point Node.js modules to stub files
         viteConf.resolve.alias = {
           ...viteConf.resolve.alias,
@@ -112,6 +123,8 @@ export default defineConfig((ctx) => {
           fs: resolve(__dirname, "src/stubs/fs.js"),
           path: resolve(__dirname, "src/stubs/path.js"),
           crypto: resolve(__dirname, "src/stubs/crypto.js"),
+          "source-map-js": resolve(__dirname, "src/stubs/source-map-js.js"),
+          url: resolve(__dirname, "src/stubs/url.js"),
         };
 
         // Add Sentry plugin in production (non-staging) builds
@@ -167,7 +180,7 @@ export default defineConfig((ctx) => {
             // Note: config.env only contains VITE_* vars, so we use process.env
             validateEnv(process.env);
           },
-        } satisfies Plugin,
+        },
         viteCompression({
           algorithm: "gzip",
           ext: ".gz",
@@ -185,10 +198,10 @@ export default defineConfig((ctx) => {
           { server: false },
         ],
         [
-          "unplugin-vue-router/vite",
+          "vue-router/vite",
           {
             // routesFolder: 'src/pages',
-            dts: "./typed-router.d.ts",
+            dts: "./src/route-map.d.ts",
           },
         ],
       ],

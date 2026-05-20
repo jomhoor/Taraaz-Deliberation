@@ -1,21 +1,12 @@
 <template>
-  <DrawerLayout
-    :general-props="{
-      addGeneralPadding: false,
-      addBottomPadding: true,
-      enableFooter: false,
-      enableHeader: true,
-      reducedWidth: true,
-    }"
-  >
-    <template #header>
-      <StandardMenuBar
-        :title="t('analysisTabTest')"
-        :center-content="true"
-      />
-    </template>
+  <Teleport v-if="isActive" to="#page-header">
+    <StandardMenuBar
+      :title="t('analysisTabTest')"
+      :center-content="true"
+    />
+  </Teleport>
 
-    <div class="page-container">
+  <div class="page-container">
       <PrimeCard class="control-card">
         <template #title>
           <div class="section-header">
@@ -42,14 +33,14 @@
               <label for="ai-labels" class="control-label">
                 {{ t("aiLabelsLabel") }}
               </label>
-              <PrimeSelect
-                id="ai-labels"
-                v-model="useAiLabels"
-                :options="aiLabelOptions"
-                option-label="label"
-                option-value="value"
-                class="control-select"
-              />
+            <PrimeSelect
+              id="ai-labels"
+              v-model="aiLabelMode"
+              :options="aiLabelOptions"
+              option-label="label"
+              option-value="value"
+              class="control-select"
+            />
             </div>
             <div class="control-item">
               <label for="distribution" class="control-label">
@@ -59,6 +50,19 @@
                 id="distribution"
                 v-model="distributionMode"
                 :options="distributionOptions"
+                option-label="label"
+                option-value="value"
+                class="control-select"
+              />
+            </div>
+            <div class="control-item">
+              <label for="number-scale" class="control-label">
+                {{ tSurveyControls("numberScaleLabel") }}
+              </label>
+              <PrimeSelect
+                id="number-scale"
+                v-model="numberScale"
+                :options="numberScaleOptions"
                 option-label="label"
                 option-value="value"
                 class="control-select"
@@ -90,6 +94,45 @@
                 class="control-select"
               />
             </div>
+            <div class="control-item">
+              <label for="viewer-access" class="control-label">
+                {{ tSurveyControls("viewerAccessLabel") }}
+              </label>
+              <PrimeSelect
+                id="viewer-access"
+                v-model="surveyViewerAccess"
+                :options="viewerAccessOptions"
+                option-label="label"
+                option-value="value"
+                class="control-select"
+              />
+            </div>
+            <div class="control-item">
+              <label for="survey-scenario" class="control-label">
+                {{ tSurveyControls("reportSurveyDataLabel") }}
+              </label>
+              <PrimeSelect
+                id="survey-scenario"
+                v-model="surveyScenario"
+                :options="surveyScenarioOptions"
+                option-label="label"
+                option-value="value"
+                class="control-select"
+              />
+            </div>
+            <div class="control-item">
+              <label for="survey-status" class="control-label">
+                Survey status
+              </label>
+              <PrimeSelect
+                id="survey-status"
+                v-model="surveyGateScenario"
+                :options="surveyStatusOptions"
+                option-label="label"
+                option-value="value"
+                class="control-select"
+              />
+            </div>
           </div>
         </template>
       </PrimeCard>
@@ -104,16 +147,36 @@
         <template #content>
           <div class="analysis-container">
             <div class="analysis-header">
-              <ShortcutBar v-model="currentTab" />
+              <ShortcutBar
+                :model-value="currentTab"
+                :items="polisTabItems"
+                :get-label="getPolisTabLabel"
+                @update:model-value="onTabChange"
+              />
+            </div>
+
+            <!-- Me tab -->
+            <div
+              v-if="currentTab === 'Summary' || currentTab === 'Me'"
+              class="tab-component"
+            >
+              <MeTab
+                v-model="currentTab"
+                :cluster-key="userClusterData.clusterKey"
+                :ai-label="userClusterData.aiLabel"
+                :ai-summary="userClusterData.aiSummary"
+                :has-voted-on-all-available-opinions="false"
+                :navigate-to-discover-tab="handleDevVoteMore"
+              />
             </div>
 
             <!-- Opinion groups -->
             <div
-              v-if="currentTab === 'Summary' || currentTab === 'Groups'"
+              v-if="currentTab === 'Summary' || currentTab === 'Groups' || currentTab === 'Me'"
               class="tab-component"
             >
               <OpinionGroupTab
-                :key="`groups-${selectedClusterCount}-${useAiLabels}-${distributionMode}-${ungroupedMode}`"
+                :key="`groups-${selectedClusterCount}-${aiLabelMode}-${distributionMode}-${numberScale}-${ungroupedMode}`"
                 :conversation-slug-id="mockConversationSlugId"
                 :clusters="mockClusters"
                 :total-participant-count="totalParticipantCount"
@@ -167,32 +230,71 @@
                 :cluster-labels="clusterLabels"
               />
             </div>
+
+            <div
+              v-if="hasMockSurvey && (currentTab === 'Summary' || currentTab === 'Survey')"
+              class="tab-component"
+            >
+              <SurveyTab
+                v-model="currentTab"
+                :conversation-slug-id="mockConversationSlugId"
+                :survey-gate="mockSurveyGate"
+                :survey-query="surveyResultsQuery"
+                :clusters="mockClusters"
+                :total-participant-count="totalParticipantCount"
+                :compact-mode="currentTab === 'Summary'"
+              />
+            </div>
           </div>
         </template>
       </PrimeCard>
     </div>
-  </DrawerLayout>
 </template>
 
 <script setup lang="ts">
+import { useQuery } from "@tanstack/vue-query";
 import Card from "primevue/card";
 import Select from "primevue/select";
 import { StandardMenuBar } from "src/components/navigation/header/variants";
 import ConsensusTab from "src/components/post/analysis/consensusTab/ConsensusTab.vue";
 import DivisiveTab from "src/components/post/analysis/divisivenessTab/DivisiveTab.vue";
+import MeTab from "src/components/post/analysis/meTab/MeTab.vue";
 import OpinionGroupTab from "src/components/post/analysis/opinionGroupTab/OpinionGroupTab.vue";
+import {
+  type ShortcutBarTranslations,
+  shortcutBarTranslations,
+} from "src/components/post/analysis/shortcutBar/ShortcutBar.i18n";
 import ShortcutBar from "src/components/post/analysis/shortcutBar/ShortcutBar.vue";
+import SurveyTab from "src/components/post/analysis/surveyTab/SurveyTab.vue";
+import { usePageLayout } from "src/composables/layout/usePageLayout";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
-import DrawerLayout from "src/layouts/DrawerLayout.vue";
 import type {
   AnalysisOpinionItem,
   ClusterStats,
   PolisClusters,
   PolisKey,
+  SurveyGateStatus,
+  SurveyGateSummary,
 } from "src/shared/types/zod";
+import { formatAmount } from "src/utils/common";
 import type { ShortcutItem } from "src/utils/component/analysis/shortcutBar";
-import { computed, ref } from "vue";
+import { shortcutItemSchema } from "src/utils/component/analysis/shortcutBar";
+import { computed, ref, watch } from "vue";
 
+import {
+  type AnalysisReportTestTranslations,
+  analysisReportTestTranslations,
+} from "./analysis-report-test.i18n";
+import {
+  type AiLabelMode,
+  aiSummaries,
+  buildMockSurveyResults,
+  longAiLabels,
+  mockStatements,
+  polisKeys,
+  shortAiLabels,
+  type SurveyScenario,
+} from "./analysisTestData";
 import {
   type OpinionGroupVisualizationTranslations,
   opinionGroupVisualizationTranslations,
@@ -205,17 +307,73 @@ defineOptions({
   },
 });
 
+const { isActive } = usePageLayout({ enableFooter: false, reducedWidth: true, addBottomPadding: true });
+
 const { t } = useComponentI18n<OpinionGroupVisualizationTranslations>(
   opinionGroupVisualizationTranslations
 );
 
+const { t: tShortcut } = useComponentI18n<ShortcutBarTranslations>(
+  shortcutBarTranslations,
+);
+
+const { t: tSurveyControls } =
+  useComponentI18n<AnalysisReportTestTranslations>(
+    analysisReportTestTranslations,
+  );
+
 const mockConversationSlugId = "dev-test";
 const currentTab = ref<ShortcutItem>("Summary");
+
+const polisTabItems = computed<ShortcutItem[]>(() => [
+  "Summary",
+  "Me",
+  "Groups",
+  "Agreements",
+  "Disagreements",
+  "Divisive",
+  ...(hasMockSurvey.value ? (["Survey"] as ShortcutItem[]) : []),
+]);
+
+const polisTabLabelMap: Record<string, string> = {
+  Summary: tShortcut("summary"),
+  Me: tShortcut("me"),
+  Groups: tShortcut("groups"),
+  Agreements: tShortcut("agreements"),
+  Disagreements: tShortcut("disagreements"),
+  Divisive: tShortcut("divisive"),
+  Survey: tShortcut("survey"),
+};
+
+function getPolisTabLabel(item: string): string {
+  return polisTabLabelMap[item] ?? item;
+}
+
+function onTabChange(value: string): void {
+  const parsed = shortcutItemSchema.safeParse(value);
+  if (parsed.success) {
+    currentTab.value = parsed.data;
+  }
+}
+
 const selectedClusterCount = ref(3);
-const useAiLabels = ref(true);
+const aiLabelMode = ref<AiLabelMode>("long");
 const distributionMode = ref<"balanced" | "imbalanced">("balanced");
+const numberScale = ref<"normal" | "large" | "veryLarge">("normal");
 const ungroupedMode = ref<"none" | "some" | "many">("none");
-const emptySectionsMode = ref<"none" | "all" | "agreements" | "disagreements" | "divisive">("none");
+const emptySectionsMode = ref<
+  "none" | "all" | "agreements" | "disagreements" | "divisive" | "noSurvey"
+>("none");
+const surveyViewerAccess = ref<"public" | "owner">("owner");
+const surveyScenario = ref<SurveyScenario>("visible");
+type SurveyGateScenario =
+  | "completeValid"
+  | "needsUpdate"
+  | "inProgress"
+  | "notStartedRequired"
+  | "notStartedOptional"
+  | "noSurvey";
+const surveyGateScenario = ref<SurveyGateScenario>("completeValid");
 
 const clusterCountOptions = computed(() => [
   { label: t("clusterCount0"), value: 0 },
@@ -228,8 +386,9 @@ const clusterCountOptions = computed(() => [
 ]);
 
 const aiLabelOptions = computed(() => [
-  { label: t("withAiLabels"), value: true },
-  { label: t("withoutAiLabels"), value: false },
+  { label: "Long AI labels", value: "long" as const },
+  { label: "Short AI labels", value: "short" as const },
+  { label: t("withoutAiLabels"), value: "none" as const },
 ]);
 
 const distributionOptions = computed(() => [
@@ -237,10 +396,13 @@ const distributionOptions = computed(() => [
   { label: t("distributionImbalanced"), value: "imbalanced" as const },
 ]);
 
-const ungroupedOptions = computed(() => [
-  { label: t("ungroupedNone"), value: "none" as const },
-  { label: t("ungroupedSome"), value: "some" as const },
-  { label: t("ungroupedMany"), value: "many" as const },
+const numberScaleOptions = computed(() => [
+  { label: tSurveyControls("numberScaleNormal"), value: "normal" as const },
+  { label: tSurveyControls("numberScaleLarge"), value: "large" as const },
+  {
+    label: tSurveyControls("numberScaleVeryLarge"),
+    value: "veryLarge" as const,
+  },
 ]);
 
 const emptySectionsOptions = computed(() => [
@@ -249,47 +411,98 @@ const emptySectionsOptions = computed(() => [
   { label: t("emptySectionsAgreements"), value: "agreements" as const },
   { label: t("emptySectionsDisagreements"), value: "disagreements" as const },
   { label: t("emptySectionsDivisive"), value: "divisive" as const },
+  { label: "No survey", value: "noSurvey" as const },
 ]);
 
-const ungroupedCounts: Record<"none" | "some" | "many", number> = {
-  none: 0,
-  some: 15,
-  many: 120,
-};
+const viewerAccessOptions = computed(() => [
+  {
+    label: tSurveyControls("viewerAccessPublic"),
+    value: "public" as const,
+  },
+  {
+    label: tSurveyControls("viewerAccessOwner"),
+    value: "owner" as const,
+  },
+]);
 
-// Mock data constants
-const longAiLabels = [
-  "Écologistes progressistes pour la transition énergétique",
-  "Conservateurs fiscaux attachés aux traditions institutionnelles",
-  "Réformistes sociaux-démocrates pour un État-providence renforcé",
-  "Libertariens technophiles pour la décentralisation numérique",
-  "Pragmatiques communautaires axés sur les compromis locaux",
-  "Militants pour la décentralisation radicale des institutions",
-];
+const surveyScenarioOptions = computed(() => [
+  { label: "Visible by group", value: "visible" as const },
+  { label: "Suppressed by group", value: "suppressed" as const },
+  {
+    label: "Suppressed incl. overall",
+    value: "overallSuppressed" as const,
+  },
+  { label: "Mixed groups", value: "mixed" as const },
+  { label: "No results yet", value: "empty" as const },
+]);
 
-const aiSummaries = [
-  "Ce groupe soutient des politiques environnementales progressistes et une transition énergétique rapide vers les énergies renouvelables.",
-  "Ce groupe favorise la prudence fiscale et le respect des traditions institutionnelles établies.",
-  "Ce groupe promeut des réformes sociales-démocrates avec un État-providence renforcé et des services publics de qualité.",
-  "Ce groupe valorise la liberté individuelle et les solutions technologiques décentralisées pour la gouvernance.",
-  "Ce groupe privilégie le pragmatisme communautaire et les compromis locaux basés sur l'expérience du terrain.",
-  "Ce groupe milite pour une décentralisation radicale des institutions existantes et un transfert massif de pouvoir vers les citoyens.",
-];
+const surveyStatusOptions = [
+  { label: "Complete valid", value: "completeValid" },
+  { label: "Needs update", value: "needsUpdate" },
+  { label: "In progress", value: "inProgress" },
+  { label: "Not started (required)", value: "notStartedRequired" },
+  { label: "Not started (optional)", value: "notStartedOptional" },
+  { label: "No survey", value: "noSurvey" },
+] satisfies Array<{ label: string; value: SurveyGateScenario }>;
 
-const mockStatements = [
-  "Établir un budget participatif annuel représentant au moins 10% du budget communal.",
-  "Pour développer la participation citoyenne, il est essentiel de créer des assemblées de quartier régulières.",
-  "La transparence totale des décisions du conseil municipal est une condition préalable à toute forme de gouvernance participative.",
-  "Il faudrait mettre en place une plateforme numérique de consultation citoyenne accessible à tous.",
-  "Les associations locales devraient avoir un rôle consultatif officiel dans les décisions d'urbanisme.",
-  "Créer un observatoire citoyen indépendant pour évaluer l'impact des politiques publiques.",
-  "Organiser des forums citoyens trimestriels sur les grands projets d'infrastructure.",
-  "Instaurer un droit d'initiative citoyenne permettant de proposer des délibérations au conseil municipal.",
-  "Développer des programmes d'éducation civique dans les écoles pour former les futurs citoyens.",
-  "Mettre en place un système de pétition en ligne avec obligation de réponse du conseil municipal.",
-];
+const effectiveSurveyScenario = computed<SurveyScenario>(() =>
+  emptySectionsMode.value === "noSurvey" ? "absent" : surveyScenario.value
+);
 
-const polisKeys: PolisKey[] = ["0", "1", "2", "3", "4", "5"];
+const participantScaleMultiplier = computed<number>(() => {
+  switch (numberScale.value) {
+    case "normal":
+      return 1;
+    case "large":
+      return 600;
+    case "veryLarge":
+      return 600_000;
+  }
+
+  throw new Error("Unhandled number scale");
+});
+
+const ungroupedCounts = computed<Record<"none" | "some" | "many", number>>(
+  () => ({
+    none: 0,
+    some: 15 * participantScaleMultiplier.value,
+    many: 120 * participantScaleMultiplier.value,
+  }),
+);
+
+function formatOptionCountLabel({
+  label,
+  count,
+}: {
+  label: string;
+  count: number;
+}): string {
+  const formattedCount = `(${formatAmount(count)})`;
+
+  if (/\([^)]*\)\s*$/.test(label)) {
+    return label.replace(/\([^)]*\)\s*$/, formattedCount);
+  }
+
+  return `${label} ${formattedCount}`;
+}
+
+const ungroupedOptions = computed(() => [
+  { label: t("ungroupedNone"), value: "none" as const },
+  {
+    label: formatOptionCountLabel({
+      label: t("ungroupedSome"),
+      count: ungroupedCounts.value.some,
+    }),
+    value: "some" as const,
+  },
+  {
+    label: formatOptionCountLabel({
+      label: t("ungroupedMany"),
+      count: ungroupedCounts.value.many,
+    }),
+    value: "many" as const,
+  },
+]);
 
 function generateClusterStats({
   clusterCount,
@@ -298,18 +511,18 @@ function generateClusterStats({
 }): ClusterStats[] {
   const stats: ClusterStats[] = [];
   for (let i = 0; i < clusterCount; i++) {
-    const numUsers = 5 + Math.floor(Math.random() * 20);
-    const numAgrees = Math.floor(Math.random() * numUsers);
-    const remaining = numUsers - numAgrees;
-    const numDisagrees = Math.floor(Math.random() * remaining);
-    const numPasses = remaining - numDisagrees;
+    const baseNumUsers = 5 + Math.floor(Math.random() * 20);
+    const baseNumAgrees = Math.floor(Math.random() * baseNumUsers);
+    const baseRemaining = baseNumUsers - baseNumAgrees;
+    const baseNumDisagrees = Math.floor(Math.random() * baseRemaining);
+    const baseNumPasses = baseRemaining - baseNumDisagrees;
     stats.push({
       key: polisKeys[i],
       isAuthorInCluster: i === 0,
-      numUsers,
-      numAgrees,
-      numDisagrees,
-      numPasses,
+      numUsers: baseNumUsers * participantScaleMultiplier.value,
+      numAgrees: baseNumAgrees * participantScaleMultiplier.value,
+      numDisagrees: baseNumDisagrees * participantScaleMultiplier.value,
+      numPasses: baseNumPasses * participantScaleMultiplier.value,
     });
   }
   return stats;
@@ -322,21 +535,25 @@ function generateMockOpinion({
   index: number;
   clusterCount: number;
 }): AnalysisOpinionItem {
-  const numParticipants = 30 + Math.floor(Math.random() * 30);
-  const numAgrees = Math.floor(numParticipants * (0.3 + Math.random() * 0.5));
-  const remaining = numParticipants - numAgrees;
-  const numDisagrees = Math.floor(remaining * (0.3 + Math.random() * 0.5));
-  const numPasses = remaining - numDisagrees;
+  const baseNumParticipants = 30 + Math.floor(Math.random() * 30);
+  const baseNumAgrees = Math.floor(
+    baseNumParticipants * (0.3 + Math.random() * 0.5),
+  );
+  const baseRemaining = baseNumParticipants - baseNumAgrees;
+  const baseNumDisagrees = Math.floor(
+    baseRemaining * (0.3 + Math.random() * 0.5),
+  );
+  const baseNumPasses = baseRemaining - baseNumDisagrees;
 
   return {
     opinionSlugId: `mock-op-${index}`,
     createdAt: new Date("2025-11-20"),
     updatedAt: new Date("2025-11-20"),
     opinion: mockStatements[index % mockStatements.length],
-    numParticipants,
-    numAgrees,
-    numDisagrees,
-    numPasses,
+    numParticipants: baseNumParticipants * participantScaleMultiplier.value,
+    numAgrees: baseNumAgrees * participantScaleMultiplier.value,
+    numDisagrees: baseNumDisagrees * participantScaleMultiplier.value,
+    numPasses: baseNumPasses * participantScaleMultiplier.value,
     username: `user${index + 1}`,
     moderation: { status: "unmoderated" },
     isSeed: false,
@@ -351,9 +568,17 @@ const mockClusters = computed<Partial<PolisClusters>>(() => {
   if (selectedClusterCount.value === 0) return {};
 
   const clusters: Partial<PolisClusters> = {};
+  const aiLabels =
+    aiLabelMode.value === "long"
+      ? longAiLabels
+      : aiLabelMode.value === "short"
+        ? shortAiLabels
+        : undefined;
   const balancedSizes = [145, 112, 87, 63, 48, 35];
   const imbalancedSizes = [145, 3, 2, 1, 1, 1];
-  const baseSizes = distributionMode.value === "imbalanced" ? imbalancedSizes : balancedSizes;
+  const baseSizes = (
+    distributionMode.value === "imbalanced" ? imbalancedSizes : balancedSizes
+  ).map((size) => size * participantScaleMultiplier.value);
 
   for (let i = 0; i < selectedClusterCount.value; i++) {
     const key = polisKeys[i];
@@ -370,8 +595,8 @@ const mockClusters = computed<Partial<PolisClusters>>(() => {
     clusters[key] = {
       key,
       numUsers: baseSizes[i] ?? 5,
-      aiLabel: useAiLabels.value ? longAiLabels[i] : undefined,
-      aiSummary: useAiLabels.value ? aiSummaries[i] : undefined,
+      aiLabel: aiLabels?.[i],
+      aiSummary: aiLabels === undefined ? undefined : aiSummaries[i],
       isUserInCluster: i === 0,
       representative,
     };
@@ -385,7 +610,7 @@ const totalParticipantCount = computed(() => {
     (sum, cluster) => sum + (cluster?.numUsers ?? 0),
     0,
   );
-  return clustered + ungroupedCounts[ungroupedMode.value];
+  return clustered + ungroupedCounts.value[ungroupedMode.value];
 });
 
 const clusterLabels = computed(() => {
@@ -397,6 +622,22 @@ const clusterLabels = computed(() => {
   }
   return labels;
 });
+
+const userClusterData = computed(() => {
+  const cluster = Object.values(mockClusters.value).find(
+    (item) => item?.isUserInCluster === true,
+  );
+
+  return {
+    clusterKey: cluster?.key,
+    aiLabel: cluster?.aiLabel,
+    aiSummary: cluster?.aiSummary,
+  };
+});
+
+function handleDevVoteMore(): void {
+  currentTab.value = "Summary";
+}
 
 const mockAgreementItems = computed(() => {
   if (selectedClusterCount.value === 0) return [];
@@ -442,6 +683,67 @@ const mockDivisiveItems = computed(() => {
   }
   return items.filter((item) => item.divisiveScore > 0);
 });
+
+const mockSurveyResults = computed(() =>
+  buildMockSurveyResults({
+    clusterCount: selectedClusterCount.value,
+    aiLabelMode: aiLabelMode.value,
+    surveyViewerAccess: surveyViewerAccess.value,
+    surveyScenario: effectiveSurveyScenario.value,
+    responseScaleMultiplier: participantScaleMultiplier.value,
+  }),
+);
+
+const hasMockSurvey = computed(
+  () =>
+    mockSurveyResults.value.hasSurvey && surveyGateScenario.value !== "noSurvey",
+);
+
+const surveyStatusByScenario = {
+  completeValid: "complete_valid",
+  needsUpdate: "needs_update",
+  inProgress: "in_progress",
+  notStartedRequired: "not_started",
+  notStartedOptional: "not_started",
+  noSurvey: "no_survey",
+} satisfies Record<SurveyGateScenario, SurveyGateStatus>;
+
+const mockSurveyStatus = computed<SurveyGateStatus>(
+  () => surveyStatusByScenario[surveyGateScenario.value],
+);
+
+const mockSurveyGate = computed<SurveyGateSummary>(() => ({
+  hasSurvey: hasMockSurvey.value,
+  isOptional: surveyGateScenario.value === "notStartedOptional",
+  canParticipate:
+    surveyGateScenario.value === "completeValid" ||
+    surveyGateScenario.value === "notStartedOptional",
+  status: mockSurveyStatus.value,
+}));
+
+const surveyResultsQuery = useQuery({
+  queryKey: computed(() => [
+    "dev-analysis-tab-survey-results",
+    selectedClusterCount.value,
+    aiLabelMode.value,
+    surveyViewerAccess.value,
+    effectiveSurveyScenario.value,
+    participantScaleMultiplier.value,
+    surveyGateScenario.value,
+  ]),
+  queryFn: () => mockSurveyResults.value,
+  staleTime: Infinity,
+});
+
+watch(
+  hasMockSurvey,
+  (hasSurvey) => {
+    if (!hasSurvey && currentTab.value === "Survey") {
+      currentTab.value = "Summary";
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped lang="scss">

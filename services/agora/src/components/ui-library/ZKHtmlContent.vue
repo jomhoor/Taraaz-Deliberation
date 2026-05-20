@@ -88,6 +88,8 @@ const handleClick = (event: Event) => {
   line-height: normal;
   text-align: start;
   width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .textBreak--rtl {

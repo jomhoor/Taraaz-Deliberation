@@ -2,40 +2,52 @@
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
 import {
     opinionTable,
-    pollTable,
     conversationContentTable,
-    conversationProofTable,
     conversationTable,
     userTable,
 } from "@/shared-backend/schema.js";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { generateRandomSlugId } from "@/crypto.js";
 import { log } from "@/app.js";
 import { useCommonPost } from "./common.js";
 import { httpErrors } from "@fastify/sensible";
-import type { ExtendedConversation, EventSlug, ParticipationMode, ConversationType } from "@/shared/types/zod.js";
+import type {
+    ConversationType,
+    EventSlug,
+    ExtendedConversation,
+    ExternalSourceConfig,
+    ParticipationMode,
+    SurveyConfig,
+} from "@/shared/types/zod.js";
 import type {
     CloseConversationResponse,
     OpenConversationResponse,
 } from "@/shared/types/dto.js";
 import { toUnionUndefined } from "@/shared/shared.js";
 import { postNewOpinion } from "./comment.js";
-import { nowZeroMs } from "@/shared/util.js";
+import { createMaxdiffItem } from "./maxdiffItem.js";
 import type { ConversationIds } from "@/utils/dataStructure.js";
 import { processUserGeneratedHtml } from "@/shared-app-api/html.js";
 import type { VoteBuffer } from "./voteBuffer.js";
 import { deleteAllConversationExports } from "@/service/conversationExport/index.js";
 import * as authUtilService from "@/service/authUtil.js";
+import type { GoogleCloudCredentials } from "@/shared-backend/googleCloudAuth.js";
+import {
+    getSurveyGateSummary,
+    setSurveyConfigForConversation,
+    warmSurveyTranslationsForConversation,
+} from "@/service/survey.js";
+import { isConversationOwner } from "@/service/conversationAccess.js";
+
+const MAX_CONVERSATION_SEED_ITEMS = 50;
 
 interface CreateNewPostProps {
     db: PostgresDatabase;
     voteBuffer: VoteBuffer;
     conversationTitle: string;
     conversationBody: string | null;
-    pollingOptionList: string[] | null;
     authorId: string;
     didWrite: string;
-    proof: string;
     postAsOrganization?: string;
     indexConversationAt?: string;
     isIndexed: boolean;
@@ -44,6 +56,9 @@ interface CreateNewPostProps {
     isImporting: boolean;
     seedOpinionList: string[];
     requiresEventTicket?: EventSlug;
+    externalSourceConfig?: ExternalSourceConfig | null;
+    surveyConfig?: SurveyConfig | null;
+    googleCloudCredentials?: GoogleCloudCredentials;
     importUrl?: string;
     importConversationUrl?: string;
     importExportUrl?: string;
@@ -59,8 +74,6 @@ export async function createNewPost({
     conversationBody,
     authorId,
     didWrite,
-    proof,
-    pollingOptionList,
     postAsOrganization,
     indexConversationAt,
     participationMode,
@@ -69,6 +82,9 @@ export async function createNewPost({
     isImporting,
     seedOpinionList,
     requiresEventTicket,
+    externalSourceConfig,
+    surveyConfig,
+    googleCloudCredentials,
     importUrl,
     importConversationUrl,
     importExportUrl,
@@ -76,6 +92,11 @@ export async function createNewPost({
     importAuthor,
     importMethod,
 }: CreateNewPostProps): Promise<ConversationIds> {
+    if (seedOpinionList.length > MAX_CONVERSATION_SEED_ITEMS) {
+        throw httpErrors.badRequest(
+            `A conversation can have at most ${String(MAX_CONVERSATION_SEED_ITEMS)} seed items`,
+        );
+    }
     let organizationId: number | undefined = undefined;
     if (postAsOrganization !== undefined && postAsOrganization !== "") {
         organizationId = await authUtilService.isUserPartOfOrganization({
@@ -139,32 +160,19 @@ export async function createNewPost({
                     importCreatedAt,
                     importAuthor,
                     importMethod,
+                    externalSourceConfig:
+                        externalSourceConfig ?? undefined,
                 })
                 .returning({ conversationId: conversationTable.id });
 
             const insertedConversationId = insertPostResponse[0].conversationId;
 
-            const masterProofTableResponse = await tx
-                .insert(conversationProofTable)
-                .values({
-                    type: "creation",
-                    conversationId: insertedConversationId,
-                    authorDid: didWrite,
-                    proof: proof,
-                    proofVersion: 1,
-                })
-                .returning({ proofId: conversationProofTable.id });
-
-            const proofId = masterProofTableResponse[0].proofId;
-
             const conversationContentTableResponse = await tx
                 .insert(conversationContentTable)
                 .values({
-                    conversationProofId: proofId,
                     conversationId: insertedConversationId,
                     title: conversationTitle,
                     body: conversationBody,
-                    pollId: null,
                 })
                 .returning({
                     conversationContentId: conversationContentTable.id,
@@ -180,37 +188,6 @@ export async function createNewPost({
                 })
                 .where(eq(conversationTable.id, insertedConversationId));
 
-            if (pollingOptionList != null) {
-                const newPollResult = await tx
-                    .insert(pollTable)
-                    .values({
-                        conversationContentId: insertedConversationContentId,
-                        option1: pollingOptionList[0],
-                        option2: pollingOptionList[1],
-                        option3: pollingOptionList[2] ?? null,
-                        option4: pollingOptionList[3] ?? null,
-                        option5: pollingOptionList[4] ?? null,
-                        option6: pollingOptionList[5] ?? null,
-                        option1Response: 0,
-                        option2Response: 0,
-                        option3Response: pollingOptionList[2] ? 0 : null,
-                        option4Response: pollingOptionList[3] ? 0 : null,
-                        option5Response: pollingOptionList[4] ? 0 : null,
-                        option6Response: pollingOptionList[5] ? 0 : null,
-                    })
-                    .returning({ pollId: pollTable.id });
-
-                await tx
-                    .update(conversationContentTable)
-                    .set({ pollId: newPollResult[0].pollId })
-                    .where(
-                        eq(
-                            conversationContentTable.id,
-                            insertedConversationContentId,
-                        ),
-                    );
-            }
-
             // Update the user profile's conversation count
             await tx
                 .update(userTable)
@@ -219,6 +196,55 @@ export async function createNewPost({
                     totalConversationCount: sql`${userTable.totalConversationCount} + 1`,
                 })
                 .where(eq(userTable.id, authorId));
+
+            if (seedOpinionList.length > 0) {
+                if (conversationType === "maxdiff") {
+                    for (const seedTitle of seedOpinionList) {
+                        await createMaxdiffItem({
+                            db,
+                            tx,
+                            conversationId: insertedConversationId,
+                            conversationContentId: insertedConversationContentId,
+                            authorId,
+                            title: seedTitle,
+                            isSeed: true,
+                        });
+                    }
+                } else {
+                    for (const seedOpinionText of seedOpinionList) {
+                        await postNewOpinion({
+                            db,
+                            tx,
+                            voteBuffer,
+                            commentBody: seedOpinionText,
+                            conversationSlugId,
+                            didWrite,
+                            userAgent: "Seed Opinion Creation",
+                            now,
+                            isSeed: true,
+                            conversationMetadata: {
+                                conversationId: insertedConversationId,
+                                conversationContentId: insertedConversationContentId,
+                                conversationAuthorId: authorId,
+                                conversationIsIndexed: isIndexed,
+                                conversationParticipationMode: participationMode,
+                                conversationIsClosed: false,
+                                requiresEventTicket: requiresEventTicket ?? null,
+                            },
+                        });
+                    }
+                }
+            }
+
+            if (surveyConfig !== undefined) {
+                await setSurveyConfigForConversation({
+                    db: tx,
+                    conversationId: insertedConversationId,
+                    surveyConfig: surveyConfig ?? null,
+                    now,
+                });
+            }
+
             return {
                 conversationId: insertedConversationId,
                 conversationContentId: insertedConversationContentId,
@@ -226,31 +252,17 @@ export async function createNewPost({
         },
     );
 
-    // Create seed opinions
-    if (seedOpinionList.length > 0) {
-        const now = nowZeroMs();
-        for (const seedOpinionText of seedOpinionList) {
-            await postNewOpinion({
-                db,
-                voteBuffer,
-                commentBody: seedOpinionText,
-                conversationSlugId,
-                didWrite,
-                proof,
-                userAgent: "Seed Opinion Creation",
-                now,
-                isSeed: true,
-                conversationMetadata: {
-                    conversationId,
-                    conversationContentId,
-                    conversationAuthorId: authorId,
-                    conversationIsIndexed: isIndexed,
-                    conversationParticipationMode: participationMode,
-                    conversationIsClosed: false,
-                    requiresEventTicket: requiresEventTicket ?? null,
-                },
-            });
-        }
+    if (surveyConfig !== undefined && surveyConfig !== null) {
+        void warmSurveyTranslationsForConversation({
+            db,
+            conversationId,
+            googleCloudCredentials,
+        }).catch((error: unknown) => {
+            log.warn(
+                error,
+                `[Survey Translation] Async warm-up failed after creating conversation ${conversationSlugId}`,
+            );
+        });
     }
 
     return {
@@ -273,38 +285,57 @@ export async function fetchPostBySlugId({
     personalizedUserId,
     baseImageServiceUrl,
 }: FetchPostBySlugIdProps): Promise<ExtendedConversation> {
-    try {
-        const { fetchPostItems } = useCommonPost();
-        const postData = await fetchPostItems({
-            db: db,
-            where: eq(conversationTable.slugId, conversationSlugId),
-            enableCompactBody: false,
-            personalizedUserId: personalizedUserId,
-            excludeLockedPosts: false,
-            removeMutedAuthors: false,
-            baseImageServiceUrl,
-            sortAlgorithm: "new",
-        });
+    const { fetchPostItems } = useCommonPost();
+    const postData = await fetchPostItems({
+        db: db,
+        where: eq(conversationTable.slugId, conversationSlugId),
+        enableCompactBody: false,
+        personalizedUserId: personalizedUserId,
+        excludeLockedPosts: false,
+        removeMutedAuthors: false,
+        baseImageServiceUrl,
+        sortAlgorithm: "new",
+    });
 
-        if (postData.size == 1) {
-            const [firstPost] = postData.values();
-            return firstPost;
-        } else if (postData.size > 1) {
-            const [firstPost] = postData.values();
-            log.warn(
-                `Multiple conversations hold the same slugId: ${firstPost.metadata.conversationSlugId}`,
-            );
-            return firstPost;
-        } else {
-            throw httpErrors.notFound(
-                "Failed to locate conversation slug ID in the database: " +
-                    conversationSlugId,
-            );
-        }
-    } catch (err: unknown) {
-        log.error(err);
-        throw httpErrors.internalServerError(
-            "Failed to fetch conversation by slug ID: " + conversationSlugId,
+    if (postData.size == 1) {
+        const [firstPost] = postData.values();
+        const { id: conversationId } =
+            await useCommonPost().getPostMetadataFromSlugId({
+                db,
+                conversationSlugId,
+            });
+        firstPost.interaction = {
+            ...firstPost.interaction,
+            surveyGate: await getSurveyGateSummary({
+                db,
+                conversationId,
+                participantId: personalizedUserId,
+            }),
+        };
+        return firstPost;
+    } else if (postData.size > 1) {
+        const [firstPost] = postData.values();
+        log.warn(
+            `Multiple conversations hold the same slugId: ${firstPost.metadata.conversationSlugId}`,
+        );
+        const { id: conversationId } =
+            await useCommonPost().getPostMetadataFromSlugId({
+                db,
+                conversationSlugId,
+            });
+        firstPost.interaction = {
+            ...firstPost.interaction,
+            surveyGate: await getSurveyGateSummary({
+                db,
+                conversationId,
+                participantId: personalizedUserId,
+            }),
+        };
+        return firstPost;
+    } else {
+        throw httpErrors.notFound(
+            "Failed to locate conversation slug ID in the database: " +
+                conversationSlugId,
         );
     }
 }
@@ -313,57 +344,57 @@ interface DeletePostBySlugIdProps {
     db: PostgresDatabase;
     conversationSlugId: string;
     userId: string;
-    proof: string;
-    didWrite: string;
 }
 
 export async function deletePostBySlugId({
     db,
     conversationSlugId,
     userId,
-    proof,
-    didWrite,
 }: DeletePostBySlugIdProps): Promise<void> {
     const conversationId = await db.transaction(async (tx) => {
-        // Delete the conversation
-        const updatedConversationIdResponse = await tx
+        const conversationRows = await tx
+            .select({
+                conversationId: conversationTable.id,
+                authorId: conversationTable.authorId,
+                organizationId: conversationTable.organizationId,
+                currentContentId: conversationTable.currentContentId,
+            })
+            .from(conversationTable)
+            .where(eq(conversationTable.slugId, conversationSlugId))
+            .limit(1);
+
+        if (conversationRows.length === 0) {
+            throw httpErrors.notFound("Conversation not found");
+        }
+
+        const conversation = conversationRows[0];
+        const isOwner = await isConversationOwner({
+            db: tx,
+            userId,
+            authorId: conversation.authorId,
+            organizationId: conversation.organizationId,
+        });
+        if (!isOwner) {
+            throw httpErrors.forbidden("Only conversation owners can delete it");
+        }
+        if (conversation.currentContentId === null) {
+            throw httpErrors.notFound("Conversation not found");
+        }
+
+        await tx
             .update(conversationTable)
             .set({
                 currentContentId: null,
             })
-            .where(
-                and(
-                    eq(conversationTable.authorId, userId),
-                    eq(conversationTable.slugId, conversationSlugId),
-                ),
-            )
-            .returning({ conversationId: conversationTable.id });
+            .where(eq(conversationTable.id, conversation.conversationId));
 
-        if (updatedConversationIdResponse.length != 1) {
-            tx.rollback();
-        }
-
-        const conversationId = updatedConversationIdResponse[0].conversationId;
-
-        // Update the user's active conversation count
+        // Update the original author's active conversation count
         await tx
             .update(userTable)
             .set({
                 activeConversationCount: sql`${userTable.activeConversationCount} - 1`,
             })
-            .where(eq(userTable.id, userId));
-
-        // Create the delete proof
-        await tx
-            .insert(conversationProofTable)
-            .values({
-                type: "deletion",
-                conversationId: conversationId,
-                authorDid: didWrite,
-                proof: proof,
-                proofVersion: 1,
-            })
-            .returning({ proofId: conversationProofTable.id });
+            .where(eq(userTable.id, conversation.authorId));
 
         // Mark all of the opinions as deleted
         await tx
@@ -371,9 +402,9 @@ export async function deletePostBySlugId({
             .set({
                 currentContentId: null,
             })
-            .where(eq(opinionTable.conversationId, conversationId));
+            .where(eq(opinionTable.conversationId, conversation.conversationId));
 
-        return conversationId;
+        return conversation.conversationId;
     });
 
     // Delete all conversation exports after the transaction completes
@@ -425,18 +456,12 @@ export async function closeConversation({
         throw httpErrors.notFound("Conversation not found");
     }
 
-    // Check authorization: user must be author OR member of the conversation's organization
-    const isAuthor = conversation[0].authorId === userId;
-    let isAuthorized = isAuthor;
-
-    if (!isAuthorized && conversation[0].organizationId !== null) {
-        isAuthorized = await authUtilService.isUserPartOfOrganizationById({
-            db,
-            userId,
-            organizationId: conversation[0].organizationId,
-        });
-    }
-
+    const isAuthorized = await isConversationOwner({
+        db,
+        userId,
+        authorId: conversation[0].authorId,
+        organizationId: conversation[0].organizationId,
+    });
     if (!isAuthorized) {
         return { success: false, reason: "not_allowed" };
     }
@@ -483,18 +508,12 @@ export async function openConversation({
         throw httpErrors.notFound("Conversation not found");
     }
 
-    // Check authorization: user must be author OR member of the conversation's organization
-    const isAuthor = conversation[0].authorId === userId;
-    let isAuthorized = isAuthor;
-
-    if (!isAuthorized && conversation[0].organizationId !== null) {
-        isAuthorized = await authUtilService.isUserPartOfOrganizationById({
-            db,
-            userId,
-            organizationId: conversation[0].organizationId,
-        });
-    }
-
+    const isAuthorized = await isConversationOwner({
+        db,
+        userId,
+        authorId: conversation[0].authorId,
+        organizationId: conversation[0].organizationId,
+    });
     if (!isAuthorized) {
         return { success: false, reason: "not_allowed" };
     }

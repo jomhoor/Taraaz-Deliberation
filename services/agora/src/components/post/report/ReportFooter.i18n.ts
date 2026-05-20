@@ -21,6 +21,7 @@ export const reportFooterTranslations: Record<
     generatedOn: "Informe generado el",
     poweredBy: "Desarrollado por Taraaz Deliberation",
   },
+  fa: { generatedOn: "گزارش تولید شده در", poweredBy: "ارائه شده توسط Agora Citizen Network" },
   fr: {
     generatedOn: "Rapport généré le",
     poweredBy: "Propulsé par Taraaz Deliberation",
@@ -33,6 +34,7 @@ export const reportFooterTranslations: Record<
     generatedOn: "報告生成於",
     poweredBy: "由 Taraaz Deliberation 提供支持",
   },
+  he: { generatedOn: "הדיווח נוצר ב", poweredBy: "מופעל על ידי Agora Citizen Network" },
   ja: {
     generatedOn: "レポート生成日",
     poweredBy: "Taraaz Deliberation 提供",

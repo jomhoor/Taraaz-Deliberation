@@ -156,6 +156,8 @@ async function handleVerify() {
 </script>
 
 <style scoped lang="scss">
+@use "sass:color";
+
 .ticket-requirement-banner {
   margin-top: 0.3rem;
   position: relative;
@@ -179,30 +181,30 @@ async function handleVerify() {
   max-width: 100%;
 
   &.banner-requirement {
-    background-color: #f0f7ff;
-    border-color: #90caf9;
-    color: #1565c0;
+    background-color: rgba($warning, 0.12);
+    border-color: rgba($warning, 0.24);
+    color: color.adjust($warning, $lightness: -28%);
   }
 
   &.banner-verifying {
-    background-color: #f0f7ff;
-    border-color: #90caf9;
-    color: #1565c0;
+    background-color: rgba($primary, 0.08);
+    border-color: rgba($primary, 0.18);
+    color: $primary;
   }
 
   &.banner-verified {
-    background-color: #f1f8f4;
-    border-color: #81c784;
-    color: #2e7d32;
+    background-color: rgba($positive, 0.08);
+    border-color: rgba($positive, 0.22);
+    color: color.adjust($positive, $lightness: -12%);
   }
 
   &.banner-error {
-    background-color: #ffebee;
-    border-color: #ef9a9a;
-    color: #c62828;
+    background-color: rgba($negative, 0.08);
+    border-color: rgba($negative, 0.18);
+    color: $negative;
   }
 
-  @media (max-width: 599px) {
+  @media (max-width: $breakpoint-xs-max) {
     font-size: 0.7rem;
     padding: 0.25rem 0.4rem;
     gap: 0.3rem;
@@ -216,7 +218,7 @@ async function handleVerify() {
   flex: 1;
   min-width: 0;
 
-  @media (max-width: 599px) {
+  @media (max-width: $breakpoint-xs-max) {
     gap: 0.3rem;
   }
 }
@@ -240,7 +242,7 @@ async function handleVerify() {
   :deep(.q-btn__content) {
     font-size: 0.75rem;
 
-    @media (max-width: 599px) {
+    @media (max-width: $breakpoint-xs-max) {
       font-size: 0.7rem;
     }
   }

@@ -21,18 +21,18 @@ export const VALKEY_QUEUE_KEYS = {
     VOTE_BUFFER_DATA: "queue:votes:data",
 
     /**
-     * Export buffer queue - stores export requests for batch processing
-     * Used by: exportBuffer.ts
-     * Pattern: Export requests are added here and processed every 1s
-     */
-    EXPORT_BUFFER: "queue:exports",
-
-    /**
      * Import buffer queue - stores CSV import requests for batch processing
      * Used by: importBuffer.ts
      * Pattern: Import requests are added here and processed every 1s
      */
     IMPORT_BUFFER: "queue:imports",
+
+    /**
+     * Scoring dirty set: conversations needing Solidago rescoring.
+     * Used by: maxdiff.ts (API writes SADD), scoring-worker (SPOP to process)
+     * Pattern: SET of conversationId strings. SADD deduplicates, SPOP is atomic.
+     */
+    SCORING_DIRTY_SOLIDAGO: "scoring:dirty:solidago",
 
     /**
      * UCAN replay protection - key prefix for used UCAN hashes

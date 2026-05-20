@@ -49,7 +49,11 @@ function handleContainerClick(): void {
 
 <style scoped lang="scss">
 .menu-bar-container {
-  padding: 0.5rem;
+  padding: 1rem 1rem 0.5rem;
+  min-height: 2.6875rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
 
   &:hover {
     cursor: pointer;

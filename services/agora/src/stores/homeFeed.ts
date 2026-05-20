@@ -2,7 +2,7 @@ import { defineStore, storeToRefs } from "pinia";
 import type { FetchFeedResponse } from "src/shared/types/dto";
 import type { ExtendedConversation } from "src/shared/types/zod";
 import { useBackendPostApi } from "src/utils/api/post/post";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 import { useAuthenticationStore } from "./authentication";
 
@@ -15,13 +15,23 @@ export const useHomeFeedStore = defineStore("homeFeed", () => {
 
   const { isGuestOrLoggedIn } = storeToRefs(useAuthenticationStore());
 
-  const hasPendingNewPosts = ref(false);
+  const hasPendingNewTab = ref(false);
+  const hasPendingFollowingTab = ref(false);
+
+  const hasPendingCurrentTab = computed(() =>
+    currentHomeFeedTab.value === "new"
+      ? hasPendingNewTab.value
+      : hasPendingFollowingTab.value
+  );
 
   const canLoadMore = ref(true);
 
   const currentHomeFeedTab = ref<HomeFeedSortOption>("following");
 
-  let localTopConversationSlugIdList: string[] = [];
+  let localTopSlugIds: Record<HomeFeedSortOption, string[]> = {
+    new: [],
+    following: [],
+  };
 
   const emptyPost: ExtendedConversation = {
     metadata: {
@@ -36,7 +46,7 @@ export const useHomeFeedStore = defineStore("homeFeed", () => {
       hiddenOpinionCount: 0,
       authorUsername: "",
       lastReactedAt: new Date(),
-      participationMode: "strong_verification",
+      participationMode: "account_required",
       conversationType: "polis",
       isIndexed: true,
       conversationSlugId: "",
@@ -45,11 +55,11 @@ export const useHomeFeedStore = defineStore("homeFeed", () => {
       moderation: {
         status: "unmoderated",
       },
+      externalSourceConfig: null,
     },
     payload: {
       title: "",
       body: "",
-      poll: [],
     },
     interaction: {
       hasVoted: false,
@@ -58,81 +68,121 @@ export const useHomeFeedStore = defineStore("homeFeed", () => {
   };
 
   let fullHomeFeedList: ExtendedConversation[] = [];
-  let fullHomeFeedIndex = 0;
   const partialHomeFeedList = ref<ExtendedConversation[]>([]);
 
   function setFeedData(data: FetchFeedResponse) {
     fullHomeFeedList = [...data.conversationDataList];
-    fullHomeFeedIndex = 0;
     partialHomeFeedList.value = [];
-    hasPendingNewPosts.value = false;
-    localTopConversationSlugIdList = data.topConversationSlugIdList;
+    if (currentHomeFeedTab.value === "new") {
+      hasPendingNewTab.value = false;
+    } else {
+      hasPendingFollowingTab.value = false;
+    }
+    localTopSlugIds[currentHomeFeedTab.value] = [...data.topConversationSlugIdList];
 
     canLoadMore.value = true;
     loadMore();
   }
 
-  async function hasNewPostCheck(): Promise<void> {
-    if (hasPendingNewPosts.value == true) {
+  async function hasNewPostCheck(tabOverride?: HomeFeedSortOption): Promise<void> {
+    const tab = tabOverride ?? currentHomeFeedTab.value;
+    const localList = localTopSlugIds[tab];
+
+    if (localList.length === 0) {
       return;
     }
 
-    if (localTopConversationSlugIdList.length === 0) {
-      return;
-    }
+    const pendingRef =
+      tab === "new"
+        ? hasPendingNewTab
+        : hasPendingFollowingTab;
 
     try {
       const response = await fetchRecentPost({
-        loadUserPollData: isGuestOrLoggedIn.value,
-        sortAlgorithm: currentHomeFeedTab.value,
+        loadPersonalizedData: isGuestOrLoggedIn.value,
+        sortAlgorithm: tab,
       });
 
       if (
         response.status == "success" &&
         response.data.topConversationSlugIdList.length > 0
       ) {
-        // Check for any new slug IDs
         const newItems = response.data.topConversationSlugIdList.filter(
-          (slugId: string) => !localTopConversationSlugIdList.includes(slugId)
+          (slugId: string) => !localList.includes(slugId)
         );
         if (newItems.length > 0) {
-          localTopConversationSlugIdList =
+          localTopSlugIds[tab] =
             response.data.topConversationSlugIdList;
-          hasPendingNewPosts.value = true;
+          pendingRef.value = true;
         } else {
-          hasPendingNewPosts.value = false;
+          pendingRef.value = false;
         }
       } else {
-        hasPendingNewPosts.value = false;
+        pendingRef.value = false;
       }
     } catch (error) {
       console.error("Error checking for new posts:", error);
-      hasPendingNewPosts.value = false;
+      pendingRef.value = false;
     }
   }
 
   function loadMore(): boolean {
-    if (fullHomeFeedIndex < fullHomeFeedList.length) {
-      const end = Math.min(
-        fullHomeFeedIndex + POSTS_PER_PAGE,
-        fullHomeFeedList.length
+    if (fullHomeFeedList.length > 0) {
+      const itemsToLoad: ExtendedConversation[] = fullHomeFeedList.splice(
+        0,
+        Math.min(POSTS_PER_PAGE, fullHomeFeedList.length)
       );
-      const itemsToLoad = fullHomeFeedList.slice(fullHomeFeedIndex, end);
-      fullHomeFeedIndex = end;
-      partialHomeFeedList.value =
-        partialHomeFeedList.value.concat(itemsToLoad);
+      partialHomeFeedList.value = partialHomeFeedList.value.concat(itemsToLoad);
     }
 
-    return fullHomeFeedIndex < fullHomeFeedList.length;
+    const hasMore = fullHomeFeedList.length > 0;
+    return hasMore;
+  }
+
+  function onPopularConversationUpdate(topSlugIds: string[]): void {
+    const localList = localTopSlugIds["following"];
+    if (localList.length === 0) {
+      hasPendingFollowingTab.value = true;
+      return;
+    }
+    const TOP_N = 3;
+    const localTop = localList.slice(0, TOP_N);
+    const remoteTop = topSlugIds.slice(0, TOP_N);
+    const changed =
+      remoteTop.length !== localTop.length ||
+      remoteTop.some((id, i) => id !== localTop[i]);
+    if (changed) {
+      hasPendingFollowingTab.value = true;
+    }
+  }
+
+  function clearFeedDisplay() {
+    fullHomeFeedList = [];
+    partialHomeFeedList.value = [];
+    canLoadMore.value = true;
+  }
+
+  function clearFeedData() {
+    fullHomeFeedList = [];
+    partialHomeFeedList.value = [];
+    hasPendingNewTab.value = false;
+    hasPendingFollowingTab.value = false;
+    localTopSlugIds = { new: [], following: [] };
+    canLoadMore.value = true;
   }
 
   return {
     setFeedData,
+    clearFeedDisplay,
+    clearFeedData,
     hasNewPostCheck,
+    onPopularConversationUpdate,
     loadMore,
     partialHomeFeedList,
     emptyPost,
-    hasPendingNewPosts,
+    hasPendingNewTab,
+    hasPendingFollowingTab,
+    hasPendingCurrentTab,
     currentHomeFeedTab,
     canLoadMore,
   };

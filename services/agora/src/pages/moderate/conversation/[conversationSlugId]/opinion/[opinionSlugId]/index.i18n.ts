@@ -41,6 +41,24 @@ export const opinionModerationTranslations: Record<
     modifyButton: "Modificar",
     withdrawButton: "Retirar",
   },
+  fa: {
+    title: "مدیریت محتوای گزاره",
+    actionLabel: "اقدام",
+    reasonLabel: "دلیل",
+    explanationLabel: "توضیحات (اختیاری)",
+    moderateButton: "مدیریت محتوا",
+    modifyButton: "تغییر",
+    withdrawButton: "بازپس‌گیری",
+  },
+  he: {
+    title: "ניהול תוכן ההצהרה",
+    actionLabel: "פעולה",
+    reasonLabel: "סיבה",
+    explanationLabel: "הסבר (אופציונלי)",
+    moderateButton: "ניהול תוכן",
+    modifyButton: "שינוי",
+    withdrawButton: "משיכה",
+  },
   fr: {
     title: "Modérer la proposition",
     actionLabel: "Action",
@@ -51,7 +69,7 @@ export const opinionModerationTranslations: Record<
     withdrawButton: "Retirer",
   },
   "zh-Hans": {
-    title: "管理观点",
+    title: "管理意见",
     actionLabel: "操作",
     reasonLabel: "原因",
     explanationLabel: "解释（可选）",
@@ -60,7 +78,7 @@ export const opinionModerationTranslations: Record<
     withdrawButton: "撤回",
   },
   "zh-Hant": {
-    title: "管理觀點",
+    title: "管理意見",
     actionLabel: "操作",
     reasonLabel: "原因",
     explanationLabel: "解釋（可選）",
@@ -69,7 +87,7 @@ export const opinionModerationTranslations: Record<
     withdrawButton: "撤回",
   },
   ja: {
-    title: "主張を管理",
+    title: "意見を管理",
     actionLabel: "操作",
     reasonLabel: "理由",
     explanationLabel: "説明（任意）",

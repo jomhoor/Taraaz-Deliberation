@@ -69,6 +69,7 @@ export const ZodSupportedDisplayLanguageCodes = z.enum([
     "ja",
     "ar",
     "fa",
+    "he",
     "ky",
     "ru",
 ]);
@@ -229,7 +230,7 @@ export const SupportedSpokenLanguageMetadataList: LanguageMetadata[] = [
         code: "he",
         name: "עברית",
         englishName: "Hebrew",
-        displaySupported: false,
+        displaySupported: true,
     },
     {
         code: "hi",

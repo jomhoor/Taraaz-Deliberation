@@ -29,6 +29,11 @@ export const postLockedMessageTranslations: Record<
       "Esta conversación fue cerrada por el propietario. No se pueden publicar nuevas proposiciones ni votos.",
     editButton: "Editar",
   },
+  fa: {
+    lockedMessage: "پست به عنوان «{reason}» قفل شده است. گزاره‌های جدید قابل ارسال نیستند.",
+    closedMessage: "این گفتگو توسط مالک بسته شده است. گزاره‌ها و رأی‌های جدید قابل ارسال نیستند.",
+    editButton: "ویرایش",
+  },
   fr: {
     lockedMessage:
       'Publication verrouillée en tant que "{reason}". De nouvelles propositions ne peuvent pas être publiées.',
@@ -37,20 +42,25 @@ export const postLockedMessageTranslations: Record<
     editButton: "Modifier",
   },
   "zh-Hans": {
-    lockedMessage: '帖子被锁定为"{reason}"。无法发布新观点。',
-    closedMessage: "此对话已被所有者关闭。无法发布新观点和投票。",
+    lockedMessage: '帖子被锁定为"{reason}"。无法发布新意见。',
+    closedMessage: "此对话已被所有者关闭。无法发布新意见和投票。",
     editButton: "编辑",
   },
   "zh-Hant": {
-    lockedMessage: '帖子被鎖定為"{reason}"。無法發布新觀點。',
-    closedMessage: "此對話已被所有者關閉。無法發布新觀點和投票。",
+    lockedMessage: '帖子被鎖定為"{reason}"。無法發布新意見。',
+    closedMessage: "此對話已被所有者關閉。無法發布新意見和投票。",
     editButton: "編輯",
+  },
+  he: {
+    lockedMessage: "הפוסט ננעל כ-\"{reason}\". לא ניתן לפרסם הצהרות חדשות.",
+    closedMessage: "שיחה זו נסגרה על ידי הבעלים. לא ניתן לפרסם הצהרות והצבעות חדשות.",
+    editButton: "עריכה",
   },
   ja: {
     lockedMessage:
-      "投稿が「{reason}」によってロックされています。新しい主張を投稿できません。",
+      "投稿が「{reason}」によってロックされています。新しい意見を投稿できません。",
     closedMessage:
-      "この会話はオーナーによって閉じられました。新しい主張や投票を投稿できません。",
+      "この会話はオーナーによって閉じられました。新しい意見や投票を投稿できません。",
     editButton: "編集",
   },
   fa: {
