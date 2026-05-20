@@ -102,7 +102,7 @@
         </p>
         <p>
           برای گزارش محتوای غیرقانونی یا رسیدگی به نگرانی‌های اعتدال و قانونی، لطفاً با ما از طریق
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>
           تماس بگیرید.
         </p>
       </section>
@@ -178,7 +178,7 @@
         <h2>۱۲. قانون حاکم و حل اختلاف</h2>
         <p>
           این شرایط تحت قوانین فرانسه تنظیم و تفسیر می‌شوند. در صورت بروز اختلاف، ابتدا تلاش کنید آن را به صورت غیررسمی با ما حل کنید از طریق
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>.
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>.
           اختلافاتی که به صورت غیررسمی قابل حل نباشند در صلاحیت انحصاری دادگاه‌های نویی‌سور‌سن خواهند بود.
         </p>
       </section>
@@ -201,7 +201,7 @@
         <h2>۱۵. اطلاعات تماس</h2>
         <p>
           برای سؤالات یا نگرانی‌های مربوط به این شرایط، با ما تماس بگیرید:
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>
         </p>
         <p>
           با استفاده از تراز، این شرایط و هرگونه تغییر آتی را می‌پذیرید.
@@ -219,8 +219,8 @@
       <p><strong>Last updated on</strong>: 2025/10/07 (YYYY/MM/DD)</p>
 
       <p>
-        Welcome to Agora Citizen Network ("Agora")! These Terms and Conditions
-        ("Terms") govern your access to and use of the Agora platform, including
+        Welcome to Jomhoor ("Jomhoor")! These Terms and Conditions
+        ("Terms") govern your access to and use of the Jomhoor platform, including
         our website, mobile applications and other services (collectively, the
         "Services"). By accessing or using the Services, you agree to be bound
         by these Terms. If you do not agree, you may not access or use the
@@ -230,13 +230,13 @@
       <section>
         <h2>1. Your access to the services</h2>
         <p>
-          Agora is only available to users aged 16 years or older. By using
-          Agora, you confirm that you meet this age requirement and that you are
+          Jomhoor is only available to users aged 16 years or older. By using
+          Jomhoor, you confirm that you meet this age requirement and that you are
           over the minimum age required by the laws of your country of residence
           to access and use the Services.
         </p>
         <p>
-          You are not required to create an account to browse Agora. However, to
+          You are not required to create an account to browse Jomhoor. However, to
           participate in discussions and interact with content ("Content"), you
           may need to register using one of the following methods:
         </p>
@@ -246,7 +246,7 @@
             Log-in via cryptographic proof from third-party verification apps
             (Rarimo, Zupass), which verify your identity using Zero-Knowledge
             Proofs (ZKP). These methods ensure that your identity is validated
-            while maintaining privacy. Agora receives only cryptographic proofs
+            while maintaining privacy. Jomhoor receives only cryptographic proofs
             confirming uniqueness and eligibility, never the underlying identity
             documents or ticket information. Note that it is not possible to
             register via
@@ -261,13 +261,13 @@
         </ul>
         <p>You must not use the Services if:</p>
         <ul>
-          <li>You have been suspended or removed from Agora.</li>
+          <li>You have been suspended or removed from Jomhoor.</li>
           <li>
             You are legally prohibited from using the Services in your
             jurisdiction.
           </li>
           <li>
-            You cannot form a binding contract with Agora, or if you are under
+            You cannot form a binding contract with Jomhoor, or if you are under
             the age of majority in your jurisdiction, unless your legal guardian
             has reviewed and agreed to these Terms.
           </li>
@@ -277,23 +277,23 @@
       <section>
         <h2>2. Privacy Policy</h2>
         <p>
-          Agora's Privacy Policy explains how we collect, use and protect your
+          Jomhoor's Privacy Policy explains how we collect, use and protect your
           personal data. By using the Services, you consent to the collection
           and processing of your information as described in the Privacy Policy.
           For more details, visit the
-          <a href="/legal/privacy">Agora Privacy Policy</a>.
+          <a href="/legal/privacy">Jomhoor Privacy Policy</a>.
         </p>
       </section>
 
       <section>
         <h2>3. Your use of the services</h2>
         <p>
-          Subject to these Terms, Agora grants you a non-exclusive,
+          Subject to these Terms, Jomhoor grants you a non-exclusive,
           non-transferable, revocable license to use the Services. You may not:
         </p>
         <ul>
           <li>
-            Use Agora to spread misinformation, hate speech or harassment.
+            Use Jomhoor to spread misinformation, hate speech or harassment.
           </li>
           <li>Engage in illegal activities.</li>
           <li>
@@ -305,10 +305,10 @@
             inappropriate content.
           </li>
           <li>
-            Use Agora to stalk, intimidate or threaten individuals or groups.
+            Use Jomhoor to stalk, intimidate or threaten individuals or groups.
           </li>
           <li>
-            Attempt to manipulate or exploit Agora's platform, algorithms or
+            Attempt to manipulate or exploit Jomhoor's platform, algorithms or
             features for personal or commercial gain.
           </li>
           <li>
@@ -324,7 +324,7 @@
             commercially exploit the Services or Content
           </li>
           <li>
-            Attempt to hack, disrupt, or reverse-engineer Agora's
+            Attempt to hack, disrupt, or reverse-engineer Jomhoor's
             infrastructure.
           </li>
           <li>Use automated tools to scrape or extract content.</li>
@@ -341,10 +341,10 @@
           </li>
         </ul>
         <p>
-          Agora retains the right to modify or remove features at any time
+          Jomhoor retains the right to modify or remove features at any time
           without prior notice. Any future enhancements, updates, or additions
           to the Services will be governed by these Terms, which may be revised
-          periodically. You acknowledge that Agora is not liable to you or any
+          periodically. You acknowledge that Jomhoor is not liable to you or any
           third party for any modifications, suspensions or discontinuations of
           the Services or any of their components.
         </p>
@@ -355,26 +355,26 @@
         <p>
           The Services may contain various types of content, including text,
           links, images, videos, audio, and other materials submitted by users
-          ("Content"). Agora does not guarantee the accuracy, completeness or
+          ("Content"). Jomhoor does not guarantee the accuracy, completeness or
           reliability of any Content and assumes no responsibility for it.
         </p>
         <p>
           By submitting Content, you confirm that you have all necessary rights
           to share it and that it does not violate any applicable laws or
           third-party rights. You are solely responsible for your content and
-          any consequences arising from sharing it on Agora.
+          any consequences arising from sharing it on Jomhoor.
         </p>
         <p>
           By using the Services, you retain ownership of your content but grant
-          Agora a worldwide, non-exclusive, royalty-free, perpetual and
+          Jomhoor a worldwide, non-exclusive, royalty-free, perpetual and
           sublicensable license to store, use, modify, distribute and display
           your content for platform functionality, compliance and operational
-          purposes. This includes the right for Agora to make your Content
+          purposes. This includes the right for Jomhoor to make your Content
           available for syndication, distribution, aggregation or publication by
           third-party partners.
         </p>
         <p>
-          Agora reserves the right to remove or restrict content at its
+          Jomhoor reserves the right to remove or restrict content at its
           discretion if it violates these Terms, applicable laws or platform
           policies.
         </p>
@@ -390,7 +390,7 @@
           <li>Violates intellectual property rights.</li>
         </ul>
         <p>
-          Agora employs a content moderation system based on user reports,
+          Jomhoor employs a content moderation system based on user reports,
           automated detection and
           <a href="/legal/guidelines">Community Guidelines</a>. Content
           violating these Terms may be removed and repeat offenders may face
@@ -399,16 +399,16 @@
         <p>
           To report illegal content or address moderation and legal concerns,
           please reach out to us at
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>.
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>.
         </p>
       </section>
 
       <section>
         <h2>6. Third party content and advertisements</h2>
         <p>
-          Agora may contain links to third-party websites, products, or
+          Jomhoor may contain links to third-party websites, products, or
           services, which may be shared by advertisers, partners, affiliates or
-          other users ("Third Party Content"). Agora does not control, endorse
+          other users ("Third Party Content"). Jomhoor does not control, endorse
           or assume any responsibility for the accuracy, legality or reliability
           of such external sources.
         </p>
@@ -418,10 +418,10 @@
           before interacting with external sources or completing transactions.
         </p>
         <p>
-          Agora may display advertisements or sponsored content. The type,
+          Jomhoor may display advertisements or sponsored content. The type,
           targeting and frequency of advertisements may change, and we reserve
           the right to place advertisements in connection with any content or
-          services provided on Agora. Your interactions with sponsored content
+          services provided on Jomhoor. Your interactions with sponsored content
           or advertisements are solely at your own risk, and we do not guarantee
           the accuracy, quality, or legitimacy of any advertised products or
           services.
@@ -431,25 +431,25 @@
       <section>
         <h2>7. Intellectual property</h2>
         <p>
-          All intellectual property associated with Agora, including but not
+          All intellectual property associated with Jomhoor, including but not
           limited to patents, trademarks, trade names, copyrights, trade
           secrets, proprietary data, know-how, moral rights, database rights,
           design rights, algorithms, software, computer code, visual interfaces
           and any other proprietary rights—whether registered or
-          unregistered—are owned or licensed by Agora. This also includes any
+          unregistered—are owned or licensed by Jomhoor. This also includes any
           applications or rights to apply for registration of such intellectual
           property under the laws of any jurisdiction.
         </p>
         <p>
           Unauthorized use, reproduction, modification, distribution, or
-          exploitation of Agora's intellectual property is strictly prohibited.
+          exploitation of Jomhoor's intellectual property is strictly prohibited.
           This includes, but is not limited to, reverse-engineering software,
           selling proprietary materials or using any proprietary content without
-          prior written permission from Agora.
+          prior written permission from Jomhoor.
         </p>
         <p>
           Any infringement of these intellectual property rights may result in
-          legal action. Agora reserves all rights not explicitly granted under
+          legal action. Jomhoor reserves all rights not explicitly granted under
           these Terms.
         </p>
       </section>
@@ -527,12 +527,12 @@
         </ul>
         <p>
           These cryptographic records exist to prove to third-party auditors
-          that Agora did not censor accounts or data but rather deleted the
+          that Jomhoor did not censor accounts or data but rather deleted the
           information only upon user request. This ensures transparency and
           trust in the system.
         </p>
         <p>
-          Agora reserves the right to suspend or terminate accounts that violate
+          Jomhoor reserves the right to suspend or terminate accounts that violate
           these Terms.
         </p>
       </section>
@@ -541,22 +541,22 @@
         <h2>9. Disclaimers and limitation of liability</h2>
         <p>
           The Services are provided "as is" without warranties of any kind.
-          Agora makes no representations or warranties of any kind, whether
+          Jomhoor makes no representations or warranties of any kind, whether
           express, implied, statutory or otherwise, including but not limited to
           warranties of merchantability, fitness for a particular purpose,
           non-infringement or availability of the Services.
         </p>
         <p>
-          Agora does not warrant that the Services will be error-free,
+          Jomhoor does not warrant that the Services will be error-free,
           uninterrupted, secure or that defects will be corrected. Users assume
           all risks associated with the use of the Services.
         </p>
         <p>
-          To the fullest extent permitted by law, Agora is not responsible for
+          To the fullest extent permitted by law, Jomhoor is not responsible for
           any indirect, incidental, consequential, punitive or special damages
           arising out of or related to your use of the Services, whether based
           on contract, tort, strict liability or any other legal theory, even if
-          Agora has been advised of the possibility of such damages. This
+          Jomhoor has been advised of the possibility of such damages. This
           includes, but is not limited to, damages for lost profits, loss of
           data, personal injury, property damage or business interruption.
         </p>
@@ -565,11 +565,11 @@
           damages, so some of these limitations may not apply to you.
         </p>
         <p>
-          While Agora implements Zero-Knowledge Proof (ZKP) technology to
+          While Jomhoor implements Zero-Knowledge Proof (ZKP) technology to
           enhance privacy and security, users acknowledge that no technology is
           infallible. There may be unforeseen vulnerabilities or flaws in the
           implementation of ZKP that could potentially lead to unauthorized data
-          exposure or privacy breaches. Agora makes no guarantees regarding the
+          exposure or privacy breaches. Jomhoor makes no guarantees regarding the
           absolute security or reliability of ZKP and assumes no liability for
           any unintended consequences arising from its use.
         </p>
@@ -587,24 +587,24 @@
         <h2>10. Indemnity</h2>
         <p>
           Except where prohibited by law, you agree to defend, indemnify and
-          hold harmless Agora, its affiliates, and their respective directors,
+          hold harmless Jomhoor, its affiliates, and their respective directors,
           officers, employees, agents, contractors, third-party service
           providers, and licensors from and against any claims, demands,
           liabilities, damages, losses and expenses (including legal fees and
           costs) arising out of or related to:
         </p>
         <ol type="a">
-          <li>your use of Agora and its Services;</li>
+          <li>your use of Jomhoor and its Services;</li>
           <li>your violation of these Terms;</li>
           <li>your violation of any applicable laws or regulations; or</li>
-          <li>any Content you submit, post, or share on Agora.</li>
+          <li>any Content you submit, post, or share on Jomhoor.</li>
         </ol>
         <p>
-          Agora reserves the right to assume control of the defense of any
+          Jomhoor reserves the right to assume control of the defense of any
           matter for which you are required to indemnify us, and you agree to
           cooperate fully with our defense of such claims. Your indemnification
           obligations will survive any termination or suspension of your use of
-          Agora and its Services.
+          Jomhoor and its Services.
         </p>
       </section>
 
@@ -633,10 +633,10 @@
           apply the laws of any jurisdiction other than France.
         </p>
         <p>
-          We want you to have a positive experience on Agora. If you have any
+          We want you to have a positive experience on Jomhoor. If you have any
           issues or disputes, you agree to first attempt to resolve them with us
           informally. You can reach out to us with any feedback or concerns at
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>.
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>.
         </p>
         <p>
           Any disputes that cannot be resolved informally shall be subject to
@@ -647,21 +647,21 @@
       <section>
         <h2>13. Changes to these Terms</h2>
         <p>
-          Agora may update these Terms from time to time to reflect changes in
+          Jomhoor may update these Terms from time to time to reflect changes in
           our services, legal requirements, or other operational needs. If we
           make significant modifications, we will notify users through in-app
           notifications, banners or prompts requiring acknowledgment before the
           changes take effect.
         </p>
         <p>
-          By continuing to access or use Agora after the revised Terms take
+          By continuing to access or use Jomhoor after the revised Terms take
           effect, you agree to be bound by the updated Terms. If you do not
-          agree to the modifications, you must discontinue your use of Agora
+          agree to the modifications, you must discontinue your use of Jomhoor
           before the changes become effective.
         </p>
         <p>
           We encourage users to review these Terms regularly to stay informed
-          about their rights and obligations when using Agora.
+          about their rights and obligations when using Jomhoor.
         </p>
       </section>
 
@@ -669,7 +669,7 @@
         <h2>14. Miscellaneous</h2>
         <p>
           These Terms, along with the Privacy Policy, constitute the entire
-          agreement governing your access to and use of Agora. Our failure to
+          agreement governing your access to and use of Jomhoor. Our failure to
           exercise or enforce any right or provision under these Terms shall not
           be considered a waiver of such right or provision.
         </p>
@@ -690,10 +690,10 @@
         <h2>15. Contact information</h2>
         <p>
           For questions or concerns regarding these Terms, contact us at:
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>
         </p>
         <p>
-          By using Agora, you acknowledge and agree to these Terms and any
+          By using Jomhoor, you acknowledge and agree to these Terms and any
           future modifications.
         </p>
         <address>

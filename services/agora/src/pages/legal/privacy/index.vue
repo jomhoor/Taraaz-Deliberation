@@ -8,16 +8,16 @@
       <p><strong>آخرین به‌روزرسانی:</strong> ۱۴۰۴/۰۸/۲۰ (سال/ماه/روز)</p>
 
       <p>
-        شبکه شهروندی تراز توسط ZKorum SAS توسعه یافته است. در ZKorum، معتقدیم که حریم خصوصی یک حق اساسی است. مأموریت ما توانمند کردن کاربران برای مشارکت در گفتمان سیاسی و اجتماعی با حفظ کنترل بر هویت و اطلاعات شخصی‌شان است.
+        شبکه شهروندی تراز توسط Jomhoor توسعه یافته است. در Jomhoor، معتقدیم که حریم خصوصی یک حق اساسی است. مأموریت ما توانمند کردن کاربران برای مشارکت در گفتمان سیاسی و اجتماعی با حفظ کنترل بر هویت و اطلاعات شخصی‌شان است.
       </p>
 
       <p>
-        این سیاست حریم خصوصی توضیح می‌دهد که چگونه شبکه شهروندی تراز («تراز»، «ما» یا «ZKorum») اطلاعات شما را هنگام استفاده از وب‌سایت و برنامه‌های موبایل ما (مجموعاً «خدمات») جمع‌آوری، استفاده و به اشتراک می‌گذارد.
+        این سیاست حریم خصوصی توضیح می‌دهد که چگونه شبکه شهروندی تراز («تراز»، «ما» یا «Jomhoor») اطلاعات شما را هنگام استفاده از وب‌سایت و برنامه‌های موبایل ما (مجموعاً «خدمات») جمع‌آوری، استفاده و به اشتراک می‌گذارد.
       </p>
 
       <p>
         اگر سؤالی دارید، لطفاً از طریق ایمیل با ما تماس بگیرید:
-        <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>.
+        <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>.
       </p>
 
       <section>
@@ -129,7 +129,7 @@
 
         <p>
           اگر درباره پردازش داده‌های شخصی خود شکایت دارید، لطفاً با ما از طریق
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>
           تماس بگیرید. اگر از پاسخ ما راضی نبودید، می‌توانید به مرجع حفاظت از داده‌های صالح، یعنی CNIL فرانسه شکایت کنید
           (<a href="http://www.cnil.fr/" target="_blank" rel="noopener noreferrer">www.cnil.fr</a>).
         </p>
@@ -153,7 +153,7 @@
         <h2>۹. سؤالی دارید؟</h2>
         <p>
           اگر سؤال بیشتری درباره پردازش داده‌های شخصی خود دارید، لطفاً با مدیر حریم خصوصی ما از طریق
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>
           تماس بگیرید.
         </p>
       </section>
@@ -163,20 +163,20 @@
       <p><strong>Last updated on</strong>: 2025/11/11 (YYYY/MM/DD)</p>
 
       <p>
-        Agora Citizen Network is developed by
+        Jomhoor is developed by
         <a
-          href="https://www.societe.com/societe/zkorum-984736173.html"
+          href="https://jomhoor.org"
           target="_blank" 
           rel="noopener noreferrer"
-          >ZKorum SAS</a
-        >. At ZKorum, we believe that privacy is a fundamental right. Our
+          >Jomhoor</a
+        >. At Jomhoor, we believe that privacy is a fundamental right. Our
         mission is to empower users to engage in political and social discourse
         while maintaining control over their identity and personal information.
       </p>
 
       <p>
-        This Privacy Policy explains how and why Agora Citizen Network ("Agora",
-        "we", "us" or "ZKorum") collects, uses, and shares information about you
+        This Privacy Policy explains how and why Jomhoor ("Jomhoor",
+        "we", "us" or "Jomhoor") collects, uses, and shares information about you
         when you use our website and mobile applications (collectively, the
         "Services") or when you otherwise interact with us. We are responsible
         for the collection and use of your personal data in the manner explained
@@ -185,19 +185,19 @@
 
       <p>
         If you have any questions about this, please contact us by e-mail:
-        <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>. If you are a
+        <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>. If you are a
         California resident, we would like to draw your attention to Article 7.
       </p>
 
       <section>
-        <h2>Agora is a public platform</h2>
+        <h2>Jomhoor is a public platform</h2>
         <p>
-          Most content on Agora is publicly accessible, meaning your profile,
+          Most content on Jomhoor is publicly accessible, meaning your profile,
           posts, votes and opinions can be viewed by anyone, even without an
           account.
         </p>
         <p>
-          You are not required to create an account to browse Agora. To
+          You are not required to create an account to browse Jomhoor. To
           participate in discussions and interact with content, you can:
         </p>
         <ul>
@@ -242,7 +242,7 @@
               </li>
             </ul>
             These methods create a registered account and ensure that your
-            identity is validated while maintaining privacy. Agora receives only
+            identity is validated while maintaining privacy. Jomhoor receives only
             cryptographic proofs confirming uniqueness and eligibility, never
             the underlying identity documents or ticket information.
           </li>
@@ -256,24 +256,24 @@
           cannot merge two verified accounts for security reasons.
         </p>
         <p>
-          Your Agora account will have a username, which can be manually
+          Your Jomhoor account will have a username, which can be manually
           selected or automatically generated. Usernames are public but do not
           need to be linked to your real identity. You may also provide optional
           profile details such as preferred topics, which can be modified or
           removed at any time.
         </p>
         <p>
-          Most content on Agora Citizen Network is public. When you submit
+          Most content on Jomhoor is public. When you submit
           content (e.g. a post, opinion or reaction), it is visible to all users
-          and may be indexed by search engines. Agora also utilizes
+          and may be indexed by search engines. Jomhoor also utilizes
           cryptographic proofs to provide data verifiability, which means
           certain interactions (such as account creation and participation) are
           publicly recorded in a decentralized manner.
         </p>
 
-        <h3>Your Agora profile</h3>
+        <h3>Your Jomhoor profile</h3>
         <p>
-          Your Agora profile is public by default and contains information such
+          Your Jomhoor profile is public by default and contains information such
           as:
         </p>
         <ul>
@@ -293,7 +293,7 @@
                 identity proofs)
               </li>
               <li>
-                Verified via phone number (Agora-signed proof binding did:keys
+                Verified via phone number (Jomhoor-signed proof binding did:keys
                 to user UUID)
               </li>
             </ul>
@@ -307,8 +307,8 @@
 
         <h3>Third-party services</h3>
         <p>
-          Agora uses third-party services that may process IP addresses and
-          other personal data. Where possible, Agora configures services to use
+          Jomhoor uses third-party services that may process IP addresses and
+          other personal data. Where possible, Jomhoor configures services to use
           EU regional endpoints or uses EU-based providers. These services have
           their own privacy policies, and users are encouraged to review them.
         </p>
@@ -341,7 +341,7 @@
             >
             (global) for phone number verification. Twilio stores phone numbers
             in cleartext and processes IP addresses for fraud prevention. Note
-            that Agora only stores hashed phone numbers (never in cleartext) in
+            that Jomhoor only stores hashed phone numbers (never in cleartext) in
             our database, but Twilio retains phone numbers according to their
             own privacy policy.
           </li>
@@ -399,13 +399,13 @@
           Services marked as "global" operate with appropriate GDPR safeguards
           as described in Article 3. Users concerned about IP address privacy
           are encouraged to use Tor or other mixnet solutions when accessing
-          Agora.
+          Jomhoor.
         </p>
 
         <h3>Cookies and analytics</h3>
         <p>
-          Agora does not track users with cookies, nor do we share tracking data
-          with third parties. For analytics purposes, Agora uses Plausible
+          Jomhoor does not track users with cookies, nor do we share tracking data
+          with third parties. For analytics purposes, Jomhoor uses Plausible
           Analytics, an EU-based solution that does not employ cookies. For more
           details, visit
           <a href="https://plausible.io/about" target="_blank"  rel="noopener noreferrer"
@@ -422,7 +422,7 @@
         <h2>1. When does this privacy policy apply?</h2>
         <p>1.1. We collect and use your personal data when you:</p>
         <ul>
-          <li>use our website (https://agoracitizen.network/);</li>
+          <li>use our website (https://taraaz.jomhoor.org/);</li>
           <li>use our mobile app; and</li>
           <li>
             communicate with us by email or any other digital communication
@@ -505,7 +505,7 @@
               <td>
                 To verify user eligibility through privacy-preserving passport
                 verification. We store a passport-derived nullifier, citizenship
-                country code, and sex. Agora receives only the cryptographic
+                country code, and sex. Jomhoor receives only the cryptographic
                 proof confirming uniqueness and eligibility, never your passport
                 number, name, photo, or other passport details. Passport
                 verification creates a permanent registered account.
@@ -676,9 +676,9 @@
           applicable.
         </p>
         <p>
-          3.5. Agora may transfer anonymized and/or aggregated data to
+          3.5. Jomhoor may transfer anonymized and/or aggregated data to
           organizations outside the jurisdiction in which you provide it. Should
-          such transfer take place, Agora will ensure that there are safeguards
+          such transfer take place, Jomhoor will ensure that there are safeguards
           in place to ensure the safety and integrity of your data and all
           rights with respect to your personal data you might enjoy under
           applicable mandatory law.
@@ -717,7 +717,7 @@
       <section>
         <h2>5. How do we keep your personal data secure?</h2>
         <p>
-          5.1. At Agora, safeguarding your personal data is a top priority. We
+          5.1. At Jomhoor, safeguarding your personal data is a top priority. We
           have implemented a range of technical and organizational measures to
           ensure that all personal data processed remains secure. These measures
           include:
@@ -737,7 +737,7 @@
             to prevent unauthorized access.
           </li>
           <li>
-            <strong>Zero-knowledge proof authentication:</strong> Agora
+            <strong>Zero-knowledge proof authentication:</strong> Jomhoor
             leverages zero-knowledge proofs (ZKP) for passport verification,
             ensuring that users can prove their eligibility without revealing
             sensitive personal information.
@@ -781,7 +781,7 @@
           </li>
           <li>
             <strong>Limited metadata collection:</strong> IP addresses are not
-            actively logged or stored by Agora, except as required by Cloudflare
+            actively logged or stored by Jomhoor, except as required by Cloudflare
             and cloud service providers for DDoS protection.
           </li>
           <li>
@@ -802,7 +802,7 @@
               >
               for anonymized crash reports:</strong
             >
-            Agora utilizes Sentry (hosted on EU servers) for error tracking and
+            Jomhoor utilizes Sentry (hosted on EU servers) for error tracking and
             crash reporting purposes. Session Replay is enabled with full text
             masking and media blocking to prevent capture of user input or
             visual content. Application state data (Vue Pinia stores) is
@@ -813,7 +813,7 @@
             does not use tracking cookies.
           </li>
           <li>
-            <strong>Pseudonymous logging for monitoring:</strong> Agora collects
+            <strong>Pseudonymous logging for monitoring:</strong> Jomhoor collects
             pseudonymous technical data for system monitoring, debugging, and
             performance optimization purposes. This includes user UUIDs,
             usernames, request metadata, and error logs. We do NOT log sensitive
@@ -929,7 +929,7 @@
         <p>
           6.8. If you have a complaint about the processing of your personal
           data by us, you can always contact us at
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>. If you are not
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>. If you are not
           satisfied with our response, you may lodge a complaint with the
           competent data protection authority, i.e. the French Commission
           nationale de l'informatique et des libertés (<a
@@ -985,7 +985,7 @@
         </p>
         <p>
           8.2. We invite you to read the latest version of this privacy policy
-          on our website (https://agoracitizen.network/). The privacy policy
+          on our website (https://taraaz.jomhoor.org/). The privacy policy
           states the date our privacy policy was last changed.
         </p>
       </section>
@@ -996,7 +996,7 @@
           9.1. Should you have any further questions about the processing of
           your personal data, please do not hesitate to contact our privacy
           manager. You can contact our privacy manager by e-mail:
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>.
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>.
         </p>
       </section>
     </article>

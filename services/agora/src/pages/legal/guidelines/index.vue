@@ -114,7 +114,7 @@
         </p>
         <p>
           اگر سؤال یا نگرانی‌ای درباره راهنمای جامعه ما دارید، با ما از طریق
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>
           تماس بگیرید.
         </p>
       </section>
@@ -124,7 +124,7 @@
       <section>
         <h2>1. Principles of Moderation</h2>
         <p>
-          Agora Citizen Network is a space for open and constructive political and social discussions.
+          Jomhoor is a space for open and constructive political and social discussions.
           To ensure a fair, respectful, and inclusive environment, our moderation system follows these
           principles:
         </p>
@@ -137,7 +137,7 @@
 
       <section>
         <h2>2. Community Standards</h2>
-        <p>To participate in Agora, users must follow these guidelines:</p>
+        <p>To participate in Jomhoor, users must follow these guidelines:</p>
 
         <h3>2.1 Respectful Discourse</h3>
         <ul>
@@ -227,11 +227,11 @@
         </ul>
         <p>
           These guidelines are designed to foster a space for meaningful, respectful, and impactful discussions.
-          Thank you for being a part of Agora Citizen Network!
+          Thank you for being a part of Jomhoor!
         </p>
         <p>
           If you have any questions or concerns about our Community Guidelines, please contact us at
-          <a href="mailto:legal@zkorum.com">legal@zkorum.com</a>.
+          <a href="mailto:admin@jomhoor.org">admin@jomhoor.org</a>.
         </p>
       </section>
     </article>
