@@ -188,22 +188,18 @@ export default defineBoot(async ({ app }) => {
   // @ts-expect-error: Type inference issue with lazy loading
   i18nInstance = i18n;
 
-  // Load the initial locale if it's not English.
-  // Fire-and-forget: the app renders immediately with English fallback strings,
-  // then updates when the locale messages finish loading.
-  if (defaultLocale !== "en") {
-    void (async () => {
-      try {
-        await loadLocaleMessages(defaultLocale);
-        setI18nLanguage(defaultLocale);
-      } catch (error) {
-        console.error("[i18n] Failed to load initial locale, using English", error);
-        setI18nLanguage("en");
-      }
-    })();
-  } else {
-    setI18nLanguage(defaultLocale);
-  }
+  // Load the initial locale (always "fa"). Fire-and-forget: the app renders
+  // immediately with English fallback strings, then updates when the locale
+  // messages finish loading.
+  void (async () => {
+    try {
+      await loadLocaleMessages(defaultLocale);
+      setI18nLanguage(defaultLocale);
+    } catch (error) {
+      console.error("[i18n] Failed to load initial locale, using English", error);
+      setI18nLanguage("en");
+    }
+  })();
 
   // Set i18n instance on app
   app.use(i18n);
