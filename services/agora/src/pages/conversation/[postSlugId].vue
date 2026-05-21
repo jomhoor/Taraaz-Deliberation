@@ -32,6 +32,14 @@
                 @verified="(payload) => handleTicketVerified(payload)"
               />
 
+              <ConversationRequirementBanner
+                v-if="loadedConversationData.interaction.surveyGate"
+                :conversation-slug-id="loadedConversationData.metadata.conversationSlugId"
+                :participation-mode="loadedConversationData.metadata.participationMode"
+                :requires-event-ticket="loadedConversationData.metadata.requiresEventTicket"
+                :survey-gate="loadedConversationData.interaction.surveyGate"
+              />
+
               <div ref="sentinelElement"></div>
               <div
                 ref="actionBarElement"
@@ -118,6 +126,7 @@ import DefaultMenuBar from "src/components/navigation/header/DefaultMenuBar.vue"
 import WidthWrapper from "src/components/navigation/WidthWrapper.vue";
 import CommentComposer from "src/components/post/comments/CommentComposer.vue";
 import CommentSortingSelector from "src/components/post/comments/group/CommentSortingSelector.vue";
+import ConversationRequirementBanner from "src/components/post/ConversationRequirementBanner.vue";
 import PostContent from "src/components/post/display/PostContent.vue";
 import PostActionBar from "src/components/post/interactionBar/PostActionBar.vue";
 import ErrorRetryBlock from "src/components/ui/ErrorRetryBlock.vue";

@@ -47,6 +47,9 @@ services:
       TWILIO_SERVICE_SID: "${TWILIO_SERVICE_SID:-}"
       # S3 exports — disabled by default
       EXPORT_CONVOS_ENABLED: "false"
+      # Survey / poll feature (must match frontend VITE_SURVEY_ENABLED)
+      SURVEY_ENABLED: "true"
+      IS_SURVEY_ORG_ONLY: "false"
     ports:
       - "127.0.0.1:8180:8080"
     networks:

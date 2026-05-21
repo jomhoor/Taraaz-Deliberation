@@ -1598,8 +1598,13 @@ export async function bulkInsertOpinionsFromExternalPolisConvo({
         };
     }
 
-    // we don't use transactions because it's too heavy
-    return await doImportOpinions(db);
+    // Use a transaction so that if the bulk currentContentId UPDATE fails,
+    // the opinion and opinion_content inserts are rolled back too.
+    // Without a transaction, a partial failure leaves opinions with
+    // currentContentId = NULL permanently (they never appear in the discover tab).
+    return await db.transaction(async (tx) => {
+        return await doImportOpinions(tx);
+    });
 }
 
 type OpinionContentById = Record<number, string>;
