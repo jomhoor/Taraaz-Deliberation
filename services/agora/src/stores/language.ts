@@ -55,10 +55,11 @@ export const useLanguageStore = defineStore("language", () => {
     getDefaultSpokenLanguages()
   );
 
-  // Initialize i18n locale to match stored display language
-  if (availableLocales.includes(displayLanguage.value)) {
-    locale.value = displayLanguage.value;
-  }
+  // Always start in Persian. The boot file already sets the i18n locale to
+  // "fa"; we must NOT override it back to whatever is in localStorage here,
+  // because that would undo the boot setup for guests who previously switched
+  // to English. Logged-in users get their preference from the backend via
+  // loadLanguagePreferencesFromBackend(). Guests get it via the watcher below.
 
   // Guests (and never-logged-in visitors) should always see Persian by default.
   // Once auth state is initialized, if the user is not logged in, reset the

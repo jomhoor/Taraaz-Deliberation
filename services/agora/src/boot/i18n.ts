@@ -152,10 +152,11 @@ export function getI18nInstance(): I18n<
 }
 
 export default defineBoot(async ({ app }) => {
-  // Get stored language preference or detect from browser, default to Farsi
-  const storedLocale = localStorage.getItem("displayLanguage");
-  const defaultLocale =
-    (storedLocale as MessageLanguages) || "fa";
+  // Always start in Persian. Non-logged-in users always see Persian; logged-in
+  // users get their stored preference applied after auth via
+  // loadLanguagePreferencesFromBackend(). Ignoring localStorage here prevents
+  // a flash of English when a previous visitor had manually switched to "en".
+  const defaultLocale: MessageLanguages = "fa";
 
   const fallbackLocale = {
     "zh-Hant": ["zh-Hans", "en"],
