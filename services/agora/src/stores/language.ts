@@ -13,7 +13,7 @@ import { isNetworkError } from "src/utils/api/common";
 import { useBackendLanguageApi } from "src/utils/api/language";
 import { parseBrowserLanguage } from "src/utils/language";
 import { useNotify } from "src/utils/ui/notify";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import {
@@ -59,6 +59,22 @@ export const useLanguageStore = defineStore("language", () => {
   if (availableLocales.includes(displayLanguage.value)) {
     locale.value = displayLanguage.value;
   }
+
+  // Guests (and never-logged-in visitors) should always see Persian by default.
+  // Once auth state is initialized, if the user is not logged in, reset the
+  // display language to "fa". The in-app language toggle still works during
+  // the session; the reset only happens once per page load.
+  const stopGuestLocaleWatch = watch(
+    () => authStore.isAuthInitialized,
+    (initialized) => {
+      if (!initialized) return;
+      if (!authStore.isLoggedIn && displayLanguage.value !== "fa") {
+        void updateLocale("fa");
+      }
+      stopGuestLocaleWatch();
+    },
+    { immediate: true }
+  );
 
   async function updateLocale(
     localeCode: SupportedDisplayLanguageCodes

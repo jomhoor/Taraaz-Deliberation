@@ -21,20 +21,9 @@
 
         <template #body>
           <ZKGradientButton
-            :label="t('verifyWithPhone')"
-            @click="verifyPhone()"
+            :label="t('connectWallet')"
+            @click="connectWallet()"
           />
-
-          <div class="wallet-coming-soon">
-            <ZKGradientButton
-              :label="t('connectWallet')"
-              gradient-background="#E0E0E0"
-              label-color="#9E9E9E"
-              disabled
-              class="disabled-button"
-            />
-            <span class="coming-soon-badge">{{ t('comingSoon') }}</span>
-          </div>
 
           <p>
             <SignupAgreement />
@@ -66,27 +55,9 @@ const { t } = useComponentI18n<Step2SignupOnboardingTranslations>(
 
 const router = useRouter();
 
-async function verifyPhone() {
-  await router.push({ name: "/onboarding/step3-phone-1/" });
+async function connectWallet() {
+  await router.push({ name: "/onboarding/step1-login/" });
 }
 </script>
 
-<style scoped lang="scss">
-.wallet-coming-soon {
-  position: relative;
-  opacity: 0.6;
-}
-
-.wallet-coming-soon .disabled-button {
-  pointer-events: none;
-  cursor: not-allowed;
-}
-
-.coming-soon-badge {
-  display: block;
-  text-align: center;
-  font-size: 0.75rem;
-  color: #9E9E9E;
-  margin-top: 4px;
-}
-</style>
+<style scoped lang="scss"></style>

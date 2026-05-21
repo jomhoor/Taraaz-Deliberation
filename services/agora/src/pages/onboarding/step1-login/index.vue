@@ -46,8 +46,6 @@
 
           <!-- Normal login buttons -->
           <template v-else>
-            <ZKGradientButton :label="t('loginWithPhone')" @click="goToPhoneLogin()" />
-
             <ZKGradientButton :label="t('connectWallet')" @click="goToJomhoorSso()" />
           </template>
 
