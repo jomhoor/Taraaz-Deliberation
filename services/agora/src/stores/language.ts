@@ -3,8 +3,8 @@ import { defineStore } from "pinia";
 import { loadLocaleMessages, setI18nLanguage } from "src/boot/i18n";
 import { useComponentI18n } from "src/composables/ui/useComponentI18n";
 import type {
-  SupportedDisplayLanguageCodes,
-  SupportedSpokenLanguageCodes,
+    SupportedDisplayLanguageCodes,
+    SupportedSpokenLanguageCodes,
 } from "src/shared/languages";
 import type { LanguagePreferences } from "src/shared/types/zod";
 import { zodLanguagePreferences } from "src/shared/types/zod";
@@ -17,8 +17,8 @@ import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import {
-  type LanguageStoreTranslations,
-  languageStoreTranslations,
+    type LanguageStoreTranslations,
+    languageStoreTranslations,
 } from "./language.i18n";
 
 function getDefaultDisplayLanguage(): SupportedDisplayLanguageCodes {
