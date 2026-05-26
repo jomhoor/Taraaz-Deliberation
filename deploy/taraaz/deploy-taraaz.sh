@@ -67,6 +67,13 @@ echo "✅ Nginx config installed"
 
 # ── 4. Update verificator config with DB password ────────────
 source "$DEPLOY_DIR/.env"
+
+if [ -z "${SSO_CLIENT_SECRET:-}" ]; then
+    echo "❌ Missing SSO_CLIENT_SECRET in $DEPLOY_DIR/.env"
+    echo "   Desktop QR sign-in requires SSO client secret for Taraaz."
+    exit 1
+fi
+
 sed -i "s|postgres://agora:CHANGEME@|postgres://agora:${AGORA_DB_PASSWORD}@|g" \
     "$DEPLOY_DIR/rarimo/config.yaml"
 

@@ -38,6 +38,10 @@ services:
       CORS_ORIGIN_LIST: "https://taraaz.jomhoor.org,https://www.taraaz.jomhoor.org"
       PEPPERS: "${AGORA_PEPPERS}"
       NODE_ENV: "production"
+      # Jomhoor SSO
+      SSO_URL: "${SSO_URL:-https://sso.jomhoor.org}"
+      SSO_CLIENT_SECRET: "${SSO_CLIENT_SECRET}"
+      AGORA_ORIGIN: "${AGORA_ORIGIN:-https://taraaz.jomhoor.org}"
       VERIFICATOR_SVC_BASE_URL: "http://agora-verificator:8000"
       POLIS_BASE_URL: "http://agora-polis:8004"
       SERVER_DID_PROD: "did:web:taraaz.jomhoor.org"
