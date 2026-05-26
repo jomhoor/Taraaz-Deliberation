@@ -17,11 +17,11 @@
 
 import { log } from "@/app.js";
 import { generateUUID } from "@/crypto.js";
-import * as authUtilService from "@/service/authUtil.js";
+import { generateUnusedRandomUsername } from "@/service/account.js";
 import { determineAuthType } from "@/service/auth/core/stateHelpers.js";
 import type { AuthResult, CredentialAuthState } from "@/service/auth/core/types.js";
+import * as authUtilService from "@/service/authUtil.js";
 import { mergeGuestIntoVerifiedUser } from "@/service/merge.js";
-import { generateUnusedRandomUsername } from "@/service/account.js";
 import {
     deviceTable,
     ssoAccountTable,
@@ -29,16 +29,16 @@ import {
     userTable,
 } from "@/shared-backend/schema.js";
 import type {
-    SsoDesktopMobileComplete200,
     SsoDesktopInitiate200,
+    SsoDesktopMobileComplete200,
     SsoDesktopPoll200,
     SsoExchange200,
 } from "@/shared/types/dto.js";
 import { nowZeroMs } from "@/shared/util.js";
 import axios from "axios";
-import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
+import { createHash, randomBytes } from "node:crypto";
 
 // ─── SSO code exchange ─────────────────────────────────────────────────────────
 

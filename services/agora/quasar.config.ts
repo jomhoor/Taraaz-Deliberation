@@ -11,8 +11,8 @@ import { visualizer } from "rollup-plugin-visualizer";
 import tidewave from "tidewave/vite-plugin";
 import viteCompression from "vite-plugin-compression";
 
-import { config as dotenvConfig } from "dotenv";
 import { defineConfig } from "#q-app/wrappers";
+import { config as dotenvConfig } from "dotenv";
 
 import { envSchema, validateEnv } from "./src/utils/processEnv";
 

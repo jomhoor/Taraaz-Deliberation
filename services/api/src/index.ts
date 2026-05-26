@@ -1,20 +1,42 @@
-import { Dto, type GetConversationResponse } from "@/shared/types/dto.js";
+import * as authService from "@/service/auth.js";
+import * as authUtilService from "@/service/authUtil.js";
+import { useCommonPost } from "@/service/common.js";
 import {
-    authenticateRequestBody,
-    verifyOtpReqBody,
+    cleanupStuckExportsOnStartup,
+    createExportWorker,
+} from "@/service/conversationExport/core.js";
+import * as conversationExportService from "@/service/conversationExport/index.js";
+import { createExportNotification } from "@/service/conversationExport/notifications.js";
+import { cleanupStuckImportsOnStartup } from "@/service/conversationImport/database.js";
+import * as conversationImportService from "@/service/conversationImport/index.js";
+import { createImportNotification } from "@/service/conversationImport/notifications.js";
+import * as csvImportService from "@/service/csvImport.js";
+import { zodCsvFiles } from "@/service/csvImport.js";
+import * as feedService from "@/service/feed.js";
+import { generateOgImage } from "@/service/ogImage.js";
+import { checkConversationParticipation } from "@/service/participationGate.js";
+import * as postService from "@/service/post.js";
+import * as postEditService from "@/service/postEdit.js";
+import * as surveyService from "@/service/survey.js";
+import type { ValkeyRef } from "@/service/valkeyRef.js";
+import { MAX_CSV_FILE_SIZE } from "@/shared-app-api/csvUpload.js";
+import { checkFeatureAccess } from "@/shared-app-api/featureAccess.js";
+import { checkMaxDiffAllowed } from "@/shared-app-api/maxdiffLogic.js";
+import {
     authenticate200,
-    verifyOtp200,
-    authenticateEmailRequestBody,
     authenticateEmail200,
-    verifyEmailOtpReqBody,
+    authenticateEmailRequestBody,
+    authenticateRequestBody,
     checkLoginStatusResponse,
-    type AuthenticateResponse,
+    verifyEmailOtpReqBody,
+    verifyOtp200,
+    verifyOtpReqBody,
     type AuthenticateEmailResponse,
+    type AuthenticateResponse,
     type VerifyOtp200,
 } from "@/shared/types/dto-auth.js";
+import { Dto, type GetConversationResponse } from "@/shared/types/dto.js";
 import { normalizeEmail } from "@/shared/types/zod-email.js";
-import { generateOgImage } from "@/service/ogImage.js";
-import { exchangeSsoCode, initiateSsoDesktopSession, completeSsoDesktopSessionFromMobile, pollSsoDesktopSession } from "./service/sso.js";
 import fastifyAuth from "@fastify/auth";
 import fastifyCors from "@fastify/cors";
 import fastifyMultipart from "@fastify/multipart";
@@ -24,7 +46,7 @@ import fastifySSE from "@fastify/sse";
 import fastifySwagger from "@fastify/swagger";
 import * as ucans from "@ucans/ucans";
 import { type PostgresJsDatabase as PostgresDatabase } from "drizzle-orm/postgres-js";
-import { type FastifyRequest, type FastifyError } from "fastify";
+import { type FastifyError, type FastifyRequest } from "fastify";
 import {
     jsonSchemaTransform,
     serializerCompiler,
@@ -33,119 +55,28 @@ import {
 } from "fastify-type-provider-zod";
 import fs from "fs";
 import { config, log, server } from "./app.js";
-import * as authService from "@/service/auth.js";
-import * as authUtilService from "@/service/authUtil.js";
-import * as csvImportService from "@/service/csvImport.js";
-import * as feedService from "@/service/feed.js";
-import * as postService from "@/service/post.js";
-import * as postEditService from "@/service/postEdit.js";
-import { checkConversationParticipation } from "@/service/participationGate.js";
-import * as surveyService from "@/service/survey.js";
-import { useCommonPost } from "@/service/common.js";
-import { MAX_CSV_FILE_SIZE } from "@/shared-app-api/csvUpload.js";
-import { checkFeatureAccess } from "@/shared-app-api/featureAccess.js";
-import { checkMaxDiffAllowed } from "@/shared-app-api/maxdiffLogic.js";
-import { zodCsvFiles } from "@/service/csvImport.js";
-import * as conversationExportService from "@/service/conversationExport/index.js";
-import * as conversationImportService from "@/service/conversationImport/index.js";
-import { cleanupStuckImportsOnStartup } from "@/service/conversationImport/database.js";
-import {
-    cleanupStuckExportsOnStartup,
-    createExportWorker,
-} from "@/service/conversationExport/core.js";
-import { createImportNotification } from "@/service/conversationImport/notifications.js";
-import { createExportNotification } from "@/service/conversationExport/notifications.js";
-import type { ValkeyRef } from "@/service/valkeyRef.js";
 import { validateS3Access } from "./service/s3.js";
+import { completeSsoDesktopSessionFromMobile, exchangeSsoCode, initiateSsoDesktopSession, pollSsoDesktopSession } from "./service/sso.js";
 
 import { backfillImportBodies } from "@/service/importBodyBackfill.js";
 import { backfillLegacyMaxdiffComparisons } from "@/service/maxdiffComparisonBackfill.js";
 // import * as polisService from "@/service/polis.js";
 // import * as migrationService from "@/service/migration.js";
 import {
-    httpMethodToAbility,
-    httpUrlToResourcePointer,
-} from "./shared-app-api/ucan/ucan.js";
-import {
-    deleteOpinionBySlugId,
-    fetchAnalysisByConversationSlugId,
-    fetchOpinionsByPostSlugId,
-    fetchOpinionsByOpinionSlugIdList,
-    postNewOpinion,
-} from "./service/comment.js";
-import {
-    saveMaxdiffResult,
-    loadMaxdiffResult,
-    getMaxdiffResults,
-    computeGlobalUncertainty,
-} from "./service/maxdiff.js";
-import { generateCandidateSets } from "./service/maxdiffRouting.js";
-import {
-    fetchMaxdiffItems,
-    updateMaxdiffItemLifecycle,
-} from "./service/maxdiffItem.js";
-import {
-    verifyWebhookSignature,
-    parseWebhookPayload,
-    handleIssueWebhook,
-    syncGitHubIssues,
-    createGitHubClient,
-} from "./service/externalSource/github.js";
-import {
-    castVoteForOpinionSlugId,
-    getUserVotesForPostSlugIds as getUserVotesByConversations,
-} from "./service/voting.js";
-import {
-    getFilteredUserComments,
-    getUserPosts,
-    getUserProfile,
-} from "./service/user.js";
+    canModerateConversation,
+    canModerateConversationByOpinionSlugId,
+    isSiteModeratorAccount,
+    isSiteOrgAdminAccount,
+} from "@/service/authUtil.js";
 import axios, { type AxiosInstance } from "axios";
-import {
-    generateVerificationLink,
-    verifyUserStatusAndAuthenticate,
-} from "./service/rarimo.js";
-import { verifyEventTicket } from "./service/zupass.js";
+import { eq } from "drizzle-orm";
+import twilio from "twilio";
 import {
     checkUserNameInUse,
     deleteUserAccount,
     generateUnusedRandomUsername,
     submitUsernameChange,
 } from "./service/account.js";
-import {
-    isSiteModeratorAccount,
-    isSiteOrgAdminAccount,
-    canModerateConversation,
-    canModerateConversationByOpinionSlugId,
-} from "@/service/authUtil.js";
-import {
-    fetchModerationReportByCommentSlugId as getOpinionModerationStatus,
-    fetchModerationReportByPostSlugId as getConversationModerationStatus,
-    moderateByCommentSlugId,
-    moderateByPostSlugId,
-    withdrawModerationReportByCommentSlugId,
-    withdrawModerationReportByPostSlugId,
-} from "./service/moderation.js";
-import {
-    createUserReportByCommentSlugId,
-    createUserReportByPostSlugId,
-    fetchUserReportsByCommentSlugId,
-    fetchUserReportsByPostSlugId,
-} from "./service/report.js";
-import {
-    getUserMutePreferences,
-    muteUserByUsername,
-} from "./service/muteUser.js";
-import {
-    getNotifications,
-    markAllNotificationsAsRead,
-} from "./service/notification.js";
-import twilio from "twilio";
-import { initializeValkey } from "./shared-backend/valkey.js";
-import { createVoteBuffer } from "./service/voteBuffer.js";
-import { createImportBuffer } from "./service/importBuffer.js";
-import { createUcanReplayGuard } from "./service/ucanReplayGuard.js";
-import { RealtimeSSEManager } from "./service/realtimeSSE.js";
 import {
     addUserOrganizationMapping,
     createOrganization,
@@ -154,29 +85,98 @@ import {
     getOrganizationsByUsername,
     removeUserOrganizationMapping,
 } from "./service/administrator/organization.js";
-import type { DeviceIsKnownTrueLoginStatus } from "./shared/types/zod.js";
 import type { DeviceLoginStatusInternal } from "./service/authUtil.js";
+import {
+    deleteOpinionBySlugId,
+    fetchAnalysisByConversationSlugId,
+    fetchOpinionsByOpinionSlugIdList,
+    fetchOpinionsByPostSlugId,
+    postNewOpinion,
+} from "./service/comment.js";
+import {
+    createGitHubClient,
+    handleIssueWebhook,
+    parseWebhookPayload,
+    syncGitHubIssues,
+    verifyWebhookSignature,
+} from "./service/externalSource/github.js";
+import { createImportBuffer } from "./service/importBuffer.js";
+import {
+    getLanguagePreferences,
+    updateLanguagePreferences,
+} from "./service/language.js";
+import {
+    computeGlobalUncertainty,
+    getMaxdiffResults,
+    loadMaxdiffResult,
+    saveMaxdiffResult,
+} from "./service/maxdiff.js";
+import {
+    fetchMaxdiffItems,
+    updateMaxdiffItemLifecycle,
+} from "./service/maxdiffItem.js";
+import { generateCandidateSets } from "./service/maxdiffRouting.js";
+import {
+    fetchModerationReportByPostSlugId as getConversationModerationStatus,
+    fetchModerationReportByCommentSlugId as getOpinionModerationStatus,
+    moderateByCommentSlugId,
+    moderateByPostSlugId,
+    withdrawModerationReportByCommentSlugId,
+    withdrawModerationReportByPostSlugId,
+} from "./service/moderation.js";
+import {
+    getUserMutePreferences,
+    muteUserByUsername,
+} from "./service/muteUser.js";
+import {
+    getNotifications,
+    markAllNotificationsAsRead,
+} from "./service/notification.js";
+import {
+    generateVerificationLink,
+    verifyUserStatusAndAuthenticate,
+} from "./service/rarimo.js";
+import { RealtimeSSEManager } from "./service/realtimeSSE.js";
+import {
+    createUserReportByCommentSlugId,
+    createUserReportByPostSlugId,
+    fetchUserReportsByCommentSlugId,
+    fetchUserReportsByPostSlugId,
+} from "./service/report.js";
 import {
     getAllTopics,
     getUserFollowedTopics,
     userFollowTopicByCode,
     userUnfollowTopicByCode,
 } from "./service/topic.js";
+import { createUcanReplayGuard } from "./service/ucanReplayGuard.js";
 import {
-    getLanguagePreferences,
-    updateLanguagePreferences,
-} from "./service/language.js";
+    getFilteredUserComments,
+    getUserPosts,
+    getUserProfile,
+} from "./service/user.js";
+import { createVoteBuffer } from "./service/voteBuffer.js";
 import {
-    ZodSupportedDisplayLanguageCodes,
-    type SupportedDisplayLanguageCodes,
-} from "./shared/languages.js";
+    castVoteForOpinionSlugId,
+    getUserVotesForPostSlugIds as getUserVotesByConversations,
+} from "./service/voting.js";
+import { verifyEventTicket } from "./service/zupass.js";
+import {
+    httpMethodToAbility,
+    httpUrlToResourcePointer,
+} from "./shared-app-api/ucan/ucan.js";
 import { createDb } from "./shared-backend/db.js";
-import { deviceTable } from "./shared-backend/schema.js";
-import { eq } from "drizzle-orm";
 import {
     initializeGoogleCloudCredentials,
     type GoogleCloudCredentials,
 } from "./shared-backend/googleCloudAuth.js";
+import { deviceTable } from "./shared-backend/schema.js";
+import { initializeValkey } from "./shared-backend/valkey.js";
+import {
+    ZodSupportedDisplayLanguageCodes,
+    type SupportedDisplayLanguageCodes,
+} from "./shared/languages.js";
+import type { DeviceIsKnownTrueLoginStatus } from "./shared/types/zod.js";
 import { nowZeroMs } from "./shared/util.js";
 
 server.register(fastifySensible);
