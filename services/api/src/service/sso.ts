@@ -373,6 +373,10 @@ export async function initiateSsoDesktopSession({
         state,
         code_challenge: codeChallenge,
         code_challenge_method: "S256",
+        // sso-svc auto-renders its own QR page when the User-Agent looks like a
+        // desktop (which axios/Node.js triggers).  Pass display=mobile to force
+        // the 302 → Location header path so we can extract the deep link here.
+        display: "mobile",
     });
 
     let ssoLocation: string;
